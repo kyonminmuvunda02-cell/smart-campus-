@@ -1,8 +1,10 @@
+import logging
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 
+from app.modules.auth.schemas.token import Token
 from app.modules.core.database import get_db
 from app.modules.core.security import verify_password, create_access_token
 from app.modules.auth.dependencies import get_current_user
@@ -10,10 +12,12 @@ from app.modules.users.models.user import AppUser
 from app.modules.users.schemas.user import AppUserResponse
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+logger = logging.getLogger(__name__)
 
 
 @router.post(
     "/login",
+    response_model=Token,
     name="login_access_token",
     operation_id="loginAccessToken",
     openapi_extra={"security": []},

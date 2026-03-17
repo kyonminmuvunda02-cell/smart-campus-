@@ -1,37 +1,37 @@
 import type { ReactNode } from 'react';
 
-interface Props {
+type HeaderTone = 'royal' | 'teal' | 'green' | 'purple';
+
+interface PageHeaderProps {
   title: string;
   subtitle?: string;
-  action?: ReactNode;
-  icon?: string;
   eyebrow?: string;
-  tone?: 'royal' | 'teal' | 'green' | 'purple' | 'amber';
+  icon?: string;
+  tone?: HeaderTone;
+  children?: ReactNode;
 }
 
 export default function PageHeader({
   title,
   subtitle,
-  action,
-  icon = 'layout-dashboard',
   eyebrow,
+  icon = 'layout-dashboard',
   tone = 'royal',
-}: Props) {
-  const toneClass = tone === 'royal' ? '' : tone;
-
+  children,
+}: PageHeaderProps) {
   return (
-    <div className="page-header">
-      <div className="page-header-main">
-        <div className={`page-header-icon ${toneClass}`.trim()}>
+    <div className="page-hd">
+      <div className="ph-left">
+        <div className={`ph-icon ${tone}`}>
           <i className={`ti ti-${icon}`} />
         </div>
         <div>
-          {eyebrow && <div className="page-header-eyebrow">{eyebrow}</div>}
-          <h1>{title}</h1>
-          {subtitle && <p>{subtitle}</p>}
+          {eyebrow && <div className="ph-kicker">{eyebrow}</div>}
+          <div className="ph-title">{title}</div>
+          {subtitle && <div className="ph-sub">{subtitle}</div>}
         </div>
       </div>
-      {action && <div className="page-header-actions">{action}</div>}
+      {children ? <div className="ph-actions">{children}</div> : null}
     </div>
   );
 }

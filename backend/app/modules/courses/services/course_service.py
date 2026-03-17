@@ -56,10 +56,12 @@ class CourseService:
 
     @staticmethod
     def delete_course(db: Session, course_id: int) -> None:
-        """Delete a course. Raises 404 if not found."""
+        """Soft-delete a course. Raises 404 if not found."""
         course = CourseService.get_course(db, course_id)
-        db.delete(course)
+        course.is_deleted = True
+        course.deleted_at = sa_func.now()
         db.flush()
+        logger.info("Course softly deleted", extra={"course_id": course_id})
 
     @staticmethod
     def assign_lecturer(db: Session, data: CourseLecturerCreate) -> CourseLecturer:

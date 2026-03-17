@@ -1,125 +1,84 @@
 import { NavLink } from 'react-router';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '@/modules/auth/context/AuthProvider';
 
-type NavItem = {
+export interface AppNavItem {
   to: string;
-  label: string;
   icon: string;
-};
-
-function linkClassName({ isActive }: { isActive: boolean }) {
-  return `shell-nav-item${isActive ? ' active' : ''}`;
+  label: string;
+  roles?: Array<'Student' | 'Lecturer' | 'Admin'>;
+  end?: boolean;
+  section: string;
 }
 
-function bottomLinkClassName({ isActive }: { isActive: boolean }) {
-  return `shell-bottom-item${isActive ? ' active' : ''}`;
+const NAV_ITEMS: AppNavItem[] = [
+  { to: '/', icon: 'home', label: 'Dashboard', end: true, section: 'Workspace' },
+  { to: '/checkin', icon: 'qrcode', label: 'Check In', roles: ['Student'], section: 'Student' },
+  { to: '/my-attendance', icon: 'calendar-check', label: 'My Attendance', roles: ['Student'], section: 'Student' },
+  { to: '/my-digital-id', icon: 'id', label: 'Digital ID', roles: ['Student'], section: 'Student' },
+  { to: '/sessions', icon: 'presentation', label: 'Sessions', roles: ['Lecturer', 'Admin'], section: 'Teaching' },
+  { to: '/sessions/new', icon: 'plus', label: 'Start Session', roles: ['Lecturer'], section: 'Teaching' },
+  { to: '/users', icon: 'users', label: 'Users', roles: ['Admin'], section: 'Administration' },
+  { to: '/courses', icon: 'books', label: 'Courses', roles: ['Admin'], section: 'Administration' },
+  { to: '/venues', icon: 'building', label: 'Venues', roles: ['Admin'], section: 'Administration' },
+  { to: '/enrollments', icon: 'list-check', label: 'Enrollments', roles: ['Admin'], section: 'Administration' },
+  { to: '/audit', icon: 'file-text', label: 'Audit Logs', roles: ['Admin'], section: 'Administration' },
+];
+
+export function getVisibleNavItems(role: 'Student' | 'Lecturer' | 'Admin' | null) {
+  return NAV_ITEMS.filter((item) => !item.roles || (role ? item.roles.includes(role) : false));
 }
 
-export default function Sidebar({
-  open,
-  onClose,
-}: {
-  open: boolean;
-  onClose: () => void;
-}) {
-  const { role, logout, userId } = useAuth();
-  const initials = role ? role.slice(0, 1) : 'U';
+interface SidebarProps {
+  isOpen?: boolean;
+  onNavigate?: () => void;
+}
 
-  const sharedItems: NavItem[] = [
-    { to: '/', label: 'Dashboard', icon: 'layout-dashboard' },
-  ];
-  const studentItems: NavItem[] = [
-    { to: '/checkin', label: 'Scan Attendance', icon: 'qrcode' },
-    { to: '/my-attendance', label: 'My Attendance', icon: 'calendar-check' },
-    { to: '/my-digital-id', label: 'Digital ID', icon: 'id-badge-2' },
-  ];
-  const lecturerItems: NavItem[] = [
-    { to: '/sessions/new', label: 'Start Session', icon: 'player-play' },
-    { to: '/sessions', label: 'My Sessions', icon: 'list-details' },
-  ];
-  const adminItems: NavItem[] = [
-    { to: '/sessions', label: 'Sessions', icon: 'timeline' },
-    { to: '/admin/users', label: 'Users', icon: 'users' },
-    { to: '/admin/courses', label: 'Courses', icon: 'book-2' },
-    { to: '/admin/audit', label: 'Audit Logs', icon: 'shield-search' },
-  ];
-
-  const roleItems =
-    role === 'Student' ? studentItems : role === 'Lecturer' ? lecturerItems : adminItems;
-  const bottomItems = [...sharedItems, ...roleItems].slice(0, 4);
+export default function Sidebar({ isOpen = false, onNavigate }: SidebarProps) {
+  const { role, userId } = useAuth();
+  const visibleItems = getVisibleNavItems(role);
+  const sections = Array.from(new Set(visibleItems.map((item) => item.section)));
 
   return (
-    <>
-      <aside className={`shell-sidebar ${open ? 'open' : ''}`}>
-        <div className="shell-brand">
-          <div className="shell-brand-mark">
-            <i className="ti ti-school" />
-          </div>
-          <div>
-            <div className="shell-brand-title">CUZ Smart Campus</div>
-            <div className="shell-brand-subtitle">Digital ID and attendance</div>
-          </div>
+    <aside className={`shell-sidebar ${isOpen ? 'open' : ''}`}>
+      <div className="sb-brand">
+        <div className="sb-logo">
+          <i className="ti ti-school" />
         </div>
-
-        <div className="shell-section">Workspace</div>
-        <nav className="shell-nav">
-          {sharedItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.to === '/'}
-              className={linkClassName}
-              onClick={onClose}
-            >
-              <i className={`ti ti-${item.icon}`} />
-              <span>{item.label}</span>
-            </NavLink>
-          ))}
-        </nav>
-
-        <div className="shell-section">Role tools</div>
-        <nav className="shell-nav">
-          {roleItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              className={linkClassName}
-              onClick={onClose}
-            >
-              <i className={`ti ti-${item.icon}`} />
-              <span>{item.label}</span>
-            </NavLink>
-          ))}
-        </nav>
-
-        <div className="shell-user">
-          <div className="shell-user-card">
-            <div className="shell-user-avatar">{initials}</div>
-            <div>
-              <div className="shell-user-name">User #{userId ?? '--'}</div>
-              <div className="shell-user-role">{role ?? 'Unknown role'}</div>
-            </div>
-          </div>
-          <button type="button" className="shell-signout" onClick={logout}>
-            <i className="ti ti-logout-2" />
-            <span>Sign out</span>
-          </button>
+        <div>
+          <div className="sb-brand-title">CUZ Smart Campus</div>
+          <div className="sb-brand-sub">Digital attendance control</div>
         </div>
-      </aside>
+      </div>
 
-      <nav className="shell-bottom-nav">
-        {bottomItems.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            end={item.to === '/'}
-            className={bottomLinkClassName}
-          >
-            <i className={`ti ti-${item.icon}`} />
-            <span>{item.label}</span>
-          </NavLink>
+      <nav className="sb-nav">
+        {sections.map((section) => (
+          <div key={section}>
+            <div className="sb-section-label">{section}</div>
+            {visibleItems
+              .filter((item) => item.section === section)
+              .map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  end={item.end}
+                  className={({ isActive }) => `sb-item ${isActive ? 'active' : ''}`}
+                  onClick={onNavigate}
+                >
+                  <i className={`ti ti-${item.icon}`} />
+                  <span>{item.label}</span>
+                </NavLink>
+              ))}
+          </div>
         ))}
       </nav>
-    </>
+
+      <div className="sb-footer">
+        <div className="sb-avatar">{userId ? String(userId).slice(-2) : '--'}</div>
+        <div>
+          <div className="sb-user-name">User #{userId ?? '--'}</div>
+          <div className="sb-user-meta">{role ?? 'Guest workspace'}</div>
+        </div>
+      </div>
+    </aside>
   );
 }

@@ -125,8 +125,9 @@ class UserService:
 
     @staticmethod
     def delete_user(db: Session, user_id: int) -> None:
-        """Hard-delete an AppUser (cascades to profile). Raises 404 if not found."""
+        """Soft-delete an AppUser. Raises 404 if not found."""
         user = UserService.get_user_by_id(db, user_id)
-        db.delete(user)
+        user.is_deleted = True
+        user.deleted_at = sa_func.now()
         db.flush()
-        logger.info("User deleted", extra={"user_id": user_id})
+        logger.info("User softly deleted", extra={"user_id": user_id})

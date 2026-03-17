@@ -1,17 +1,14 @@
-import { Modal, Button } from 'react-bootstrap';
+import { Button, Modal } from 'react-bootstrap';
 
-interface Props {
+interface ConfirmModalProps {
   show: boolean;
   title?: string;
   message: string;
   confirmLabel?: string;
-  variant?: 'danger' | 'warning' | 'primary' | 'success';
-  isPending?: boolean;
+  confirmVariant?: string;
+  loading?: boolean;
   onConfirm: () => void;
-  /** Called when the modal should close without confirming */
-  onHide?: () => void;
-  /** Alias for onHide — either can be used */
-  onCancel?: () => void;
+  onCancel: () => void;
 }
 
 export default function ConfirmModal({
@@ -19,25 +16,27 @@ export default function ConfirmModal({
   title = 'Confirm Action',
   message,
   confirmLabel = 'Confirm',
-  variant = 'danger',
-  isPending = false,
+  confirmVariant = 'danger',
+  loading = false,
   onConfirm,
-  onHide,
   onCancel,
-}: Props) {
-  const dismiss = onHide ?? onCancel ?? (() => {});
+}: ConfirmModalProps) {
   return (
-    <Modal show={show} onHide={dismiss} centered>
-      <Modal.Header closeButton>
-        <Modal.Title>{title}</Modal.Title>
+    <Modal show={show} onHide={onCancel} centered>
+      <Modal.Header closeButton className="border-0">
+        <Modal.Title className="h5">{title}</Modal.Title>
       </Modal.Header>
-      <Modal.Body>{message}</Modal.Body>
-      <Modal.Footer>
-        <Button variant="secondary" onClick={dismiss} disabled={isPending}>
+      <Modal.Body>
+        <p className="text-secondary mb-0">{message}</p>
+      </Modal.Body>
+      <Modal.Footer className="border-0">
+        <Button variant="outline-secondary" onClick={onCancel} disabled={loading}>
           Cancel
         </Button>
-        <Button variant={variant} onClick={onConfirm} disabled={isPending}>
-          {isPending ? 'Processing…' : confirmLabel}
+        <Button variant={confirmVariant} onClick={onConfirm} disabled={loading}>
+          {loading ? (
+            <><span className="spinner-border spinner-border-sm me-2" />Processing...</>
+          ) : confirmLabel}
         </Button>
       </Modal.Footer>
     </Modal>

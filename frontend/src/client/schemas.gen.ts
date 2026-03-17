@@ -128,6 +128,17 @@ export const AttendanceCheckInSchema = {
             type: 'integer',
             title: 'Session Id'
         },
+        qr_code: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Qr Code'
+        },
+        device_id: {
+            type: 'string',
+            maxLength: 255,
+            title: 'Device Id',
+            description: 'Browser or device fingerprint payload'
+        },
         gps_latitude: {
             type: 'number',
             maximum: 90,
@@ -156,6 +167,8 @@ export const AttendanceCheckInSchema = {
     type: 'object',
     required: [
         'session_id',
+        'qr_code',
+        'device_id',
         'gps_latitude',
         'gps_longitude'
     ],
@@ -209,6 +222,10 @@ export const AttendanceRecordResponseSchema = {
             type: 'integer',
             title: 'Student Id'
         },
+        device_id: {
+            type: 'string',
+            title: 'Device Id'
+        },
         gps_latitude: {
             anyOf: [
                 {
@@ -261,6 +278,7 @@ export const AttendanceRecordResponseSchema = {
         'attendance_id',
         'session_id',
         'student_id',
+        'device_id',
         'gps_latitude',
         'gps_longitude',
         'gps_accuracy',
@@ -563,7 +581,7 @@ export const Body_loginAccessTokenSchema = {
             anyOf: [
                 {
                     type: 'string',
-                    pattern: 'password'
+                    pattern: '^password$'
                 },
                 {
                     type: 'null'
@@ -577,6 +595,7 @@ export const Body_loginAccessTokenSchema = {
         },
         password: {
             type: 'string',
+            format: 'password',
             title: 'Password'
         },
         scope: {
@@ -604,6 +623,7 @@ export const Body_loginAccessTokenSchema = {
                     type: 'null'
                 }
             ],
+            format: 'password',
             title: 'Client Secret'
         }
     },
@@ -1264,6 +1284,25 @@ export const StudentCreateSchema = {
     ],
     title: 'StudentCreate',
     description: 'Create a Student — AppUser fields + student profile fields.'
+} as const;
+
+export const TokenSchema = {
+    properties: {
+        access_token: {
+            type: 'string',
+            title: 'Access Token'
+        },
+        token_type: {
+            type: 'string',
+            title: 'Token Type'
+        }
+    },
+    type: 'object',
+    required: [
+        'access_token',
+        'token_type'
+    ],
+    title: 'Token'
 } as const;
 
 export const ValidationErrorSchema = {

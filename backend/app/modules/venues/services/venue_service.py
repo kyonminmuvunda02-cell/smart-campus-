@@ -56,8 +56,9 @@ class VenueService:
 
     @staticmethod
     def delete_venue(db: Session, venue_id: int) -> None:
-        """Delete a venue. Raises 404 if not found."""
+        """Soft-delete a venue. Raises 404 if not found."""
         venue = VenueService.get_venue(db, venue_id)
-        db.delete(venue)
+        venue.is_deleted = True
+        venue.deleted_at = sa_func.now()
         db.flush()
-        logger.info("Venue deleted", extra={"venue_id": venue_id})
+        logger.info("Venue softly deleted", extra={"venue_id": venue_id})

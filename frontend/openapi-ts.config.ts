@@ -16,13 +16,13 @@ export default defineConfig({
       name: "@hey-api/client-fetch",
     },
     {
-      // Class-based SDK: AttendanceSessionService.createAttendanceSession(...)
-      // operationId: true  → method names come from FastAPI operation_id (camelCase)
-      // transformer: true  → applies @hey-api/transformers (date parsing) on responses
+      // Class-based SDK
       name: "@hey-api/sdk",
-      asClass: true,
-      operationId: true,
       transformer: true,
+      operations: {
+        strategy: "byTags",
+        nesting: "operationId",
+      },
     },
     {
       // Exports raw JSON Schema objects alongside the TypeScript types

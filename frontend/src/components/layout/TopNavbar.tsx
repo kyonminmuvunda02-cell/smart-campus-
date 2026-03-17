@@ -1,38 +1,59 @@
-import { useAuth } from '../../context/AuthContext';
+import { Button } from 'react-bootstrap';
+import { useLocation, useNavigate } from 'react-router';
+import { useAuth } from '@/modules/auth/context/AuthProvider';
 
-export default function TopNavbar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
-  const { userId, role } = useAuth();
-  const today = new Intl.DateTimeFormat('en-ZM', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-  }).format(new Date());
+interface TopNavbarProps {
+  onMenuToggle?: () => void;
+}
+
+function getRouteCopy(pathname: string) {
+  if (pathname.startsWith('/sessions')) return { label: 'Teaching', title: 'Session operations' };
+  if (pathname.startsWith('/users')) return { label: 'Administration', title: 'User management' };
+  if (pathname.startsWith('/courses')) return { label: 'Administration', title: 'Course catalog' };
+  if (pathname.startsWith('/venues')) return { label: 'Administration', title: 'Venue management' };
+  if (pathname.startsWith('/audit')) return { label: 'Administration', title: 'Audit evidence' };
+  if (pathname.startsWith('/checkin')) return { label: 'Student flow', title: 'Attendance check-in' };
+  if (pathname.startsWith('/my-attendance')) return { label: 'Student flow', title: 'Attendance history' };
+  if (pathname.startsWith('/my-digital-id')) return { label: 'Student flow', title: 'Digital identity' };
+  return { label: 'Workspace', title: 'Campus operations overview' };
+}
+
+export default function TopNavbar({ onMenuToggle }: TopNavbarProps) {
+  const { logout, role, userId } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const routeCopy = getRouteCopy(location.pathname);
+
+  function handleLogout() {
+    logout();
+    navigate('/login');
+  }
 
   return (
     <header className="shell-topbar">
-      <div className="topbar-left">
-        <button type="button" className="topbar-menu" onClick={onToggleSidebar}>
+      <div className="tb-leading">
+        <button type="button" className="tb-menu" onClick={onMenuToggle} aria-label="Open navigation">
           <i className="ti ti-menu-2" />
         </button>
-        <div>
-          <div className="topbar-eyebrow">Cavendish University Zambia</div>
-          <div className="topbar-title">Smart Campus Portal</div>
-          <div className="topbar-subtitle">{today}</div>
+        <div className="tb-meta">
+          <div className="tb-label">{routeCopy.label}</div>
+          <div className="tb-title">{routeCopy.title}</div>
+          <div className="tb-subtitle">Role-based access and attendance workflow</div>
         </div>
       </div>
 
-      <div className="topbar-right">
-        <div className="topbar-pill">
-          <i className="ti ti-shield-check me-1" />
-          {role ?? 'User'}
-        </div>
-        <div className="topbar-user">
-          <div className="shell-user-avatar">{role?.slice(0, 1) ?? 'U'}</div>
-          <div className="topbar-user-copy">
-            <div className="topbar-eyebrow">Signed in</div>
-            <div className="topbar-subtitle mono">ID {userId ?? '--'}</div>
+      <div className="tb-actions">
+        {role ? (
+          <div className="tb-role">
+            <i className={`ti ti-${role === 'Admin' ? 'shield' : role === 'Lecturer' ? 'user-star' : 'user'}`} />
+            <span>{role}</span>
           </div>
-        </div>
+        ) : null}
+        <div className="tb-avatar">{userId ? String(userId).slice(-2) : '--'}</div>
+        <Button variant="outline-secondary" className="tb-signout" onClick={handleLogout}>
+          <i className="ti ti-logout" />
+          <span>Sign Out</span>
+        </Button>
       </div>
     </header>
   );

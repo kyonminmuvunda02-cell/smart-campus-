@@ -44,6 +44,8 @@ class CheckInService:
         session = AttendanceSessionService.get_active_session(db, data.session_id)
         if not session:
             raise NotFoundException("Attendance session not found or QR code has expired")
+        if session.qr_code != data.qr_code:
+            raise ForbiddenException("QR code is invalid or has been refreshed")
 
         # Step 2: Student must be enrolled in this exact course/semester/year.
         enrolled = db.execute(
@@ -86,12 +88,31 @@ class CheckInService:
         if existing:
             raise ConflictException("You have already checked in to this session")
 
+        # Step 5: Proxy check — block multiple check-ins from the SAME device ID for different students
+        same_device = db.execute(
+            select(AttendanceRecord).where(
+                and_(
+                    AttendanceRecord.session_id == data.session_id,
+                    AttendanceRecord.device_id == data.device_id,
+                    AttendanceRecord.student_id != student_id,
+                )
+            )
+        ).scalars().first()
+        if same_device:
+            logger.warning("Proxy scan detected", extra={
+                "attempted_student_id": student_id,
+                "session_id": data.session_id,
+                "shared_device_id": data.device_id
+            })
+            raise ForbiddenException("Device Fingerprint Violation: This device has already been used to check in another student during this session.")
+
         # fraud_flag is set when GPS accuracy is missing — device cannot prove physical presence
         fraud_flag = data.gps_accuracy is None
 
         record = AttendanceRecord(
             session_id=data.session_id,
             student_id=student_id,
+            device_id=data.device_id,
             gps_latitude=data.gps_latitude,
             gps_longitude=data.gps_longitude,
             gps_accuracy=data.gps_accuracy,

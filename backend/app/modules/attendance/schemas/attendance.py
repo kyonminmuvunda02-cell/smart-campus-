@@ -81,6 +81,8 @@ class QRCodeResponse(BaseModel):
 class AttendanceCheckIn(BaseModel):
     """Payload the student's browser sends after scanning the QR code."""
     session_id: int
+    qr_code: uuid.UUID
+    device_id: str = Field(..., max_length=255, description="Browser or device fingerprint payload")
     gps_latitude: float = Field(..., ge=-90, le=90)
     gps_longitude: float = Field(..., ge=-180, le=180)
     # None is allowed — devices that can't report accuracy trigger fraud_flag
@@ -93,6 +95,7 @@ class AttendanceRecordResponse(BaseModel):
     attendance_id: int
     session_id: int
     student_id: int
+    device_id: str
     gps_latitude: float | None
     gps_longitude: float | None
     gps_accuracy: float | None

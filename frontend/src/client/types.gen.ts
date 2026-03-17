@@ -89,6 +89,16 @@ export type AttendanceCheckIn = {
      */
     session_id: number;
     /**
+     * Qr Code
+     */
+    qr_code: string;
+    /**
+     * Device Id
+     *
+     * Browser or device fingerprint payload
+     */
+    device_id: string;
+    /**
      * Gps Latitude
      */
     gps_latitude: number;
@@ -140,6 +150,10 @@ export type AttendanceRecordResponse = {
      * Student Id
      */
     student_id: number;
+    /**
+     * Device Id
+     */
+    device_id: string;
     /**
      * Gps Latitude
      */
@@ -795,6 +809,20 @@ export type StudentCreate = {
 };
 
 /**
+ * Token
+ */
+export type Token = {
+    /**
+     * Access Token
+     */
+    access_token: string;
+    /**
+     * Token Type
+     */
+    token_type: string;
+};
+
+/**
  * ValidationError
  */
 export type ValidationError = {
@@ -930,8 +958,10 @@ export type LoginAccessTokenResponses = {
     /**
      * Successful Response
      */
-    200: unknown;
+    200: Token;
 };
+
+export type LoginAccessTokenResponse = LoginAccessTokenResponses[keyof LoginAccessTokenResponses];
 
 export type GetCurrentUserData = {
     body?: never;

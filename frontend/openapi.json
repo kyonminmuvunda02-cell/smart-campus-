@@ -50,7 +50,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/Token"
+                }
               }
             }
           },
@@ -2195,6 +2197,17 @@
             "type": "integer",
             "title": "Session Id"
           },
+          "qr_code": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Qr Code"
+          },
+          "device_id": {
+            "type": "string",
+            "maxLength": 255,
+            "title": "Device Id",
+            "description": "Browser or device fingerprint payload"
+          },
           "gps_latitude": {
             "type": "number",
             "maximum": 90.0,
@@ -2223,6 +2236,8 @@
         "type": "object",
         "required": [
           "session_id",
+          "qr_code",
+          "device_id",
           "gps_latitude",
           "gps_longitude"
         ],
@@ -2273,6 +2288,10 @@
           "student_id": {
             "type": "integer",
             "title": "Student Id"
+          },
+          "device_id": {
+            "type": "string",
+            "title": "Device Id"
           },
           "gps_latitude": {
             "anyOf": [
@@ -2326,6 +2345,7 @@
           "attendance_id",
           "session_id",
           "student_id",
+          "device_id",
           "gps_latitude",
           "gps_longitude",
           "gps_accuracy",
@@ -3304,6 +3324,24 @@
         ],
         "title": "StudentCreate",
         "description": "Create a Student \u2014 AppUser fields + student profile fields."
+      },
+      "Token": {
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "title": "Access Token"
+          },
+          "token_type": {
+            "type": "string",
+            "title": "Token Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "access_token",
+          "token_type"
+        ],
+        "title": "Token"
       },
       "ValidationError": {
         "properties": {

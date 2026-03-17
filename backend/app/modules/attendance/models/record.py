@@ -19,6 +19,9 @@ class AttendanceRecord(Base):
         Integer, ForeignKey("student.user_id", ondelete="RESTRICT"), nullable=False
     )
 
+    # Device fingerprinting for anti-proxy scan measures
+    device_id: Mapped[str] = mapped_column(String(255), nullable=False)
+
     # GPS coordinates from the student's device at scan time
     gps_latitude: Mapped[float | None] = mapped_column(Float, nullable=True)
     gps_longitude: Mapped[float | None] = mapped_column(Float, nullable=True)

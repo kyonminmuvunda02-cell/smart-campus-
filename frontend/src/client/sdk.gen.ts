@@ -26,11 +26,7 @@ export class Health {
      * Liveness probe — reports DB connectivity and module status.
      */
     public static healthCheckHealthGet<ThrowOnError extends boolean = false>(options?: Options<HealthCheckHealthGetData, ThrowOnError>) {
-        return (options?.client ?? client).get<HealthCheckHealthGetResponses, unknown, ThrowOnError>({
-            security: [{ scheme: 'bearer', type: 'http' }],
-            url: '/health',
-            ...options
-        });
+        return (options?.client ?? client).get<HealthCheckHealthGetResponses, unknown, ThrowOnError>({ url: '/health', ...options });
     }
 }
 
@@ -43,7 +39,6 @@ export class Auth {
     public static loginAccessToken<ThrowOnError extends boolean = false>(options: Options<LoginAccessTokenData, ThrowOnError>) {
         return (options.client ?? client).post<LoginAccessTokenResponses, LoginAccessTokenErrors, ThrowOnError>({
             ...urlSearchParamsBodySerializer,
-            security: [{ scheme: 'bearer', type: 'http' }],
             url: '/api/v1/auth/login',
             ...options,
             headers: {
