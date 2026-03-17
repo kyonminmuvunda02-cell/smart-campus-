@@ -1393,13 +1393,14 @@ a {
   }
 }
 
-.scanner-copy {
-  font-size: 0.76rem;
-  color: var(--tx3);
+.scanner-alert {
+    margin-bottom: 0;
+    font-size: 0.78rem;
+    line-height: 1.45;
 }
 
 .scanner-file-meta {
-  font-size: 0.72rem;
+    font-size: 0.72rem;
   color: var(--tx4);
 }
 

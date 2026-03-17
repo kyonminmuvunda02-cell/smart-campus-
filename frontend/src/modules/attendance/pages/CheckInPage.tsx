@@ -24,7 +24,7 @@ export default function CheckInPage() {
   const [qrPayload, setQrPayload] = useState('');
   const [qrPreviewUrl, setQrPreviewUrl] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
-  const [scannerMsg, setScannerMsg] = useState('Use your camera to scan the lecturer QR. Attendance will submit automatically once it is captured.');
+  const [scannerMsg, setScannerMsg] = useState('Scan the classroom QR to check in. Attendance submits automatically.');
   const [uploadedFileName, setUploadedFileName] = useState('');
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const scannerRef = useRef<QrScanner | null>(null);
@@ -69,21 +69,21 @@ export default function CheckInPage() {
     if (!window.isSecureContext) {
       return {
         supported: false,
-        reason: 'Live camera scanning requires a secure page on mobile. Open the app over HTTPS or use Upload image instead.',
+        reason: 'Live scanning is unavailable on this page. Use your phone camera or upload a QR image instead.',
       };
     }
 
     if (!navigator.mediaDevices) {
       return {
         supported: false,
-        reason: 'This browser is not exposing camera APIs on this page. Use Upload image instead.',
+        reason: 'This browser cannot open the camera here. Upload a QR image instead.',
       };
     }
 
     if (!navigator.mediaDevices.getUserMedia) {
       return {
         supported: false,
-        reason: 'This browser cannot open the camera for web pages. Use Upload image instead.',
+        reason: 'This browser cannot use the camera for web pages. Upload a QR image instead.',
       };
     }
 
@@ -100,7 +100,7 @@ export default function CheckInPage() {
       }
 
       if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
-        return 'No camera was found on this device. Use Upload image instead.';
+        return 'No camera was found on this device. Upload a QR image instead.';
       }
 
       if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
@@ -108,11 +108,11 @@ export default function CheckInPage() {
       }
 
       if (error.name === 'OverconstrainedError') {
-        return 'The preferred camera is not available on this device. Try again or use Upload image instead.';
+        return 'The preferred camera is not available on this device. Try again or upload a QR image instead.';
       }
     }
 
-    return 'Camera access failed. Check browser permissions or use Upload image instead.';
+    return 'Camera access failed. Check permissions or upload a QR image instead.';
   }
 
   function parsePayload(rawPayload: string) {
@@ -143,12 +143,12 @@ export default function CheckInPage() {
 
     try {
       setScannerState('starting');
-      setScannerMsg('Requesting camera access...');
+      setScannerMsg('Opening camera...');
       const hasCamera = await QrScanner.hasCamera();
 
       if (!hasCamera) {
         setScannerState('unsupported');
-        setScannerMsg('No camera was detected on this device. Use Upload image instead.');
+        setScannerMsg('No camera was detected on this device. Upload a QR image instead.');
         return;
       }
 
@@ -166,7 +166,7 @@ export default function CheckInPage() {
             if (!rawValue) return;
 
             setQrPayload(rawValue);
-            setScannerMsg('QR captured. Submitting attendance...');
+            setScannerMsg('QR recognized. Confirming attendance...');
             stopScanner();
             setScannerState('idle');
             void submitAttendance(rawValue);
@@ -186,7 +186,7 @@ export default function CheckInPage() {
 
       await scannerRef.current.start();
       setScannerState('ready');
-      setScannerMsg('Point the camera at the lecturer QR code.');
+      setScannerMsg('Align the classroom QR inside the frame.');
     } catch (error) {
       setScannerState('error');
       setScannerMsg(describeScannerError(error));
@@ -196,7 +196,7 @@ export default function CheckInPage() {
 
   function openCaptureFallback() {
     setScannerState('idle');
-    setScannerMsg('Live camera scan is unavailable here. Opening your phone camera/image picker instead.');
+    setScannerMsg('Opening your phone camera or photo library...');
     fileInputRef.current?.click();
   }
 
@@ -241,7 +241,7 @@ export default function CheckInPage() {
 
     stopScanner();
     setScannerState('uploading');
-    setScannerMsg('Reading the uploaded image and extracting the QR payload...');
+    setScannerMsg('Reading QR image...');
     setUploadedFileName(file.name);
 
     try {
@@ -249,7 +249,7 @@ export default function CheckInPage() {
       const normalizedPayload = rawValue.trim();
       setQrPayload(normalizedPayload);
       setScannerState('idle');
-      setScannerMsg('QR extracted from the uploaded image. Submitting attendance...');
+      setScannerMsg('QR recognized from image. Confirming attendance...');
       void submitAttendance(normalizedPayload);
     } catch (error) {
       setScannerState('error');
@@ -295,13 +295,13 @@ export default function CheckInPage() {
       });
 
       setState('success');
-      setScannerMsg('Attendance submitted successfully.');
+      setScannerMsg('Attendance confirmed.');
       showToast('success', 'Attendance confirmed', 'Your check-in has been recorded and verified.');
     } catch (err) {
       setState('error');
       setGpsState((current) => (current === 'checking' ? 'unavailable' : current));
       setErrorMsg(getErrorMessage(err));
-      setScannerMsg('Attendance submission failed. Retry the scan or upload the QR image again.');
+      setScannerMsg('Attendance failed. Scan again or upload another QR image.');
     }
   }
 
@@ -313,7 +313,7 @@ export default function CheckInPage() {
     setGpsCoords('-');
     setQrPayload('');
     setErrorMsg('');
-    setScannerMsg('Use your camera to scan the lecturer QR. Attendance will submit automatically once it is captured.');
+    setScannerMsg('Scan the classroom QR to check in. Attendance submits automatically.');
     setUploadedFileName('');
   }
 
@@ -347,6 +347,8 @@ export default function CheckInPage() {
         : scannerState === 'uploading'
           ? 'Reading uploaded image'
           : 'Ready to scan';
+  const scannerAlertVariant = scannerState === 'error' || state === 'error' ? 'danger' : 'info';
+  const scannerAlertIcon = scannerAlertVariant === 'danger' ? 'alert-circle' : 'info-circle';
 
   return (
     <div>
@@ -385,7 +387,10 @@ export default function CheckInPage() {
                 )}
                 {scannerState === 'ready' ? <div className="scanner-reticle" /> : null}
               </div>
-              <div className="scanner-copy">{scannerMsg}</div>
+              <Alert variant={scannerAlertVariant} className="scanner-alert">
+                <i className={`ti ti-${scannerAlertIcon} me-2`} />
+                {scannerMsg}
+              </Alert>
               {uploadedFileName ? <div className="scanner-file-meta">Last image: {uploadedFileName}</div> : null}
             </div>
 
