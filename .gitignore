@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env
+
+# Node
+node_modules/
+dist/
+.DS_Store
+
+# IDE and Editor
+.vscode/
+.idea/
+
+# Agent and Skill Files
+.agent/
+.agents/
+_agent/
+_agents/
+knowledge/
+skills/
+.gemini/
+.system_generated/
+frontend/references/
