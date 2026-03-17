@@ -423,6 +423,20 @@ export type CourseLecturerCreate = {
 };
 
 /**
+ * CourseLecturerList
+ */
+export type CourseLecturerList = {
+    /**
+     * Items
+     */
+    items: Array<CourseLecturerResponse>;
+    /**
+     * Total
+     */
+    total: number;
+};
+
+/**
  * CourseLecturerResponse
  */
 export type CourseLecturerResponse = {
@@ -1476,6 +1490,36 @@ export type AssignLecturerToCourseResponses = {
 
 export type AssignLecturerToCourseResponse = AssignLecturerToCourseResponses[keyof AssignLecturerToCourseResponses];
 
+export type ListCourseAssignmentsData = {
+    body?: never;
+    path: {
+        /**
+         * Course Id
+         */
+        course_id: number;
+    };
+    query?: never;
+    url: '/api/v1/courses/{course_id}/assignments';
+};
+
+export type ListCourseAssignmentsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListCourseAssignmentsError = ListCourseAssignmentsErrors[keyof ListCourseAssignmentsErrors];
+
+export type ListCourseAssignmentsResponses = {
+    /**
+     * Successful Response
+     */
+    200: CourseLecturerList;
+};
+
+export type ListCourseAssignmentsResponse = ListCourseAssignmentsResponses[keyof ListCourseAssignmentsResponses];
+
 export type RemoveLecturerFromCourseData = {
     body?: never;
     path: {
@@ -1906,6 +1950,36 @@ export type UpdateAttendanceSessionResponses = {
 };
 
 export type UpdateAttendanceSessionResponse = UpdateAttendanceSessionResponses[keyof UpdateAttendanceSessionResponses];
+
+export type StartAttendanceSessionData = {
+    body?: never;
+    path: {
+        /**
+         * Session Id
+         */
+        session_id: number;
+    };
+    query?: never;
+    url: '/api/v1/attendance/sessions/{session_id}/start';
+};
+
+export type StartAttendanceSessionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type StartAttendanceSessionError = StartAttendanceSessionErrors[keyof StartAttendanceSessionErrors];
+
+export type StartAttendanceSessionResponses = {
+    /**
+     * Successful Response
+     */
+    200: QrCodeResponse;
+};
+
+export type StartAttendanceSessionResponse = StartAttendanceSessionResponses[keyof StartAttendanceSessionResponses];
 
 export type CloseAttendanceSessionData = {
     body?: never;

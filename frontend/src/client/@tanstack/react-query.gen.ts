@@ -4,7 +4,7 @@ import { type DefaultError, queryOptions, type UseMutationOptions } from '@tanst
 
 import { client } from '../client.gen';
 import { AttendanceRecords, AttendanceSessions, Audit, Auth, Courses, DigitalIds, Enrollments, Health, type Options, Users, Venues } from '../sdk.gen';
-import type { AssignLecturerToCourseData, AssignLecturerToCourseError, AssignLecturerToCourseResponse, CloseAttendanceSessionData, CloseAttendanceSessionError, CloseAttendanceSessionResponse, CreateAttendanceSessionData, CreateAttendanceSessionError, CreateAttendanceSessionResponse, CreateCourseData, CreateCourseError, CreateCourseResponse, CreateEnrollmentData, CreateEnrollmentError, CreateEnrollmentResponse, CreateLecturerData, CreateLecturerError, CreateLecturerResponse, CreateStudentData, CreateStudentError, CreateStudentResponse, CreateVenueData, CreateVenueError, CreateVenueResponse, DeleteCourseData, DeleteCourseError, DeleteCourseResponse, DeleteUserData, DeleteUserError, DeleteUserResponse, DeleteVenueData, DeleteVenueError, DeleteVenueResponse, GetActiveDigitalIdData, GetActiveDigitalIdError, GetActiveDigitalIdResponse, GetAttendanceSessionData, GetAttendanceSessionError, GetAttendanceSessionResponse, GetCourseData, GetCourseError, GetCourseResponse, GetCurrentUserData, GetCurrentUserResponse, GetUserData, GetUserError, GetUserResponse, GetVenueData, GetVenueError, GetVenueResponse, HealthCheckHealthGetData, IssueDigitalIdData, IssueDigitalIdError, IssueDigitalIdResponse, ListAttendanceSessionsData, ListAttendanceSessionsError, ListAttendanceSessionsResponse, ListAuditLogsData, ListAuditLogsError, ListAuditLogsResponse, ListCourseEnrollmentsData, ListCourseEnrollmentsError, ListCourseEnrollmentsResponse, ListCoursesData, ListCoursesError, ListCoursesResponse, ListSessionRecordsData, ListSessionRecordsError, ListSessionRecordsResponse, ListStudentDigitalIdsData, ListStudentDigitalIdsError, ListStudentDigitalIdsResponse, ListStudentEnrollmentsData, ListStudentEnrollmentsError, ListStudentEnrollmentsResponse, ListStudentRecordsData, ListStudentRecordsError, ListStudentRecordsResponse, ListUsersData, ListUsersError, ListUsersResponse, ListVenuesData, ListVenuesError, ListVenuesResponse, LoginAccessTokenData, LoginAccessTokenError, LoginAccessTokenResponse, RefreshQrCodeData, RefreshQrCodeError, RefreshQrCodeResponse, RemoveLecturerFromCourseData, RemoveLecturerFromCourseError, RemoveLecturerFromCourseResponse, RevokeDigitalIdData, RevokeDigitalIdError, RevokeDigitalIdResponse, StudentCheckinData, StudentCheckinError, StudentCheckinResponse, UpdateAttendanceSessionData, UpdateAttendanceSessionError, UpdateAttendanceSessionResponse, UpdateCourseData, UpdateCourseError, UpdateCourseResponse, UpdateEnrollmentData, UpdateEnrollmentError, UpdateEnrollmentResponse, UpdateUserData, UpdateUserError, UpdateUserResponse, UpdateVenueData, UpdateVenueError, UpdateVenueResponse } from '../types.gen';
+import type { AssignLecturerToCourseData, AssignLecturerToCourseError, AssignLecturerToCourseResponse, CloseAttendanceSessionData, CloseAttendanceSessionError, CloseAttendanceSessionResponse, CreateAttendanceSessionData, CreateAttendanceSessionError, CreateAttendanceSessionResponse, CreateCourseData, CreateCourseError, CreateCourseResponse, CreateEnrollmentData, CreateEnrollmentError, CreateEnrollmentResponse, CreateLecturerData, CreateLecturerError, CreateLecturerResponse, CreateStudentData, CreateStudentError, CreateStudentResponse, CreateVenueData, CreateVenueError, CreateVenueResponse, DeleteCourseData, DeleteCourseError, DeleteCourseResponse, DeleteUserData, DeleteUserError, DeleteUserResponse, DeleteVenueData, DeleteVenueError, DeleteVenueResponse, GetActiveDigitalIdData, GetActiveDigitalIdError, GetActiveDigitalIdResponse, GetAttendanceSessionData, GetAttendanceSessionError, GetAttendanceSessionResponse, GetCourseData, GetCourseError, GetCourseResponse, GetCurrentUserData, GetCurrentUserResponse, GetUserData, GetUserError, GetUserResponse, GetVenueData, GetVenueError, GetVenueResponse, HealthCheckHealthGetData, IssueDigitalIdData, IssueDigitalIdError, IssueDigitalIdResponse, ListAttendanceSessionsData, ListAttendanceSessionsError, ListAttendanceSessionsResponse, ListAuditLogsData, ListAuditLogsError, ListAuditLogsResponse, ListCourseAssignmentsData, ListCourseAssignmentsError, ListCourseAssignmentsResponse, ListCourseEnrollmentsData, ListCourseEnrollmentsError, ListCourseEnrollmentsResponse, ListCoursesData, ListCoursesError, ListCoursesResponse, ListSessionRecordsData, ListSessionRecordsError, ListSessionRecordsResponse, ListStudentDigitalIdsData, ListStudentDigitalIdsError, ListStudentDigitalIdsResponse, ListStudentEnrollmentsData, ListStudentEnrollmentsError, ListStudentEnrollmentsResponse, ListStudentRecordsData, ListStudentRecordsError, ListStudentRecordsResponse, ListUsersData, ListUsersError, ListUsersResponse, ListVenuesData, ListVenuesError, ListVenuesResponse, LoginAccessTokenData, LoginAccessTokenError, LoginAccessTokenResponse, RefreshQrCodeData, RefreshQrCodeError, RefreshQrCodeResponse, RemoveLecturerFromCourseData, RemoveLecturerFromCourseError, RemoveLecturerFromCourseResponse, RevokeDigitalIdData, RevokeDigitalIdError, RevokeDigitalIdResponse, StartAttendanceSessionData, StartAttendanceSessionError, StartAttendanceSessionResponse, StudentCheckinData, StudentCheckinError, StudentCheckinResponse, UpdateAttendanceSessionData, UpdateAttendanceSessionError, UpdateAttendanceSessionResponse, UpdateCourseData, UpdateCourseError, UpdateCourseResponse, UpdateEnrollmentData, UpdateEnrollmentError, UpdateEnrollmentResponse, UpdateUserData, UpdateUserError, UpdateUserResponse, UpdateVenueData, UpdateVenueError, UpdateVenueResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -427,6 +427,26 @@ export const assignLecturerToCourseMutation = (options?: Partial<Options<AssignL
     return mutationOptions;
 };
 
+export const listCourseAssignmentsQueryKey = (options: Options<ListCourseAssignmentsData>) => createQueryKey('listCourseAssignments', options);
+
+/**
+ * List Course Assignments
+ *
+ * Admin: list active lecturer assignments for a course.
+ */
+export const listCourseAssignmentsOptions = (options: Options<ListCourseAssignmentsData>) => queryOptions<ListCourseAssignmentsResponse, ListCourseAssignmentsError, ListCourseAssignmentsResponse, ReturnType<typeof listCourseAssignmentsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await Courses.listCourseAssignments({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: listCourseAssignmentsQueryKey(options)
+});
+
 /**
  * Remove Lecturer From Course
  *
@@ -670,6 +690,25 @@ export const updateAttendanceSessionMutation = (options?: Partial<Options<Update
     const mutationOptions: UseMutationOptions<UpdateAttendanceSessionResponse, UpdateAttendanceSessionError, Options<UpdateAttendanceSessionData>> = {
         mutationFn: async (fnOptions) => {
             const { data } = await AttendanceSessions.updateAttendanceSession({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Start Attendance Session
+ *
+ * Lecturer: activate a scheduled session and issue its first live QR code.
+ */
+export const startAttendanceSessionMutation = (options?: Partial<Options<StartAttendanceSessionData>>): UseMutationOptions<StartAttendanceSessionResponse, StartAttendanceSessionError, Options<StartAttendanceSessionData>> => {
+    const mutationOptions: UseMutationOptions<StartAttendanceSessionResponse, StartAttendanceSessionError, Options<StartAttendanceSessionData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await AttendanceSessions.startAttendanceSession({
                 ...options,
                 ...fnOptions,
                 throwOnError: true

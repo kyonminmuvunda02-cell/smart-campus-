@@ -50,7 +50,7 @@ export default function SessionFormPage() {
         },
       });
 
-      showToast('success', 'Session Started', 'New attendance session is now active.');
+      showToast('success', 'Session scheduled', 'The class is now on the lecturer schedule and can be started when it is time to take attendance.');
       navigate(`/sessions/${result.session_id}`);
       return { error: null };
     } catch (err) {
@@ -67,10 +67,13 @@ export default function SessionFormPage() {
 
   return (
     <div>
-      <PageHeader title="Start New Session" subtitle="Select a course and venue to open attendance">
+      <PageHeader
+        title="Schedule Session"
+        subtitle="Create the class window in advance, then start attendance when the lecturer is ready."
+      >
         <Link to="/sessions">
           <Button variant="outline-secondary">
-            <i className="ti ti-arrow-left me-2" />Back to List
+            <i className="ti ti-arrow-left me-2" />Back to Sessions
           </Button>
         </Link>
       </PageHeader>
@@ -140,7 +143,7 @@ export default function SessionFormPage() {
                 <Row className="g-3 mb-4">
                   <Col sm={6}>
                     <Form.Group>
-                      <Form.Label className="small fw-semibold">Session Start</Form.Label>
+                      <Form.Label className="small fw-semibold">Scheduled Start</Form.Label>
                       <Form.Control
                         type="datetime-local"
                         name="session_start"
@@ -152,7 +155,7 @@ export default function SessionFormPage() {
                   </Col>
                   <Col sm={6}>
                     <Form.Group>
-                      <Form.Label className="small fw-semibold">Session End</Form.Label>
+                      <Form.Label className="small fw-semibold">Scheduled End</Form.Label>
                       <Form.Control
                         type="datetime-local"
                         name="session_end"
@@ -163,6 +166,10 @@ export default function SessionFormPage() {
                     </Form.Group>
                   </Col>
                 </Row>
+
+                <div className="login-hint mb-4">
+                  Scheduling a session does not open attendance immediately. The lecturer still starts the live check-in window when the class actually begins.
+                </div>
 
                 <div className="d-grid">
                   <Button
@@ -175,11 +182,11 @@ export default function SessionFormPage() {
                     {isPending ? (
                       <>
                         <Spinner animation="border" size="sm" className="me-2" />
-                        Initializing...
+                        Scheduling...
                       </>
                     ) : (
                       <>
-                        <i className="ti ti-play me-2" />Start Session
+                        <i className="ti ti-calendar-event me-2" />Schedule Session
                       </>
                     )}
                   </Button>

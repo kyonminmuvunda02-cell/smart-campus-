@@ -2,8 +2,8 @@
 
 import { type Client, type Options as Options2, type TDataShape, urlSearchParamsBodySerializer } from './client';
 import { client } from './client.gen';
-import { assignLecturerToCourseResponseTransformer, closeAttendanceSessionResponseTransformer, createAttendanceSessionResponseTransformer, createCourseResponseTransformer, createEnrollmentResponseTransformer, createLecturerResponseTransformer, createStudentResponseTransformer, createVenueResponseTransformer, getActiveDigitalIdResponseTransformer, getAttendanceSessionResponseTransformer, getCourseResponseTransformer, getCurrentUserResponseTransformer, getUserResponseTransformer, getVenueResponseTransformer, issueDigitalIdResponseTransformer, listAttendanceSessionsResponseTransformer, listAuditLogsResponseTransformer, listCourseEnrollmentsResponseTransformer, listCoursesResponseTransformer, listSessionRecordsResponseTransformer, listStudentDigitalIdsResponseTransformer, listStudentEnrollmentsResponseTransformer, listStudentRecordsResponseTransformer, listUsersResponseTransformer, listVenuesResponseTransformer, refreshQrCodeResponseTransformer, revokeDigitalIdResponseTransformer, studentCheckinResponseTransformer, updateAttendanceSessionResponseTransformer, updateCourseResponseTransformer, updateEnrollmentResponseTransformer, updateUserResponseTransformer, updateVenueResponseTransformer } from './transformers.gen';
-import type { AssignLecturerToCourseData, AssignLecturerToCourseErrors, AssignLecturerToCourseResponses, CloseAttendanceSessionData, CloseAttendanceSessionErrors, CloseAttendanceSessionResponses, CreateAttendanceSessionData, CreateAttendanceSessionErrors, CreateAttendanceSessionResponses, CreateCourseData, CreateCourseErrors, CreateCourseResponses, CreateEnrollmentData, CreateEnrollmentErrors, CreateEnrollmentResponses, CreateLecturerData, CreateLecturerErrors, CreateLecturerResponses, CreateStudentData, CreateStudentErrors, CreateStudentResponses, CreateVenueData, CreateVenueErrors, CreateVenueResponses, DeleteCourseData, DeleteCourseErrors, DeleteCourseResponses, DeleteUserData, DeleteUserErrors, DeleteUserResponses, DeleteVenueData, DeleteVenueErrors, DeleteVenueResponses, GetActiveDigitalIdData, GetActiveDigitalIdErrors, GetActiveDigitalIdResponses, GetAttendanceSessionData, GetAttendanceSessionErrors, GetAttendanceSessionResponses, GetCourseData, GetCourseErrors, GetCourseResponses, GetCurrentUserData, GetCurrentUserResponses, GetUserData, GetUserErrors, GetUserResponses, GetVenueData, GetVenueErrors, GetVenueResponses, HealthCheckHealthGetData, HealthCheckHealthGetResponses, IssueDigitalIdData, IssueDigitalIdErrors, IssueDigitalIdResponses, ListAttendanceSessionsData, ListAttendanceSessionsErrors, ListAttendanceSessionsResponses, ListAuditLogsData, ListAuditLogsErrors, ListAuditLogsResponses, ListCourseEnrollmentsData, ListCourseEnrollmentsErrors, ListCourseEnrollmentsResponses, ListCoursesData, ListCoursesErrors, ListCoursesResponses, ListSessionRecordsData, ListSessionRecordsErrors, ListSessionRecordsResponses, ListStudentDigitalIdsData, ListStudentDigitalIdsErrors, ListStudentDigitalIdsResponses, ListStudentEnrollmentsData, ListStudentEnrollmentsErrors, ListStudentEnrollmentsResponses, ListStudentRecordsData, ListStudentRecordsErrors, ListStudentRecordsResponses, ListUsersData, ListUsersErrors, ListUsersResponses, ListVenuesData, ListVenuesErrors, ListVenuesResponses, LoginAccessTokenData, LoginAccessTokenErrors, LoginAccessTokenResponses, RefreshQrCodeData, RefreshQrCodeErrors, RefreshQrCodeResponses, RemoveLecturerFromCourseData, RemoveLecturerFromCourseErrors, RemoveLecturerFromCourseResponses, RevokeDigitalIdData, RevokeDigitalIdErrors, RevokeDigitalIdResponses, StudentCheckinData, StudentCheckinErrors, StudentCheckinResponses, UpdateAttendanceSessionData, UpdateAttendanceSessionErrors, UpdateAttendanceSessionResponses, UpdateCourseData, UpdateCourseErrors, UpdateCourseResponses, UpdateEnrollmentData, UpdateEnrollmentErrors, UpdateEnrollmentResponses, UpdateUserData, UpdateUserErrors, UpdateUserResponses, UpdateVenueData, UpdateVenueErrors, UpdateVenueResponses } from './types.gen';
+import { assignLecturerToCourseResponseTransformer, closeAttendanceSessionResponseTransformer, createAttendanceSessionResponseTransformer, createCourseResponseTransformer, createEnrollmentResponseTransformer, createLecturerResponseTransformer, createStudentResponseTransformer, createVenueResponseTransformer, getActiveDigitalIdResponseTransformer, getAttendanceSessionResponseTransformer, getCourseResponseTransformer, getCurrentUserResponseTransformer, getUserResponseTransformer, getVenueResponseTransformer, issueDigitalIdResponseTransformer, listAttendanceSessionsResponseTransformer, listAuditLogsResponseTransformer, listCourseAssignmentsResponseTransformer, listCourseEnrollmentsResponseTransformer, listCoursesResponseTransformer, listSessionRecordsResponseTransformer, listStudentDigitalIdsResponseTransformer, listStudentEnrollmentsResponseTransformer, listStudentRecordsResponseTransformer, listUsersResponseTransformer, listVenuesResponseTransformer, refreshQrCodeResponseTransformer, revokeDigitalIdResponseTransformer, startAttendanceSessionResponseTransformer, studentCheckinResponseTransformer, updateAttendanceSessionResponseTransformer, updateCourseResponseTransformer, updateEnrollmentResponseTransformer, updateUserResponseTransformer, updateVenueResponseTransformer } from './transformers.gen';
+import type { AssignLecturerToCourseData, AssignLecturerToCourseErrors, AssignLecturerToCourseResponses, CloseAttendanceSessionData, CloseAttendanceSessionErrors, CloseAttendanceSessionResponses, CreateAttendanceSessionData, CreateAttendanceSessionErrors, CreateAttendanceSessionResponses, CreateCourseData, CreateCourseErrors, CreateCourseResponses, CreateEnrollmentData, CreateEnrollmentErrors, CreateEnrollmentResponses, CreateLecturerData, CreateLecturerErrors, CreateLecturerResponses, CreateStudentData, CreateStudentErrors, CreateStudentResponses, CreateVenueData, CreateVenueErrors, CreateVenueResponses, DeleteCourseData, DeleteCourseErrors, DeleteCourseResponses, DeleteUserData, DeleteUserErrors, DeleteUserResponses, DeleteVenueData, DeleteVenueErrors, DeleteVenueResponses, GetActiveDigitalIdData, GetActiveDigitalIdErrors, GetActiveDigitalIdResponses, GetAttendanceSessionData, GetAttendanceSessionErrors, GetAttendanceSessionResponses, GetCourseData, GetCourseErrors, GetCourseResponses, GetCurrentUserData, GetCurrentUserResponses, GetUserData, GetUserErrors, GetUserResponses, GetVenueData, GetVenueErrors, GetVenueResponses, HealthCheckHealthGetData, HealthCheckHealthGetResponses, IssueDigitalIdData, IssueDigitalIdErrors, IssueDigitalIdResponses, ListAttendanceSessionsData, ListAttendanceSessionsErrors, ListAttendanceSessionsResponses, ListAuditLogsData, ListAuditLogsErrors, ListAuditLogsResponses, ListCourseAssignmentsData, ListCourseAssignmentsErrors, ListCourseAssignmentsResponses, ListCourseEnrollmentsData, ListCourseEnrollmentsErrors, ListCourseEnrollmentsResponses, ListCoursesData, ListCoursesErrors, ListCoursesResponses, ListSessionRecordsData, ListSessionRecordsErrors, ListSessionRecordsResponses, ListStudentDigitalIdsData, ListStudentDigitalIdsErrors, ListStudentDigitalIdsResponses, ListStudentEnrollmentsData, ListStudentEnrollmentsErrors, ListStudentEnrollmentsResponses, ListStudentRecordsData, ListStudentRecordsErrors, ListStudentRecordsResponses, ListUsersData, ListUsersErrors, ListUsersResponses, ListVenuesData, ListVenuesErrors, ListVenuesResponses, LoginAccessTokenData, LoginAccessTokenErrors, LoginAccessTokenResponses, RefreshQrCodeData, RefreshQrCodeErrors, RefreshQrCodeResponses, RemoveLecturerFromCourseData, RemoveLecturerFromCourseErrors, RemoveLecturerFromCourseResponses, RevokeDigitalIdData, RevokeDigitalIdErrors, RevokeDigitalIdResponses, StartAttendanceSessionData, StartAttendanceSessionErrors, StartAttendanceSessionResponses, StudentCheckinData, StudentCheckinErrors, StudentCheckinResponses, UpdateAttendanceSessionData, UpdateAttendanceSessionErrors, UpdateAttendanceSessionResponses, UpdateCourseData, UpdateCourseErrors, UpdateCourseResponses, UpdateEnrollmentData, UpdateEnrollmentErrors, UpdateEnrollmentResponses, UpdateUserData, UpdateUserErrors, UpdateUserResponses, UpdateVenueData, UpdateVenueErrors, UpdateVenueResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<TData, ThrowOnError> & {
     /**
@@ -309,6 +309,19 @@ export class Courses {
     }
     
     /**
+     * List Course Assignments
+     *
+     * Admin: list active lecturer assignments for a course.
+     */
+    public static listCourseAssignments<ThrowOnError extends boolean = false>(options: Options<ListCourseAssignmentsData, ThrowOnError>) {
+        return (options.client ?? client).get<ListCourseAssignmentsResponses, ListCourseAssignmentsErrors, ThrowOnError>({
+            responseTransformer: listCourseAssignmentsResponseTransformer,
+            url: '/api/v1/courses/{course_id}/assignments',
+            ...options
+        });
+    }
+    
+    /**
      * Remove Lecturer From Course
      *
      * Admin: deactivate a lecturer's course assignment.
@@ -500,6 +513,19 @@ export class AttendanceSessions {
                 'Content-Type': 'application/json',
                 ...options.headers
             }
+        });
+    }
+    
+    /**
+     * Start Attendance Session
+     *
+     * Lecturer: activate a scheduled session and issue its first live QR code.
+     */
+    public static startAttendanceSession<ThrowOnError extends boolean = false>(options: Options<StartAttendanceSessionData, ThrowOnError>) {
+        return (options.client ?? client).post<StartAttendanceSessionResponses, StartAttendanceSessionErrors, ThrowOnError>({
+            responseTransformer: startAttendanceSessionResponseTransformer,
+            url: '/api/v1/attendance/sessions/{session_id}/start',
+            ...options
         });
     }
     

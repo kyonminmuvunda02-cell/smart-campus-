@@ -1,17 +1,43 @@
 import { useState } from 'react';
-import { Alert, Button } from 'react-bootstrap';
+import { Alert, Button, Form, Spinner } from 'react-bootstrap';
 import PageHeader from '@/components/common/PageHeader';
 import LoadingSkeleton from '@/components/common/LoadingSkeleton';
 import EmptyState from '@/components/common/EmptyState';
+import ErrorAlert from '@/components/common/ErrorAlert';
 import { useEnrollment } from '../hooks/useEnrollment';
+import { useCourse } from '@/modules/courses/hooks/useCourse';
+import { useUser } from '@/modules/users/hooks/useUser';
+import { useToast } from '@/components/common/ToastManager';
+import { getErrorMessage } from '@/utils/errors';
+
+function currentAcademicYear() {
+  const now = new Date();
+  return `${now.getFullYear()}/${now.getFullYear() + 1}`;
+}
 
 export default function EnrollmentListPage() {
   const [studentIdInput, setStudentIdInput] = useState('');
   const [selectedStudentId, setSelectedStudentId] = useState(0);
-  const { useStudentEnrollments } = useEnrollment();
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [newEnrollment, setNewEnrollment] = useState({
+    student_id: '',
+    course_id: '',
+    semester: 'Semester 1',
+    academic_year: currentAcademicYear(),
+  });
+
+  const { showToast } = useToast();
+  const { useStudentEnrollments, create } = useEnrollment();
+  const { useList: useCourses } = useCourse();
+  const { useList: useUsers } = useUser();
   const { data, isLoading } = useStudentEnrollments(selectedStudentId);
+  const { data: coursesData } = useCourses({ query: { skip: 0, limit: 200 } });
+  const { data: usersData } = useUsers({ query: { skip: 0, limit: 200 } });
 
   const enrollments = (data as { items?: Array<Record<string, unknown>> })?.items ?? [];
+  const courses = (coursesData as { items?: Array<Record<string, unknown>> } | undefined)?.items ?? [];
+  const users = (usersData as { items?: Array<Record<string, unknown>> } | undefined)?.items ?? [];
+  const students = users.filter((user) => user.role === 'Student');
   const hasLookup = selectedStudentId > 0;
 
   function handleLookup(event: React.FormEvent<HTMLFormElement>) {
@@ -24,18 +50,51 @@ export default function EnrollmentListPage() {
     setSelectedStudentId(0);
   }
 
+  async function handleCreateEnrollment(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    try {
+      setCreateError(null);
+      await create.mutateAsync({
+        body: {
+          student_id: Number(newEnrollment.student_id),
+          course_id: Number(newEnrollment.course_id),
+          semester: newEnrollment.semester,
+          academic_year: newEnrollment.academic_year,
+        },
+      });
+      showToast('success', 'Enrollment created', 'The student can now be validated against this course during attendance.');
+      setSelectedStudentId(Number(newEnrollment.student_id));
+      setStudentIdInput(newEnrollment.student_id);
+    } catch (error) {
+      setCreateError(getErrorMessage(error));
+    }
+  }
+
+  function getStudentLabel(studentId: number) {
+    const student = students.find((user) => Number(user.user_id ?? 0) === studentId);
+    if (!student) return `Student #${studentId}`;
+    return `${String(student.first_name ?? '')} ${String(student.last_name ?? '')}`.trim() || `Student #${studentId}`;
+  }
+
+  function getCourseLabel(courseId: number) {
+    const course = courses.find((item) => Number(item.course_id ?? 0) === courseId);
+    if (!course) return `Course #${courseId}`;
+    return `${String(course.course_code ?? '')} - ${String(course.course_name ?? '')}`;
+  }
+
   return (
     <div>
       <PageHeader
         eyebrow="Administration"
-        title="Enrollment lookup"
-        subtitle="Inspect a student's course registrations from a focused admin search surface."
+        title="Enrollment management"
+        subtitle="Control which students may legitimately attend which courses in a given term."
         icon="list-check"
         tone="purple"
       >
         <Button variant="outline-secondary" onClick={resetLookup} disabled={!studentIdInput && !selectedStudentId}>
           <i className="ti ti-rotate-2" />
-          Clear
+          Clear lookup
         </Button>
       </PageHeader>
 
@@ -44,10 +103,91 @@ export default function EnrollmentListPage() {
           <div className="surface-card section-card">
             <div className="section-title">
               <div>
-                <h3>Student search</h3>
-                <div className="section-subtle">Run an explicit lookup instead of filtering records as you type.</div>
+                <h3>Create enrollment</h3>
+                <div className="section-subtle">Students must be explicitly enrolled before their attendance can be accepted.</div>
               </div>
-              <span className="status-pill purple"><i className="ti ti-search" />Admin scope</span>
+              <span className="status-pill purple"><i className="ti ti-user-plus" />Admin control</span>
+            </div>
+
+            <ErrorAlert error={createError} dismissible />
+
+            <form onSubmit={handleCreateEnrollment}>
+              <div className="field-shell">
+                <label htmlFor="new_student_id" className="field-label">Student</label>
+                <Form.Select
+                  id="new_student_id"
+                  value={newEnrollment.student_id}
+                  onChange={(event) => setNewEnrollment((prev) => ({ ...prev, student_id: event.target.value }))}
+                  required
+                >
+                  <option value="">Select a student...</option>
+                  {students.map((student) => (
+                    <option key={String(student.user_id)} value={String(student.user_id)}>
+                      {`${String(student.first_name ?? '')} ${String(student.last_name ?? '')}`.trim()} - {String(student.email ?? '')}
+                    </option>
+                  ))}
+                </Form.Select>
+              </div>
+
+              <div className="field-shell">
+                <label htmlFor="new_course_id" className="field-label">Course</label>
+                <Form.Select
+                  id="new_course_id"
+                  value={newEnrollment.course_id}
+                  onChange={(event) => setNewEnrollment((prev) => ({ ...prev, course_id: event.target.value }))}
+                  required
+                >
+                  <option value="">Select a course...</option>
+                  {courses.map((course) => (
+                    <option key={String(course.course_id)} value={String(course.course_id)}>
+                      {`${String(course.course_code ?? '')} - ${String(course.course_name ?? '')}`}
+                    </option>
+                  ))}
+                </Form.Select>
+              </div>
+
+              <div className="session-stat-row">
+                <div className="field-shell">
+                  <label htmlFor="semester" className="field-label">Semester</label>
+                  <Form.Select
+                    id="semester"
+                    value={newEnrollment.semester}
+                    onChange={(event) => setNewEnrollment((prev) => ({ ...prev, semester: event.target.value }))}
+                  >
+                    <option value="Semester 1">Semester 1</option>
+                    <option value="Semester 2">Semester 2</option>
+                  </Form.Select>
+                </div>
+                <div className="field-shell">
+                  <label htmlFor="academic_year" className="field-label">Academic year</label>
+                  <Form.Control
+                    id="academic_year"
+                    value={newEnrollment.academic_year}
+                    onChange={(event) => setNewEnrollment((prev) => ({ ...prev, academic_year: event.target.value }))}
+                    placeholder="2026/2027"
+                  />
+                </div>
+              </div>
+
+              <div className="ph-actions">
+                <Button
+                  variant="primary"
+                  type="submit"
+                  disabled={create.isPending || !newEnrollment.student_id || !newEnrollment.course_id}
+                >
+                  {create.isPending ? <Spinner animation="border" size="sm" /> : <i className="ti ti-plus" />}
+                  Enroll student
+                </Button>
+              </div>
+            </form>
+          </div>
+
+          <div className="surface-card section-card">
+            <div className="section-title">
+              <div>
+                <h3>Student lookup</h3>
+                <div className="section-subtle">Inspect a student’s current enrollment footprint with a targeted search.</div>
+              </div>
             </div>
 
             <form className="lookup-form" onSubmit={handleLookup}>
@@ -66,12 +206,8 @@ export default function EnrollmentListPage() {
                 </div>
               </div>
 
-              <div className="login-hint">
-                Current backend scope is student-based lookup, so this screen is optimized for one precise identity search at a time.
-              </div>
-
               <div className="ph-actions">
-                <Button variant="primary" type="submit" disabled={!Number(studentIdInput)}>
+                <Button variant="outline-secondary" type="submit" disabled={!Number(studentIdInput)}>
                   <i className="ti ti-search" />
                   Load enrollments
                 </Button>
@@ -86,9 +222,9 @@ export default function EnrollmentListPage() {
           <div className="callout-panel purple">
             <i className="ti ti-info-circle" style={{ color: 'var(--purple)' }} />
             <div>
-              <div className="callout-title">Why this flow is narrow</div>
+              <div className="callout-title">Enrollment is a trust boundary</div>
               <div className="callout-copy">
-                Enrollment management is more trustworthy when admins search with a clear target student instead of browsing partial or stale records.
+                Attendance should only succeed for students with an explicit, term-specific course registration. This screen is the control surface for that rule.
               </div>
             </div>
           </div>
@@ -106,15 +242,15 @@ export default function EnrollmentListPage() {
             <div className="session-stat-row">
               <div className="session-stat">
                 <label>Selected student</label>
-                <strong>{hasLookup ? selectedStudentId : '--'}</strong>
+                <strong>{hasLookup ? getStudentLabel(selectedStudentId) : '--'}</strong>
               </div>
               <div className="session-stat">
                 <label>Records found</label>
                 <strong>{hasLookup ? enrollments.length : 0}</strong>
               </div>
               <div className="session-stat">
-                <label>Search mode</label>
-                <strong>{hasLookup ? 'Focused' : 'Idle'}</strong>
+                <label>Academic mode</label>
+                <strong>{hasLookup ? 'Verified view' : 'Idle'}</strong>
               </div>
             </div>
           </div>
@@ -124,7 +260,7 @@ export default function EnrollmentListPage() {
               <EmptyState
                 icon="ti-search"
                 title="Select a student"
-                message="Run a student lookup to view enrollment records for a single academic profile."
+                message="Run a student lookup to review which courses the student is currently allowed to attend."
               />
             </div>
           ) : isLoading ? (
@@ -134,7 +270,7 @@ export default function EnrollmentListPage() {
               <EmptyState
                 icon="ti-list-check"
                 title="No enrollments found"
-                message="This student currently has no records in the available enrollment dataset."
+                message="This student does not currently have any tracked course registrations."
               />
             </div>
           ) : (
@@ -142,14 +278,14 @@ export default function EnrollmentListPage() {
               <div className="section-title">
                 <div>
                   <h3>Enrollment records</h3>
-                  <div className="section-subtle">Academic registrations returned for student #{selectedStudentId}</div>
+                  <div className="section-subtle">Academic registrations returned for {getStudentLabel(selectedStudentId)}</div>
                 </div>
-                <span className="status-pill green"><i className="ti ti-check" />{enrollments.length} active rows</span>
+                <span className="status-pill green"><i className="ti ti-check" />{enrollments.length} tracked rows</span>
               </div>
 
               <Alert variant="light" className="mb-3 border">
                 <i className="ti ti-shield-check me-2" />
-                Use this view to verify enrollment integrity before trusting attendance trends for the student.
+                These records directly affect whether attendance check-in is accepted for the selected student.
               </Alert>
 
               <div className="table-shell">
@@ -166,8 +302,8 @@ export default function EnrollmentListPage() {
                   <tbody>
                     {enrollments.map((enrollment: Record<string, unknown>) => (
                       <tr key={`${enrollment.student_id as number}-${enrollment.course_id as number}-${enrollment.academic_year as string}-${enrollment.semester as string}`}>
-                        <td className="fw-semibold">Course #{enrollment.course_id as number}</td>
-                        <td className="text-secondary">Student #{enrollment.student_id as number}</td>
+                        <td className="fw-semibold">{getCourseLabel(Number(enrollment.course_id ?? 0))}</td>
+                        <td className="text-secondary">{getStudentLabel(Number(enrollment.student_id ?? 0))}</td>
                         <td className="text-secondary">
                           {(enrollment.semester as string) || '-'} / {(enrollment.academic_year as string) || '-'}
                         </td>

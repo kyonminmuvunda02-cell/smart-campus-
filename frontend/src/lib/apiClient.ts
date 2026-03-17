@@ -1,8 +1,11 @@
 import { client } from '@/client/client.gen';
 
-// Configure base URL from environment
+const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
+
+// Prefer a relative API path by default so mobile devices hitting the Vite dev server
+// can use its /api proxy instead of depending on a hardcoded LAN IP.
 client.setConfig({
-  baseUrl: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000',
+  baseUrl: configuredBaseUrl || '',
 });
 
 // Add auth interceptor — attach token to every request

@@ -934,6 +934,54 @@
         ]
       }
     },
+    "/api/v1/courses/{course_id}/assignments": {
+      "get": {
+        "tags": [
+          "courses"
+        ],
+        "summary": "List Course Assignments",
+        "description": "Admin: list active lecturer assignments for a course.",
+        "operationId": "listCourseAssignments",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "course_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Course Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourseLecturerList"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/courses/assignments/{lecturer_id}/{course_id}": {
       "delete": {
         "tags": [
@@ -1682,6 +1730,54 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/AttendanceSessionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/attendance/sessions/{session_id}/start": {
+      "post": {
+        "tags": [
+          "attendance-sessions"
+        ],
+        "summary": "Start Attendance Session",
+        "description": "Lecturer: activate a scheduled session and issue its first live QR code.",
+        "operationId": "startAttendanceSession",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QRCodeResponse"
                 }
               }
             }
@@ -2742,6 +2838,27 @@
           "course_id"
         ],
         "title": "CourseLecturerCreate"
+      },
+      "CourseLecturerList": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CourseLecturerResponse"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total"
+        ],
+        "title": "CourseLecturerList"
       },
       "CourseLecturerResponse": {
         "properties": {

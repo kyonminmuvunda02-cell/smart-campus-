@@ -16,10 +16,16 @@ export function useEnrollment() {
       enabled: !!studentId,
     });
 
-  const useCourseEnrollments = (courseId: number) =>
+  const useCourseEnrollments = (courseId: number, semester?: string, academicYear?: string) =>
     useQuery({
-      ...listCourseEnrollmentsOptions({ path: { course_id: courseId } } as Options<ListCourseEnrollmentsData>),
-      enabled: !!courseId,
+      ...listCourseEnrollmentsOptions({
+        path: { course_id: courseId },
+        query: {
+          semester: semester!,
+          academic_year: academicYear!,
+        },
+      } as Options<ListCourseEnrollmentsData>),
+      enabled: !!courseId && !!semester && !!academicYear,
     });
 
   const create = useMutation({

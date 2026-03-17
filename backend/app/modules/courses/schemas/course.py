@@ -47,3 +47,8 @@ class CourseLecturerResponse(BaseModel):
     course_id: int
     is_active: bool
     assigned_at: datetime
+
+
+class CourseLecturerList(BaseModel):
+    items: list[CourseLecturerResponse]
+    total: int

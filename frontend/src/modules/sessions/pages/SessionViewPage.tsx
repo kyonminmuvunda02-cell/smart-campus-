@@ -18,11 +18,18 @@ function formatCountdown(seconds: number) {
   return `${String(minutes).padStart(2, '0')}:${String(remainder).padStart(2, '0')}`;
 }
 
+function getSessionState(session: Record<string, unknown> | undefined) {
+  if (!session) return 'unknown';
+  if (Boolean(session.is_active)) return 'live';
+  const sessionStart = session.session_start ? new Date(session.session_start as string).getTime() : 0;
+  return sessionStart > Date.now() ? 'scheduled' : 'closed';
+}
+
 export default function SessionViewPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { showToast } = useToast();
-  const { useDetail, useSessionRecords, close, refreshQr } = useSession();
+  const { useDetail, useSessionRecords, start, close, refreshQr } = useSession();
 
   const sessionId = id ? Number(id) : undefined;
   const { data: session, isLoading } = useDetail(sessionId);
@@ -33,7 +40,9 @@ export default function SessionViewPage() {
 
   const records = (recordsData as { items?: Array<Record<string, unknown>> })?.items ?? [];
   const sessionRecord = session as Record<string, unknown> | undefined;
-  const isActive = Boolean(sessionRecord?.is_active);
+  const sessionState = getSessionState(sessionRecord);
+  const isLive = sessionState === 'live';
+  const isScheduled = sessionState === 'scheduled';
   const flaggedCount = records.filter((record) => Boolean(record.fraud_flag)).length;
   const sessionMeta = {
     courseId: sessionRecord?.course_id as number | undefined,
@@ -43,13 +52,25 @@ export default function SessionViewPage() {
   };
 
   useEffect(() => {
-    const expiryValue = qrExpiry ?? String(sessionRecord?.qr_code_expiry ?? '');
+    const expiryValue = qrExpiry ?? (isLive ? String(sessionRecord?.qr_code_expiry ?? '') : null);
     setSecondsRemaining(getSecondsRemaining(expiryValue));
+    if (!expiryValue) return undefined;
     const timer = window.setInterval(() => {
       setSecondsRemaining(getSecondsRemaining(expiryValue));
     }, 1000);
     return () => window.clearInterval(timer);
-  }, [qrExpiry, sessionRecord?.qr_code_expiry]);
+  }, [isLive, qrExpiry, sessionRecord?.qr_code_expiry]);
+
+  async function handleStart() {
+    try {
+      const qrData = await start.mutateAsync({ path: { session_id: sessionId! } });
+      setQrImage(qrData.qr_image_base64);
+      setQrExpiry(qrData.qr_code_expiry.toString());
+      showToast('success', 'Attendance started', 'The scheduled session is now live and students can begin checking in.');
+    } catch (err) {
+      showToast('danger', 'Error', getErrorMessage(err));
+    }
+  }
 
   async function handleClose() {
     try {
@@ -85,16 +106,28 @@ export default function SessionViewPage() {
       <PageHeader
         eyebrow="Lecturer session monitor"
         title={`Session #${sessionRecord.session_id}`}
-        subtitle={isActive ? 'Attendance window is live and collecting verified check-ins.' : 'This session has been closed.'}
+        subtitle={
+          isLive
+            ? 'Attendance window is live and collecting verified check-ins.'
+            : isScheduled
+              ? 'This session is scheduled and waiting for the lecturer to start attendance.'
+              : 'This session has been closed.'
+        }
         icon="presentation"
         tone="teal"
       >
         <Link to="/sessions"><Button variant="outline-secondary"><i className="ti ti-arrow-left" />Back</Button></Link>
-        {isActive ? (
+        {isScheduled ? (
+          <Button variant="primary" onClick={() => void handleStart()} disabled={start.isPending}>
+            <i className="ti ti-player-play" />
+            Start attendance
+          </Button>
+        ) : null}
+        {isLive ? (
           <>
             <Button variant="outline-secondary" onClick={() => void handleRefreshQr()} disabled={refreshQr.isPending}>
               <i className="ti ti-refresh" />
-              {qrImage ? 'Rotate QR' : 'Generate QR'}
+              {qrImage ? 'Rotate QR' : 'Load QR'}
             </Button>
             <Button variant="danger" onClick={() => void handleClose()} disabled={close.isPending}>
               <i className="ti ti-player-stop" />
@@ -107,7 +140,11 @@ export default function SessionViewPage() {
       <div className="session-stat-row" style={{ marginBottom: '1rem' }}>
         <div className="session-stat"><label>Scanned in</label><strong>{records.length}</strong></div>
         <div className="session-stat"><label>Flagged</label><strong>{flaggedCount}</strong></div>
-        <div className="session-stat"><label>QR countdown</label><strong>{isActive ? formatCountdown(secondsRemaining) : 'Closed'}</strong></div>
+        <div className="session-stat">
+          <label>Session state</label>
+          <strong>{isLive ? 'Live' : isScheduled ? 'Scheduled' : 'Closed'}</strong>
+        </div>
+        <div className="session-stat"><label>QR countdown</label><strong>{isLive ? formatCountdown(secondsRemaining) : '--'}</strong></div>
       </div>
 
       <div className="session-grid">
@@ -115,21 +152,29 @@ export default function SessionViewPage() {
           <div className="session-qr-board">
             <div className="section-title">
               <div>
-                <h3>Live QR access</h3>
+                <h3>Attendance QR</h3>
                 <div className="section-subtle">
-                  {qrImage
-                    ? 'This image is the current active code. Rotating it will invalidate the previous QR immediately.'
-                    : 'Generate the QR when you are ready to admit scans into the active attendance window.'}
+                  {isScheduled
+                    ? 'The QR is not available until the lecturer starts the attendance window.'
+                    : qrImage
+                      ? 'This image is the current active code. Rotating it will invalidate the previous QR immediately.'
+                      : 'Load or rotate the live QR once the attendance window is active.'}
                 </div>
               </div>
-              <span className={`status-pill ${isActive ? 'green' : 'red'}`}>
-                <i className={`ti ti-${isActive ? 'circle-filled' : 'lock'}`} />
-                {isActive ? 'Live' : 'Closed'}
+              <span className={`status-pill ${isLive ? 'green' : isScheduled ? 'royal' : 'red'}`}>
+                <i className={`ti ti-${isLive ? 'broadcast' : isScheduled ? 'calendar-event' : 'lock'}`} />
+                {isLive ? 'Live' : isScheduled ? 'Scheduled' : 'Closed'}
               </span>
             </div>
 
             <div className="session-qr-frame">
-              {qrImage ? (
+              {isScheduled ? (
+                <div className="empty-panel">
+                  <i className="ti ti-calendar-time" />
+                  <div className="callout-title">Waiting to start</div>
+                  <div className="callout-copy">Start attendance when the class actually begins and the QR will be issued immediately.</div>
+                </div>
+              ) : qrImage ? (
                 <>
                   <img src={`data:image/png;base64,${qrImage}`} alt="Attendance QR code" />
                   <div className="mt-3">
@@ -139,8 +184,10 @@ export default function SessionViewPage() {
               ) : (
                 <div className="empty-panel">
                   <i className="ti ti-qrcode-off" />
-                  <div className="callout-title">No QR generated yet</div>
-                  <div className="callout-copy">Generate the current code when students are ready to check in.</div>
+                  <div className="callout-title">{isLive ? 'QR not loaded yet' : 'Session closed'}</div>
+                  <div className="callout-copy">
+                    {isLive ? 'Load or rotate the current QR when students are ready to check in.' : 'Closed sessions no longer expose an attendance QR.'}
+                  </div>
                 </div>
               )}
             </div>
@@ -177,7 +224,14 @@ export default function SessionViewPage() {
                 <div className="timeline-pin"><i className="ti ti-building" /></div>
                 <div className="timeline-text">
                   <strong>Venue #{sessionMeta.venueId ?? '-'}</strong>
-                  <span>Attendance is accepted only while the geofenced session remains active.</span>
+                  <span>Attendance is accepted only while the live session remains active.</span>
+                </div>
+              </div>
+              <div className="timeline-row">
+                <div className="timeline-pin"><i className="ti ti-calendar-event" /></div>
+                <div className="timeline-text">
+                  <strong>{sessionRecord.session_start ? new Date(sessionRecord.session_start as string).toLocaleString() : '-'}</strong>
+                  <span>Scheduled class start</span>
                 </div>
               </div>
             </div>
@@ -195,8 +249,12 @@ export default function SessionViewPage() {
             {records.length === 0 ? (
               <div className="empty-panel">
                 <i className="ti ti-users-off" />
-                <div className="callout-title">No check-ins yet</div>
-                <div className="callout-copy">Once students submit valid scans, they will appear here in real time.</div>
+                <div className="callout-title">{isScheduled ? 'No attendance yet' : 'No check-ins yet'}</div>
+                <div className="callout-copy">
+                  {isScheduled
+                    ? 'This session has not started, so no one can check in yet.'
+                    : 'Once students submit valid scans, they will appear here in real time.'}
+                </div>
               </div>
             ) : (
               <div className="table-shell">

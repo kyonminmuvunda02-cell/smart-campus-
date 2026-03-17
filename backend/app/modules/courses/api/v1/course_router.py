@@ -2,11 +2,11 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
 from app.modules.core.database import get_db
-from app.modules.auth.dependencies import require_role
+from app.modules.auth.dependencies import require_role, get_current_user
 from app.modules.courses.services.course_service import CourseService
 from app.modules.courses.schemas.course import (
     CourseCreate, CourseUpdate, CourseResponse, CourseList,
-    CourseLecturerCreate, CourseLecturerResponse,
+    CourseLecturerCreate, CourseLecturerResponse, CourseLecturerList,
 )
 
 router = APIRouter(prefix="/courses", tags=["courses"])
@@ -35,8 +35,17 @@ def create_course(data: CourseCreate, db: Session = Depends(get_db)):
     operation_id="listCourses",
     dependencies=[Depends(require_role("Student", "Lecturer", "Admin"))],
 )
-def list_courses(skip: int = 0, limit: int = 20, db: Session = Depends(get_db)):
+def list_courses(
+    skip: int = 0,
+    limit: int = 20,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
     """List all courses."""
+    if current_user["role"] == "Lecturer":
+        return CourseService.list_courses_for_lecturer(
+            db, current_user["user_id"], skip, limit
+        )
     return CourseService.list_courses(db, skip, limit)
 
 
@@ -47,9 +56,16 @@ def list_courses(skip: int = 0, limit: int = 20, db: Session = Depends(get_db)):
     operation_id="getCourse",
     dependencies=[Depends(require_role("Student", "Lecturer", "Admin"))],
 )
-def get_course(course_id: int, db: Session = Depends(get_db)):
+def get_course(
+    course_id: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
     """Get a single course by ID."""
-    return CourseService.get_course(db, course_id)
+    course = CourseService.get_course(db, course_id)
+    if current_user["role"] == "Lecturer":
+        CourseService.assert_lecturer_assigned(db, current_user["user_id"], course_id)
+    return course
 
 
 @router.patch(
@@ -94,6 +110,18 @@ def assign_lecturer(data: CourseLecturerCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(assignment)
     return assignment
+
+
+@router.get(
+    "/{course_id}/assignments",
+    response_model=CourseLecturerList,
+    name="list_course_assignments",
+    operation_id="listCourseAssignments",
+    dependencies=[Depends(require_role("Admin"))],
+)
+def list_course_assignments(course_id: int, db: Session = Depends(get_db)):
+    """Admin: list active lecturer assignments for a course."""
+    return CourseService.list_assignments_for_course(db, course_id)
 
 
 @router.delete(

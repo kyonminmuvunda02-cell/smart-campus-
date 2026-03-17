@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.modules.core.database import get_db
 from app.modules.auth.dependencies import require_role, get_current_user
 from app.modules.enrollment.services.enrollment_service import EnrollmentService
+from app.modules.courses.services.course_service import CourseService
 from app.modules.enrollment.schemas.enrollment import (
     EnrollmentCreate, EnrollmentUpdate, EnrollmentResponse, EnrollmentList,
 )
@@ -62,8 +63,11 @@ def list_course_enrollments(
     skip: int = 0,
     limit: int = 20,
     db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ):
     """Lecturer/Admin: list all enrollments for a course in a given period."""
+    if current_user["role"] == "Lecturer":
+        CourseService.assert_lecturer_assigned(db, current_user["user_id"], course_id)
     return EnrollmentService.list_enrollments_for_course(
         db, course_id, semester, academic_year, skip, limit
     )

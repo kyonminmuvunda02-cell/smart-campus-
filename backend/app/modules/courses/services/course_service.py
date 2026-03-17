@@ -4,7 +4,7 @@ from sqlalchemy import select, func as sa_func
 
 from app.modules.courses.models.course import Course, CourseLecturer
 from app.modules.courses.schemas.course import CourseCreate, CourseUpdate, CourseLecturerCreate
-from app.modules.core.exceptions import NotFoundException, ConflictException
+from app.modules.core.exceptions import NotFoundException, ConflictException, ForbiddenException
 
 logger = logging.getLogger(__name__)
 
@@ -37,11 +37,51 @@ class CourseService:
         return course
 
     @staticmethod
+    def assert_lecturer_assigned(db: Session, lecturer_id: int, course_id: int) -> None:
+        """Ensure the lecturer has an active assignment for the course."""
+        assignment = db.execute(
+            select(CourseLecturer).where(
+                CourseLecturer.lecturer_id == lecturer_id,
+                CourseLecturer.course_id == course_id,
+                CourseLecturer.is_active == True,
+            )
+        ).scalars().first()
+        if not assignment:
+            raise ForbiddenException("You are not assigned to this course")
+
+    @staticmethod
     def list_courses(db: Session, skip: int = 0, limit: int = 20) -> dict:
         """Return paginated list of courses."""
         total = db.execute(select(sa_func.count()).select_from(Course)).scalar_one()
         items = db.execute(
             select(Course).order_by(Course.course_code).offset(skip).limit(limit)
+        ).scalars().all()
+        return {"items": items, "total": total, "skip": skip, "limit": limit}
+
+    @staticmethod
+    def list_courses_for_lecturer(
+        db: Session, lecturer_id: int, skip: int = 0, limit: int = 20
+    ) -> dict:
+        """Return active course assignments for a lecturer."""
+        base_query = (
+            select(Course)
+            .join(CourseLecturer, CourseLecturer.course_id == Course.course_id)
+            .where(
+                CourseLecturer.lecturer_id == lecturer_id,
+                CourseLecturer.is_active == True,
+            )
+        )
+        total = db.execute(
+            select(sa_func.count())
+            .select_from(Course)
+            .join(CourseLecturer, CourseLecturer.course_id == Course.course_id)
+            .where(
+                CourseLecturer.lecturer_id == lecturer_id,
+                CourseLecturer.is_active == True,
+            )
+        ).scalar_one()
+        items = db.execute(
+            base_query.order_by(Course.course_code).offset(skip).limit(limit)
         ).scalars().all()
         return {"items": items, "total": total, "skip": skip, "limit": limit}
 
@@ -106,3 +146,23 @@ class CourseService:
             raise NotFoundException("Assignment not found")
         assignment.is_active = False
         db.flush()
+
+    @staticmethod
+    def list_assignments_for_course(db: Session, course_id: int) -> dict:
+        """Return active lecturer assignments for a course."""
+        CourseService.get_course(db, course_id)
+        total = db.execute(
+            select(sa_func.count()).select_from(CourseLecturer).where(
+                CourseLecturer.course_id == course_id,
+                CourseLecturer.is_active == True,
+            )
+        ).scalar_one()
+        items = db.execute(
+            select(CourseLecturer)
+            .where(
+                CourseLecturer.course_id == course_id,
+                CourseLecturer.is_active == True,
+            )
+            .order_by(CourseLecturer.assigned_at.desc())
+        ).scalars().all()
+        return {"items": items, "total": total}

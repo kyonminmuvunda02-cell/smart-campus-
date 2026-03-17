@@ -11,8 +11,8 @@ class QRCodeService:
     def generate_qr_image(session_id: int, qr_uuid: str, expiry: datetime) -> str:
         """Generate a time-limited QR code and return it as a base64-encoded PNG.
 
-        The QR encodes a JSON payload so the frontend can display expiry info
-        and the backend can validate the session_id + UUID pair on check-in.
+        The QR encodes a compact JSON payload so phone cameras can still read it
+        from screenshots or photos of the lecturer screen.
 
         Args:
             session_id: The AttendanceSession.session_id.
@@ -23,16 +23,18 @@ class QRCodeService:
             Base64-encoded PNG string.
             Frontend displays it as: <img src="data:image/png;base64,{result}" />
         """
-        payload = json.dumps({
-            "session_id": session_id,
-            "qr_code": qr_uuid,
-            "expires_at": expiry.isoformat(),
-        })
+        payload = json.dumps(
+            {
+                "s": session_id,
+                "q": qr_uuid,
+            },
+            separators=(",", ":"),
+        )
 
         qr = qrcode.QRCode(
-            version=1,
+            version=None,
             error_correction=qrcode.constants.ERROR_CORRECT_M,
-            box_size=10,
+            box_size=12,
             border=4,
         )
         qr.add_data(payload)

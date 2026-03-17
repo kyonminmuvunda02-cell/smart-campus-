@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_DAYS: int = 8
     QR_CODE_TTL_SECONDS: int = 60
-    CORS_ORIGINS: list[str] = ["http://localhost:5173"]
+    CORS_ORIGINS: list[str] = ["*"]
     ENVIRONMENT: str = "development"
 
 

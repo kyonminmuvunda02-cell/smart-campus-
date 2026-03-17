@@ -61,9 +61,17 @@ def list_attendance_sessions(
     operation_id="getAttendanceSession",
     dependencies=[Depends(require_role("Lecturer", "Admin"))],
 )
-def get_attendance_session(session_id: int, db: Session = Depends(get_db)):
+def get_attendance_session(
+    session_id: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
     """Get a single attendance session by ID."""
-    return AttendanceSessionService.get_session(db, session_id)
+    session = AttendanceSessionService.get_session(db, session_id)
+    if current_user["role"] == "Lecturer" and session.lecturer_id != current_user["user_id"]:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=403, detail="Lecturers can only view their own sessions")
+    return session
 
 
 @router.patch(
@@ -77,12 +85,45 @@ def update_attendance_session(
     session_id: int,
     data: AttendanceSessionUpdate,
     db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ):
     """Update mutable fields on an attendance session."""
+    session = AttendanceSessionService.get_session(db, session_id)
+    if current_user["role"] == "Lecturer" and session.lecturer_id != current_user["user_id"]:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=403, detail="Lecturers can only update their own sessions")
     session = AttendanceSessionService.update_session(db, session_id, data)
     db.commit()
     db.refresh(session)
     return session
+
+
+@router.post(
+    "/{session_id}/start",
+    response_model=QRCodeResponse,
+    name="start_attendance_session",
+    operation_id="startAttendanceSession",
+)
+def start_attendance_session(
+    session_id: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_role("Lecturer")),
+):
+    """Lecturer: activate a scheduled session and issue its first live QR code."""
+    session = AttendanceSessionService.start_session(db, session_id, current_user["user_id"])
+    db.commit()
+    db.refresh(session)
+    qr_image = QRCodeService.generate_qr_image(
+        session_id=session.session_id,
+        qr_uuid=str(session.qr_code),
+        expiry=session.qr_code_expiry,
+    )
+    return QRCodeResponse(
+        session_id=session.session_id,
+        qr_code=session.qr_code,
+        qr_code_expiry=session.qr_code_expiry,
+        qr_image_base64=qr_image,
+    )
 
 
 @router.post(

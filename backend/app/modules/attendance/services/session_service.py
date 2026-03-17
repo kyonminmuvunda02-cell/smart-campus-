@@ -10,7 +10,7 @@ from app.modules.attendance.schemas.attendance import (
 )
 from app.modules.attendance.services.qr_service import QRCodeService
 from app.modules.core.config import settings
-from app.modules.core.exceptions import NotFoundException, ForbiddenException
+from app.modules.core.exceptions import NotFoundException, ForbiddenException, ConflictException
 
 logger = logging.getLogger(__name__)
 
@@ -31,10 +31,12 @@ class AttendanceSessionService:
         Returns:
             The new AttendanceSession — flushed, not committed.
         """
+        from app.modules.courses.services.course_service import CourseService
+
+        CourseService.assert_lecturer_assigned(db, lecturer_id, data.course_id)
+
         qr_code = uuid.uuid4()
-        qr_expiry = datetime.now(timezone.utc) + timedelta(
-            seconds=settings.QR_CODE_TTL_SECONDS
-        )
+        qr_expiry = datetime.now(timezone.utc)
 
         session = AttendanceSession(
             course_id=data.course_id,
@@ -46,11 +48,31 @@ class AttendanceSessionService:
             academic_year=data.academic_year,
             qr_code=qr_code,
             qr_code_expiry=qr_expiry,
-            is_active=True,
+            is_active=False,
         )
         db.add(session)
         db.flush()
         logger.info("Attendance session created", extra={"session_id": session.session_id})
+        return session
+
+    @staticmethod
+    def start_session(db: Session, session_id: int, lecturer_id: int) -> AttendanceSession:
+        """Activate a scheduled session and issue the first live QR code."""
+        session = AttendanceSessionService.get_session(db, session_id)
+        if session.lecturer_id != lecturer_id:
+            raise ForbiddenException("Only the session's lecturer can start it")
+        if session.is_active:
+            raise ConflictException("Session is already active")
+        if session.session_end <= datetime.now(timezone.utc):
+            raise ForbiddenException("Cannot start a session whose scheduled end time has passed")
+
+        session.is_active = True
+        session.qr_code = uuid.uuid4()
+        session.qr_code_expiry = datetime.now(timezone.utc) + timedelta(
+            seconds=settings.QR_CODE_TTL_SECONDS
+        )
+        db.flush()
+        logger.info("Session started", extra={"session_id": session_id})
         return session
 
     @staticmethod

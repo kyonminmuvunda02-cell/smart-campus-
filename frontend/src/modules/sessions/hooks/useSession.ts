@@ -3,6 +3,7 @@ import {
   listAttendanceSessionsOptions,
   getAttendanceSessionOptions,
   createAttendanceSessionMutation,
+  startAttendanceSessionMutation,
   closeAttendanceSessionMutation,
   refreshQrCodeMutation,
   listSessionRecordsOptions,
@@ -33,6 +34,14 @@ export function useSession() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['listAttendanceSessions'] }),
   });
 
+  const start = useMutation({
+    ...startAttendanceSessionMutation(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['listAttendanceSessions'] });
+      queryClient.invalidateQueries({ queryKey: ['getAttendanceSession'] });
+    },
+  });
+
   const close = useMutation({
     ...closeAttendanceSessionMutation(),
     onSuccess: () => {
@@ -45,5 +54,5 @@ export function useSession() {
     ...refreshQrCodeMutation(),
   });
 
-  return { useList, useDetail, useSessionRecords, create, close, refreshQr };
+  return { useList, useDetail, useSessionRecords, create, start, close, refreshQr };
 }
