@@ -5,6 +5,15 @@ import PageHeader from '@/components/common/PageHeader';
 import { useToast } from '@/components/common/ToastManager';
 import { getErrorMessage } from '@/utils/errors';
 import { useSession } from '../hooks/useSession';
+import { useCourse } from '@/modules/courses/hooks/useCourse';
+import { useVenue } from '@/modules/venues/hooks/useVenue';
+import { useUser } from '@/modules/users/hooks/useUser';
+import {
+  buildLookupMap,
+  getCourseDisplayName,
+  getStudentDisplayName,
+  getVenueDisplayName,
+} from '@/utils/entityLabels';
 
 function getSecondsRemaining(expiryValue: string | null) {
   if (!expiryValue) return 0;
@@ -30,6 +39,9 @@ export default function SessionViewPage() {
   const navigate = useNavigate();
   const { showToast } = useToast();
   const { useDetail, useSessionRecords, start, close, refreshQr } = useSession();
+  const { useDetail: useCourseDetail } = useCourse();
+  const { useDetail: useVenueDetail } = useVenue();
+  const { useList: useUserList } = useUser();
 
   const sessionId = id ? Number(id) : undefined;
   const { data: session, isLoading } = useDetail(sessionId);
@@ -44,9 +56,16 @@ export default function SessionViewPage() {
   const isLive = sessionState === 'live';
   const isScheduled = sessionState === 'scheduled';
   const flaggedCount = records.filter((record) => Boolean(record.fraud_flag)).length;
+  const courseId = sessionRecord?.course_id as number | undefined;
+  const venueId = sessionRecord?.venue_id as number | undefined;
+  const { data: courseData } = useCourseDetail(courseId);
+  const { data: venueData } = useVenueDetail(venueId);
+  const { data: usersData } = useUserList({ query: { limit: 500 } });
+  const userItems = (usersData as { items?: Array<Record<string, unknown>> } | undefined)?.items ?? [];
+  const studentLookup = buildLookupMap(userItems, 'user_id', (user) => getStudentDisplayName(user, user.user_id as number));
+  const courseLabel = getCourseDisplayName(courseData as Record<string, unknown> | undefined, courseId);
+  const venueLabel = getVenueDisplayName(venueData as Record<string, unknown> | undefined, venueId);
   const sessionMeta = {
-    courseId: sessionRecord?.course_id as number | undefined,
-    venueId: sessionRecord?.venue_id as number | undefined,
     sessionType: sessionRecord?.session_type as string | undefined,
     timetableSlot: sessionRecord?.timetable_slot as string | undefined,
     semester: sessionRecord?.semester as string | undefined,
@@ -218,14 +237,14 @@ export default function SessionViewPage() {
               <div className="timeline-row">
                 <div className="timeline-pin"><i className="ti ti-book" /></div>
                 <div className="timeline-text">
-                  <strong>{sessionMeta.sessionType ?? 'Lecture'} for course #{sessionMeta.courseId ?? '-'}</strong>
+                  <strong>{sessionMeta.sessionType ?? 'Lecture'} for {courseLabel}</strong>
                   <span>{sessionMeta.semester ?? '-'} / {sessionMeta.academicYear ?? '-'}</span>
                 </div>
               </div>
               <div className="timeline-row">
                 <div className="timeline-pin"><i className="ti ti-building" /></div>
                 <div className="timeline-text">
-                  <strong>Venue #{sessionMeta.venueId ?? '-'}</strong>
+                  <strong>{venueLabel}</strong>
                   <span>{sessionMeta.timetableSlot ?? 'No timetable slot captured'}.</span>
                 </div>
               </div>
@@ -271,7 +290,7 @@ export default function SessionViewPage() {
                   <tbody>
                     {records.map((record) => (
                       <tr key={record.attendance_id as number}>
-                        <td className="fw-semibold">Student #{record.student_id as number}</td>
+                        <td className="fw-semibold">{studentLookup.get(record.student_id as number) ?? `Student #${record.student_id as number}`}</td>
                         <td className="mono">{record.checked_in_at ? new Date(record.checked_in_at as string).toLocaleTimeString() : '-'}</td>
                         <td>
                           <span className={`status-pill ${record.fraud_flag ? 'amber' : 'green'}`}>

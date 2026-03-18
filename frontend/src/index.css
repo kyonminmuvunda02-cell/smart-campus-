@@ -1119,6 +1119,127 @@ a {
   caret-color: var(--tx1);
 }
 
+.searchable-select {
+  position: relative;
+}
+
+.searchable-select-shell {
+  position: relative;
+}
+
+.searchable-select-input-wrap {
+  display: flex;
+  align-items: center;
+  min-height: 3.15rem;
+  border-radius: var(--r-md);
+  border: 1.5px solid var(--card-bd);
+  background: var(--card);
+  overflow: hidden;
+}
+
+.searchable-select-shell.open .searchable-select-input-wrap,
+.searchable-select-input-wrap:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
+}
+
+.searchable-select-input-wrap > i {
+  width: 2.8rem;
+  min-height: 100%;
+  display: grid;
+  place-items: center;
+  background: var(--royal-lt);
+  color: var(--tx4);
+  border-right: 1px solid var(--card-bd);
+  flex-shrink: 0;
+}
+
+.searchable-select-input-wrap input {
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: var(--tx1);
+  padding: 0.8rem 1rem;
+  outline: none;
+  font: inherit;
+  font-size: 0.95rem;
+}
+
+.searchable-select-input-wrap input::placeholder {
+  color: var(--tx4);
+}
+
+.searchable-select-clear {
+  border: none;
+  background: transparent;
+  color: var(--tx4);
+  width: 2.75rem;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.searchable-select-menu {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 0.35rem);
+  z-index: 25;
+  border: 1px solid var(--card-bd);
+  border-radius: var(--r-lg);
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: var(--sh-lg);
+  overflow: hidden;
+  max-height: 18rem;
+  overflow-y: auto;
+  backdrop-filter: blur(14px);
+}
+
+.searchable-select-option {
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 0.8rem 1rem;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 0.18rem;
+  color: var(--tx1);
+}
+
+.searchable-select-option + .searchable-select-option {
+  border-top: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.searchable-select-option:hover,
+.searchable-select-option.active {
+  background: var(--royal-lt);
+}
+
+.searchable-select-option.placeholder-option {
+  color: var(--tx4);
+}
+
+.searchable-select-label {
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.searchable-select-meta {
+  font-size: 0.74rem;
+  color: var(--tx4);
+}
+
+.searchable-select-empty {
+  padding: 0.9rem 1rem;
+  color: var(--tx4);
+  font-size: 0.8rem;
+}
+
+.searchable-select.disabled {
+  opacity: 0.68;
+}
+
 .segmented-filter {
   display: flex;
   gap: 0.35rem;
@@ -1599,6 +1720,8 @@ a {
 
 .table-shell {
   overflow-x: auto;
+  max-width: 100%;
+  min-width: 0;
   border-radius: var(--r-xl);
   border: 1px solid var(--card-bd);
   box-shadow: var(--sh-sm);
@@ -1607,7 +1730,8 @@ a {
 
 .table-shell .table {
   border: none;
-  min-width: 760px;
+  width: 100%;
+  min-width: 680px;
 }
 
 .empty-panel {
@@ -1719,6 +1843,15 @@ a {
 
   .table-actions {
     justify-content: flex-start;
+  }
+
+  .table-actions .btn {
+    min-width: 0;
+    padding-inline: 0.65rem;
+  }
+
+  .table-shell .table {
+    min-width: 560px;
   }
 
   .scanner-actions {

@@ -4,6 +4,9 @@ import PageHeader from '@/components/common/PageHeader';
 import LoadingSkeleton from '@/components/common/LoadingSkeleton';
 import EmptyState from '@/components/common/EmptyState';
 import { useSession } from '../hooks/useSession';
+import { useCourse } from '@/modules/courses/hooks/useCourse';
+import { useVenue } from '@/modules/venues/hooks/useVenue';
+import { buildLookupMap, getCourseDisplayName, getVenueDisplayName } from '@/utils/entityLabels';
 
 function getSessionState(session: Record<string, unknown>) {
   const isActive = Boolean(session.is_active);
@@ -17,8 +20,16 @@ function getSessionState(session: Record<string, unknown>) {
 
 export default function SessionListPage() {
   const { useList } = useSession();
+  const { useList: useCourseList } = useCourse();
+  const { useList: useVenueList } = useVenue();
   const { data, isLoading } = useList();
+  const { data: coursesData } = useCourseList({ query: { limit: 500 } });
+  const { data: venuesData } = useVenueList({ query: { limit: 500 } });
   const sessions = (data as { items?: Array<Record<string, unknown>> })?.items ?? [];
+  const courseItems = (coursesData as { items?: Array<Record<string, unknown>> } | undefined)?.items ?? [];
+  const venueItems = (venuesData as { items?: Array<Record<string, unknown>> } | undefined)?.items ?? [];
+  const courseLookup = buildLookupMap(courseItems, 'course_id', (course) => getCourseDisplayName(course, course.course_id as number));
+  const venueLookup = buildLookupMap(venueItems, 'venue_id', (venue) => getVenueDisplayName(venue, venue.venue_id as number));
 
   return (
     <div>
@@ -47,8 +58,8 @@ export default function SessionListPage() {
                         <span>{String(s.session_type ?? 'Lecture')}</span>
                       </div>
                     </td>
-                    <td className="text-secondary">Course #{s.course_id as number}</td>
-                    <td className="text-secondary">Venue #{s.venue_id as number}</td>
+                    <td className="text-secondary">{courseLookup.get(s.course_id as number) ?? `Course #${s.course_id as number}`}</td>
+                    <td className="text-secondary">{venueLookup.get(s.venue_id as number) ?? `Venue #${s.venue_id as number}`}</td>
                     <td className="text-secondary small">{String(s.timetable_slot ?? 'Ad hoc session')}</td>
                     <td>
                       <span className={`status-pill ${state.tone}`}>

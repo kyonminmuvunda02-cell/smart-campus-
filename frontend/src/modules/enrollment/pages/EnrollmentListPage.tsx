@@ -4,6 +4,7 @@ import EmptyState from '@/components/common/EmptyState';
 import ErrorAlert from '@/components/common/ErrorAlert';
 import LoadingSkeleton from '@/components/common/LoadingSkeleton';
 import PageHeader from '@/components/common/PageHeader';
+import SearchableSelect from '@/components/common/SearchableSelect';
 import { useCourse } from '@/modules/courses/hooks/useCourse';
 import { useUser } from '@/modules/users/hooks/useUser';
 import { useToast } from '@/components/common/ToastManager';
@@ -135,36 +136,40 @@ export default function EnrollmentListPage() {
             <form onSubmit={handleCreateEnrollment}>
               <div className="field-shell">
                 <label htmlFor="new_student_id" className="field-label">Student</label>
-                <Form.Select
+                <SearchableSelect
                   id="new_student_id"
+                  name="new_student_id"
                   value={newEnrollment.student_id}
-                  onChange={(event) => setNewEnrollment((prev) => ({ ...prev, student_id: event.target.value }))}
+                  onValueChange={(value) => setNewEnrollment((prev) => ({ ...prev, student_id: value }))}
                   required
-                >
-                  <option value="">Select a student...</option>
-                  {students.map((student) => (
-                    <option key={String(student.user_id)} value={String(student.user_id)}>
-                      {`${String(student.first_name ?? '')} ${String(student.last_name ?? '')}`.trim()} - {String(student.email ?? '')}
-                    </option>
-                  ))}
-                </Form.Select>
+                  placeholder="Select a student..."
+                  searchPlaceholder="Search student name or email..."
+                  options={students.map((student) => ({
+                    value: String(student.user_id),
+                    label: `${String(student.first_name ?? '')} ${String(student.last_name ?? '')}`.trim() || `Student #${String(student.user_id)}`,
+                    meta: String(student.email ?? ''),
+                    keywords: `${String(student.first_name ?? '')} ${String(student.last_name ?? '')} ${String(student.email ?? '')}`,
+                  }))}
+                />
               </div>
 
               <div className="field-shell">
                 <label htmlFor="new_course_id" className="field-label">Course</label>
-                <Form.Select
+                <SearchableSelect
                   id="new_course_id"
+                  name="new_course_id"
                   value={newEnrollment.course_id}
-                  onChange={(event) => setNewEnrollment((prev) => ({ ...prev, course_id: event.target.value }))}
+                  onValueChange={(value) => setNewEnrollment((prev) => ({ ...prev, course_id: value }))}
                   required
-                >
-                  <option value="">Select a course...</option>
-                  {courses.map((course) => (
-                    <option key={String(course.course_id)} value={String(course.course_id)}>
-                      {`${String(course.course_code ?? '')} - ${String(course.course_name ?? '')}`}
-                    </option>
-                  ))}
-                </Form.Select>
+                  placeholder="Select a course..."
+                  searchPlaceholder="Search course code or title..."
+                  options={courses.map((course) => ({
+                    value: String(course.course_id),
+                    label: `${String(course.course_code ?? '')} - ${String(course.course_name ?? '')}`,
+                    meta: String(course.department ?? ''),
+                    keywords: `${String(course.course_code ?? '')} ${String(course.course_name ?? '')} ${String(course.department ?? '')}`,
+                  }))}
+                />
               </div>
 
               <div className="session-stat-row">
@@ -214,34 +219,38 @@ export default function EnrollmentListPage() {
 
             <div className="field-shell">
               <label htmlFor="filter_student_id" className="field-label">Student</label>
-              <Form.Select
+              <SearchableSelect
                 id="filter_student_id"
+                name="filter_student_id"
                 value={filters.student_id}
-                onChange={(event) => setFilters((prev) => ({ ...prev, student_id: event.target.value }))}
-              >
-                <option value="">All students</option>
-                {students.map((student) => (
-                  <option key={String(student.user_id)} value={String(student.user_id)}>
-                    {`${String(student.first_name ?? '')} ${String(student.last_name ?? '')}`.trim()}
-                  </option>
-                ))}
-              </Form.Select>
+                onValueChange={(value) => setFilters((prev) => ({ ...prev, student_id: value }))}
+                placeholder="All students"
+                searchPlaceholder="Search student..."
+                options={students.map((student) => ({
+                  value: String(student.user_id),
+                  label: `${String(student.first_name ?? '')} ${String(student.last_name ?? '')}`.trim() || `Student #${String(student.user_id)}`,
+                  meta: String(student.email ?? ''),
+                  keywords: `${String(student.first_name ?? '')} ${String(student.last_name ?? '')} ${String(student.email ?? '')}`,
+                }))}
+              />
             </div>
 
             <div className="field-shell">
               <label htmlFor="filter_course_id" className="field-label">Course</label>
-              <Form.Select
+              <SearchableSelect
                 id="filter_course_id"
+                name="filter_course_id"
                 value={filters.course_id}
-                onChange={(event) => setFilters((prev) => ({ ...prev, course_id: event.target.value }))}
-              >
-                <option value="">All courses</option>
-                {courses.map((course) => (
-                  <option key={String(course.course_id)} value={String(course.course_id)}>
-                    {`${String(course.course_code ?? '')} - ${String(course.course_name ?? '')}`}
-                  </option>
-                ))}
-              </Form.Select>
+                onValueChange={(value) => setFilters((prev) => ({ ...prev, course_id: value }))}
+                placeholder="All courses"
+                searchPlaceholder="Search course..."
+                options={courses.map((course) => ({
+                  value: String(course.course_id),
+                  label: `${String(course.course_code ?? '')} - ${String(course.course_name ?? '')}`,
+                  meta: String(course.department ?? ''),
+                  keywords: `${String(course.course_code ?? '')} ${String(course.course_name ?? '')} ${String(course.department ?? '')}`,
+                }))}
+              />
             </div>
 
             <div className="session-stat-row">

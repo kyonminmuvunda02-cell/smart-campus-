@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router';
-import { Button, Form, Spinner } from 'react-bootstrap';
+import { Button, Spinner } from 'react-bootstrap';
 import PageHeader from '@/components/common/PageHeader';
 import ErrorAlert from '@/components/common/ErrorAlert';
+import SearchableSelect from '@/components/common/SearchableSelect';
 import { useCourse } from '../hooks/useCourse';
 import { useUser } from '@/modules/users/hooks/useUser';
 import { useToast } from '@/components/common/ToastManager';
@@ -132,19 +133,21 @@ export default function CourseViewPage() {
             <form onSubmit={handleAssignLecturer}>
               <div className="field-shell">
                 <label htmlFor="lecturerId" className="field-label">Assign lecturer</label>
-                <Form.Select
+                <SearchableSelect
                   id="lecturerId"
+                  name="lecturerId"
                   value={selectedLecturerId}
-                  onChange={(event) => setSelectedLecturerId(event.target.value)}
+                  onValueChange={setSelectedLecturerId}
                   disabled={assignLecturer.isPending || availableLecturers.length === 0}
-                >
-                  <option value="">Select a lecturer...</option>
-                  {availableLecturers.map((lecturer) => (
-                    <option key={String(lecturer.user_id)} value={String(lecturer.user_id)}>
-                      {`${String(lecturer.first_name ?? '')} ${String(lecturer.last_name ?? '')}`.trim()} - {String(lecturer.email ?? '')}
-                    </option>
-                  ))}
-                </Form.Select>
+                  placeholder="Select a lecturer..."
+                  searchPlaceholder="Search lecturer name or email..."
+                  options={availableLecturers.map((lecturer) => ({
+                    value: String(lecturer.user_id),
+                    label: `${String(lecturer.first_name ?? '')} ${String(lecturer.last_name ?? '')}`.trim() || `Lecturer #${String(lecturer.user_id)}`,
+                    meta: String(lecturer.email ?? ''),
+                    keywords: `${String(lecturer.first_name ?? '')} ${String(lecturer.last_name ?? '')} ${String(lecturer.email ?? '')}`,
+                  }))}
+                />
               </div>
 
               <div className="ph-actions">

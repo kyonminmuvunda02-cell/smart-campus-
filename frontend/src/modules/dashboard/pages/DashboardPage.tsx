@@ -16,6 +16,13 @@ import { useSession } from '@/modules/sessions/hooks/useSession';
 import { useTimetable } from '@/modules/timetable/hooks/useTimetable';
 import { useUser } from '@/modules/users/hooks/useUser';
 import { useVenue } from '@/modules/venues/hooks/useVenue';
+import {
+  buildLookupMap,
+  getCourseDisplayName,
+  getStudentDisplayName,
+  getUserDisplayName,
+  getVenueDisplayName,
+} from '@/utils/entityLabels';
 
 type EntityRecord = Record<string, unknown>;
 
@@ -60,8 +67,12 @@ function MetricCard({
 function StudentDashboard({ userId }: { userId: number }) {
   const { useStudentRecords } = useAttendance();
   const { useStudentEnrollments } = useEnrollment();
+  const { useList: useCourseList } = useCourse();
+  const { useList: useSessionList } = useSession();
   const { data: recordsData, isLoading: recordsLoading } = useStudentRecords(userId);
   const { data: enrollmentsData, isLoading: enrollmentsLoading } = useStudentEnrollments(userId);
+  const { data: coursesData, isLoading: coursesLoading } = useCourseList({ query: { limit: 500 } });
+  const { data: sessionsData, isLoading: sessionsLoading } = useSessionList({ query: { limit: 200 } });
   const { data: digitalId, isLoading: digitalIdLoading } = useQuery({
     ...getActiveDigitalIdOptions({ path: { student_id: userId } } as Options<GetActiveDigitalIdData>),
     enabled: !!userId,
@@ -69,6 +80,13 @@ function StudentDashboard({ userId }: { userId: number }) {
 
   const records = (recordsData as { items?: Array<EntityRecord> } | undefined)?.items ?? [];
   const enrollments = (enrollmentsData as { items?: Array<EntityRecord> } | undefined)?.items ?? [];
+  const courses = (coursesData as { items?: Array<EntityRecord> } | undefined)?.items ?? [];
+  const sessions = (sessionsData as { items?: Array<EntityRecord> } | undefined)?.items ?? [];
+  const courseLookup = buildLookupMap(courses, 'course_id', (course) => getCourseDisplayName(course, course.course_id as number));
+  const sessionLookup = new Map<number, EntityRecord>();
+  sessions.forEach((session) => {
+    sessionLookup.set(Number(session.session_id), session);
+  });
   const verifiedRecords = records.filter((record) => !Boolean(record.fraud_flag) && String(record.verification_status ?? '') === 'Verified');
   const flaggedRecords = records.filter((record) => Boolean(record.fraud_flag) || String(record.verification_status ?? '') !== 'Verified');
   const enrolledCourses = enrollments.filter((enrollment) => String(enrollment.enrollment_status ?? '') === 'Enrolled');
@@ -79,7 +97,7 @@ function StudentDashboard({ userId }: { userId: number }) {
     return bTime - aTime;
   }).slice(0, 4);
 
-  if (recordsLoading || enrollmentsLoading || digitalIdLoading) {
+  if (recordsLoading || enrollmentsLoading || coursesLoading || sessionsLoading || digitalIdLoading) {
     return <LoadingSkeleton rows={8} columns={4} />;
   }
 
@@ -129,7 +147,13 @@ function StudentDashboard({ userId }: { userId: number }) {
                   <tbody>
                     {latestRecords.map((record) => (
                       <tr key={Number(record.attendance_id)}>
-                        <td className="fw-semibold">Session #{String(record.session_id ?? '-')}</td>
+                        <td className="fw-semibold">
+                          {(() => {
+                            const session = sessionLookup.get(Number(record.session_id));
+                            if (!session) return `Session #${String(record.session_id ?? '-')}`;
+                            return `${String(session.session_type ?? 'Session')} - ${courseLookup.get(Number(session.course_id)) ?? `Course #${String(session.course_id ?? '-')}`}`;
+                          })()}
+                        </td>
                         <td className="text-secondary small">{formatDateTime(record.checked_in_at)}</td>
                         <td>
                           <span className={`status-pill ${record.fraud_flag ? 'amber' : 'green'}`}>
@@ -160,7 +184,7 @@ function StudentDashboard({ userId }: { userId: number }) {
                   <div className="timeline-row" key={`${enrollment.course_id}-${enrollment.semester}-${enrollment.academic_year}`}>
                     <div className="timeline-pin"><i className="ti ti-book" /></div>
                     <div className="timeline-text">
-                      <strong>Course #{String(enrollment.course_id ?? '-')}</strong>
+                      <strong>{courseLookup.get(Number(enrollment.course_id)) ?? `Course #${String(enrollment.course_id ?? '-')}`}</strong>
                       <span>{String(enrollment.semester ?? '-')} - {String(enrollment.academic_year ?? '-')}</span>
                     </div>
                   </div>
@@ -213,13 +237,25 @@ function LecturerDashboard() {
   const { useList, useSessionRecords } = useSession();
   const { useQueue } = useAttendanceReview();
   const { useList: useTimetableList } = useTimetable();
+  const { useList: useCourseList } = useCourse();
+  const { useList: useVenueList } = useVenue();
+  const { useList: useUserList } = useUser();
   const { data: sessionsData, isLoading: sessionsLoading } = useList({ query: { limit: 200 } });
   const { data: reviewData, isLoading: reviewLoading } = useQueue({ limit: 200 });
   const { data: timetableData, isLoading: timetableLoading } = useTimetableList({ limit: 200 });
+  const { data: coursesData, isLoading: coursesLoading } = useCourseList({ query: { limit: 500 } });
+  const { data: venuesData, isLoading: venuesLoading } = useVenueList({ query: { limit: 500 } });
+  const { data: usersData, isLoading: usersLoading } = useUserList({ query: { limit: 500 } });
 
   const sessions = (sessionsData as { items?: Array<EntityRecord> } | undefined)?.items ?? [];
   const reviewItems = (reviewData as { items?: Array<EntityRecord> } | undefined)?.items ?? [];
   const timetableEntries = (timetableData as { items?: Array<EntityRecord> } | undefined)?.items ?? [];
+  const courses = (coursesData as { items?: Array<EntityRecord> } | undefined)?.items ?? [];
+  const venues = (venuesData as { items?: Array<EntityRecord> } | undefined)?.items ?? [];
+  const users = (usersData as { items?: Array<EntityRecord> } | undefined)?.items ?? [];
+  const courseLookup = buildLookupMap(courses, 'course_id', (course) => getCourseDisplayName(course, course.course_id as number));
+  const venueLookup = buildLookupMap(venues, 'venue_id', (venue) => getVenueDisplayName(venue, venue.venue_id as number));
+  const studentLookup = buildLookupMap(users, 'user_id', (user) => getStudentDisplayName(user, user.user_id as number));
   const now = Date.now();
   const liveSessions = sessions.filter((session) => Boolean(session.is_active));
   const nextSessions = sessions
@@ -232,7 +268,7 @@ function LecturerDashboard() {
   const pendingReview = reviewItems.filter((item) => String(item.verification_status ?? '') === 'Pending');
   const currentCaptureRate = liveRecords.length ? `${Math.round(((liveRecords.length - pendingReview.filter((item) => Number(item.session_id) === liveSessionId).length) / liveRecords.length) * 100)}%` : '0%';
 
-  if (sessionsLoading || reviewLoading || timetableLoading || (liveSessionId ? liveRecordsLoading : false)) {
+  if (sessionsLoading || reviewLoading || timetableLoading || coursesLoading || venuesLoading || usersLoading || (liveSessionId ? liveRecordsLoading : false)) {
     return <LoadingSkeleton rows={8} columns={4} />;
   }
 
@@ -271,7 +307,7 @@ function LecturerDashboard() {
                 <div className="surface-card section-card">
                   <div className="section-title">
                     <div>
-                      <h3>{String(liveSession.session_type ?? 'Session')} - Session #{String(liveSession.session_id)}</h3>
+                      <h3>{String(liveSession.session_type ?? 'Session')} - {courseLookup.get(Number(liveSession.course_id)) ?? `Course #${String(liveSession.course_id ?? '-')}`}</h3>
                       <div className="section-subtle">{String(liveSession.timetable_slot ?? 'Ad hoc slot')}</div>
                     </div>
                     <span className="status-pill green"><i className="ti ti-circle-filled" />Live</span>
@@ -279,7 +315,7 @@ function LecturerDashboard() {
                   <div className="session-stat-row">
                     <div className="session-stat"><label>Scanned</label><strong>{liveRecords.length}</strong></div>
                     <div className="session-stat"><label>Flagged</label><strong>{pendingReview.filter((item) => Number(item.session_id) === liveSessionId).length}</strong></div>
-                    <div className="session-stat"><label>Venue</label><strong>#{String(liveSession.venue_id ?? '-')}</strong></div>
+                    <div className="session-stat"><label>Venue</label><strong>{venueLookup.get(Number(liveSession.venue_id)) ?? `Venue #${String(liveSession.venue_id ?? '-')}`}</strong></div>
                   </div>
                 </div>
 
@@ -289,7 +325,7 @@ function LecturerDashboard() {
                       <div className="timeline-row" key={Number(session.session_id)}>
                         <div className="timeline-pin"><i className="ti ti-calendar-event" /></div>
                         <div className="timeline-text">
-                          <strong>Session #{String(session.session_id)}</strong>
+                          <strong>{courseLookup.get(Number(session.course_id)) ?? `Course #${String(session.course_id ?? '-')}`}</strong>
                           <span>{formatDateTime(session.session_start)} - {String(session.timetable_slot ?? 'No timetable slot')}</span>
                         </div>
                       </div>
@@ -321,8 +357,8 @@ function LecturerDashboard() {
                   <div className="timeline-row" key={Number(item.attendance_id)}>
                     <div className="timeline-pin"><i className="ti ti-alert-circle" /></div>
                     <div className="timeline-text">
-                      <strong>Student #{String(item.student_id ?? '-')}</strong>
-                      <span>Session #{String(item.session_id ?? '-')} - GPS {item.gps_accuracy ? `${Math.round(Number(item.gps_accuracy))} m` : 'unavailable'}</span>
+                      <strong>{studentLookup.get(Number(item.student_id)) ?? `Student #${String(item.student_id ?? '-')}`}</strong>
+                      <span>{courseLookup.get(Number(item.course_id)) ?? `Course #${String(item.course_id ?? '-')}`} - GPS {item.gps_accuracy ? `${Math.round(Number(item.gps_accuracy))} m` : 'unavailable'}</span>
                     </div>
                   </div>
                 ))}
@@ -371,6 +407,7 @@ function AdminDashboard() {
   const liveSessions = sessions.filter((session) => Boolean(session.is_active));
   const pendingReview = reviewItems.filter((item) => String(item.verification_status ?? '') === 'Pending');
   const latestAudit = auditLogs.slice(0, 4);
+  const userLookup = buildLookupMap(users, 'user_id', (user) => getUserDisplayName(user, user.user_id as number));
 
   if (usersLoading || venuesLoading || coursesLoading || sessionsLoading || reviewLoading || auditLoading) {
     return <LoadingSkeleton rows={8} columns={4} />;
@@ -465,7 +502,7 @@ function AdminDashboard() {
                     <div className="timeline-pin"><i className="ti ti-activity" /></div>
                     <div className="timeline-text">
                       <strong>{String(log.action ?? 'Unknown action')}</strong>
-                      <span>{formatDateTime(log.created_at)}{log.user_id ? ` - User #${String(log.user_id)}` : ''}</span>
+                      <span>{formatDateTime(log.created_at)}{log.user_id ? ` - ${userLookup.get(Number(log.user_id)) ?? `User #${String(log.user_id)}`}` : ''}</span>
                     </div>
                   </div>
                 ))}

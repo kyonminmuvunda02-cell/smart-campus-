@@ -1,27 +1,30 @@
+import { Suspense, lazy, type ReactNode } from 'react';
 import { createBrowserRouter, redirect } from 'react-router';
-import AppLayout from '@/components/layout/AppLayout';
 
-import LoginPage from '@/modules/auth/pages/LoginPage';
-import DashboardPage from '@/modules/dashboard/pages/DashboardPage';
-import UserListPage from '@/modules/users/pages/UserListPage';
-import UserViewPage from '@/modules/users/pages/UserViewPage';
-import UserFormPage from '@/modules/users/pages/UserFormPage';
-import CourseListPage from '@/modules/courses/pages/CourseListPage';
-import CourseViewPage from '@/modules/courses/pages/CourseViewPage';
-import CourseFormPage from '@/modules/courses/pages/CourseFormPage';
-import VenueListPage from '@/modules/venues/pages/VenueListPage';
-import VenueViewPage from '@/modules/venues/pages/VenueViewPage';
-import VenueFormPage from '@/modules/venues/pages/VenueFormPage';
-import SessionListPage from '@/modules/sessions/pages/SessionListPage';
-import SessionViewPage from '@/modules/sessions/pages/SessionViewPage';
-import SessionFormPage from '@/modules/sessions/pages/SessionFormPage';
-import CheckInPage from '@/modules/attendance/pages/CheckInPage';
-import AttendanceHistoryPage from '@/modules/attendance/pages/AttendanceHistoryPage';
-import AttendanceReviewPage from '@/modules/attendance/pages/AttendanceReviewPage';
-import DigitalIDPage from '@/modules/digital-id/pages/DigitalIDPage';
-import EnrollmentListPage from '@/modules/enrollment/pages/EnrollmentListPage';
-import AuditLogPage from '@/modules/audit/pages/AuditLogPage';
-import TimetablePage from '@/modules/timetable/pages/TimetablePage';
+import AppLayout from '@/components/layout/AppLayout';
+import LoadingSkeleton from '@/components/common/LoadingSkeleton';
+
+const LoginPage = lazy(() => import('@/modules/auth/pages/LoginPage'));
+const DashboardPage = lazy(() => import('@/modules/dashboard/pages/DashboardPage'));
+const UserListPage = lazy(() => import('@/modules/users/pages/UserListPage'));
+const UserViewPage = lazy(() => import('@/modules/users/pages/UserViewPage'));
+const UserFormPage = lazy(() => import('@/modules/users/pages/UserFormPage'));
+const CourseListPage = lazy(() => import('@/modules/courses/pages/CourseListPage'));
+const CourseViewPage = lazy(() => import('@/modules/courses/pages/CourseViewPage'));
+const CourseFormPage = lazy(() => import('@/modules/courses/pages/CourseFormPage'));
+const VenueListPage = lazy(() => import('@/modules/venues/pages/VenueListPage'));
+const VenueViewPage = lazy(() => import('@/modules/venues/pages/VenueViewPage'));
+const VenueFormPage = lazy(() => import('@/modules/venues/pages/VenueFormPage'));
+const SessionListPage = lazy(() => import('@/modules/sessions/pages/SessionListPage'));
+const SessionViewPage = lazy(() => import('@/modules/sessions/pages/SessionViewPage'));
+const SessionFormPage = lazy(() => import('@/modules/sessions/pages/SessionFormPage'));
+const CheckInPage = lazy(() => import('@/modules/attendance/pages/CheckInPage'));
+const AttendanceHistoryPage = lazy(() => import('@/modules/attendance/pages/AttendanceHistoryPage'));
+const AttendanceReviewPage = lazy(() => import('@/modules/attendance/pages/AttendanceReviewPage'));
+const DigitalIDPage = lazy(() => import('@/modules/digital-id/pages/DigitalIDPage'));
+const EnrollmentListPage = lazy(() => import('@/modules/enrollment/pages/EnrollmentListPage'));
+const AuditLogPage = lazy(() => import('@/modules/audit/pages/AuditLogPage'));
+const TimetablePage = lazy(() => import('@/modules/timetable/pages/TimetablePage'));
 
 function requireAuth() {
   const token = localStorage.getItem('access_token');
@@ -36,52 +39,52 @@ function requireRole(...roles: string[]) {
   return null;
 }
 
+function renderRoute(element: ReactNode) {
+  return (
+    <Suspense fallback={<LoadingSkeleton rows={6} columns={4} />}>
+      {element}
+    </Suspense>
+  );
+}
+
 export const router = createBrowserRouter([
   {
     path: '/login',
-    element: <LoginPage />,
+    element: renderRoute(<LoginPage />),
   },
   {
     element: <AppLayout />,
     loader: requireAuth,
     children: [
-      { index: true, element: <DashboardPage /> },
+      { index: true, element: renderRoute(<DashboardPage />) },
 
-      // Student
-      { path: 'checkin', element: <CheckInPage />, loader: () => requireRole('Student') },
-      { path: 'my-attendance', element: <AttendanceHistoryPage />, loader: () => requireRole('Student') },
-      { path: 'my-digital-id', element: <DigitalIDPage />, loader: () => requireRole('Student') },
+      { path: 'checkin', element: renderRoute(<CheckInPage />), loader: () => requireRole('Student') },
+      { path: 'my-attendance', element: renderRoute(<AttendanceHistoryPage />), loader: () => requireRole('Student') },
+      { path: 'my-digital-id', element: renderRoute(<DigitalIDPage />), loader: () => requireRole('Student') },
 
-      // Lecturer
-      { path: 'sessions/new', element: <SessionFormPage />, loader: () => requireRole('Lecturer') },
-      { path: 'sessions/:id', element: <SessionViewPage />, loader: () => requireRole('Lecturer', 'Admin') },
-      { path: 'sessions', element: <SessionListPage />, loader: () => requireRole('Lecturer', 'Admin') },
-      { path: 'timetable', element: <TimetablePage />, loader: () => requireRole('Lecturer', 'Admin') },
-      { path: 'attendance-review', element: <AttendanceReviewPage />, loader: () => requireRole('Lecturer', 'Admin') },
+      { path: 'sessions/new', element: renderRoute(<SessionFormPage />), loader: () => requireRole('Lecturer') },
+      { path: 'sessions/:id', element: renderRoute(<SessionViewPage />), loader: () => requireRole('Lecturer', 'Admin') },
+      { path: 'sessions', element: renderRoute(<SessionListPage />), loader: () => requireRole('Lecturer', 'Admin') },
+      { path: 'timetable', element: renderRoute(<TimetablePage />), loader: () => requireRole('Lecturer', 'Admin') },
+      { path: 'attendance-review', element: renderRoute(<AttendanceReviewPage />), loader: () => requireRole('Lecturer', 'Admin') },
 
-      // Admin: Users CRUD
-      { path: 'users', element: <UserListPage />, loader: () => requireRole('Admin') },
-      { path: 'users/new', element: <UserFormPage />, loader: () => requireRole('Admin') },
-      { path: 'users/:id', element: <UserViewPage />, loader: () => requireRole('Admin') },
-      { path: 'users/:id/edit', element: <UserFormPage />, loader: () => requireRole('Admin') },
+      { path: 'users', element: renderRoute(<UserListPage />), loader: () => requireRole('Admin') },
+      { path: 'users/new', element: renderRoute(<UserFormPage />), loader: () => requireRole('Admin') },
+      { path: 'users/:id', element: renderRoute(<UserViewPage />), loader: () => requireRole('Admin') },
+      { path: 'users/:id/edit', element: renderRoute(<UserFormPage />), loader: () => requireRole('Admin') },
 
-      // Admin: Courses CRUD
-      { path: 'courses', element: <CourseListPage />, loader: () => requireRole('Admin') },
-      { path: 'courses/new', element: <CourseFormPage />, loader: () => requireRole('Admin') },
-      { path: 'courses/:id', element: <CourseViewPage />, loader: () => requireRole('Admin') },
-      { path: 'courses/:id/edit', element: <CourseFormPage />, loader: () => requireRole('Admin') },
+      { path: 'courses', element: renderRoute(<CourseListPage />), loader: () => requireRole('Admin') },
+      { path: 'courses/new', element: renderRoute(<CourseFormPage />), loader: () => requireRole('Admin') },
+      { path: 'courses/:id', element: renderRoute(<CourseViewPage />), loader: () => requireRole('Admin') },
+      { path: 'courses/:id/edit', element: renderRoute(<CourseFormPage />), loader: () => requireRole('Admin') },
 
-      // Admin: Venues CRUD
-      { path: 'venues', element: <VenueListPage />, loader: () => requireRole('Admin') },
-      { path: 'venues/new', element: <VenueFormPage />, loader: () => requireRole('Admin') },
-      { path: 'venues/:id', element: <VenueViewPage />, loader: () => requireRole('Admin') },
-      { path: 'venues/:id/edit', element: <VenueFormPage />, loader: () => requireRole('Admin') },
+      { path: 'venues', element: renderRoute(<VenueListPage />), loader: () => requireRole('Admin') },
+      { path: 'venues/new', element: renderRoute(<VenueFormPage />), loader: () => requireRole('Admin') },
+      { path: 'venues/:id', element: renderRoute(<VenueViewPage />), loader: () => requireRole('Admin') },
+      { path: 'venues/:id/edit', element: renderRoute(<VenueFormPage />), loader: () => requireRole('Admin') },
 
-      // Admin: Enrollments
-      { path: 'enrollments', element: <EnrollmentListPage />, loader: () => requireRole('Admin') },
-
-      // Admin: Audit
-      { path: 'audit', element: <AuditLogPage />, loader: () => requireRole('Admin') },
+      { path: 'enrollments', element: renderRoute(<EnrollmentListPage />), loader: () => requireRole('Admin') },
+      { path: 'audit', element: renderRoute(<AuditLogPage />), loader: () => requireRole('Admin') },
     ],
   },
 ]);

@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router';
 import { Button, Card, Form, Row, Col, Spinner } from 'react-bootstrap';
 import PageHeader from '@/components/common/PageHeader';
 import ErrorAlert from '@/components/common/ErrorAlert';
+import SearchableSelect from '@/components/common/SearchableSelect';
 import { useCourse } from '@/modules/courses/hooks/useCourse';
 import { useVenue } from '@/modules/venues/hooks/useVenue';
 import { useSession } from '@/modules/sessions/hooks/useSession';
@@ -94,14 +95,18 @@ export default function SessionFormPage() {
                   {loadingCourses ? (
                     <div className="py-2"><Spinner animation="border" size="sm" variant="primary" /></div>
                   ) : (
-                    <Form.Select name="course_id" required className="py-2">
-                      <option value="">Select a course...</option>
-                      {courses.map((c) => (
-                        <option key={c.course_id as number} value={c.course_id as number}>
-                          {c.course_code as string} - {c.course_name as string}
-                        </option>
-                      ))}
-                    </Form.Select>
+                    <SearchableSelect
+                      name="course_id"
+                      required
+                      placeholder="Select a course..."
+                      searchPlaceholder="Search course code or title..."
+                      options={courses.map((course) => ({
+                        value: String(course.course_id as number),
+                        label: `${course.course_code as string} - ${course.course_name as string}`,
+                        meta: `Course #${String(course.course_id as number)}`,
+                        keywords: `${String(course.course_code ?? '')} ${String(course.course_name ?? '')}`,
+                      }))}
+                    />
                   )}
                 </Form.Group>
 
@@ -110,15 +115,20 @@ export default function SessionFormPage() {
                   {loadingVenues ? (
                     <div className="py-2"><Spinner animation="border" size="sm" variant="primary" /></div>
                   ) : (
-                    <Form.Select name="venue_id" required className="py-2">
-                      <option value="">Select a venue...</option>
-                      {venues.map((v) => (
-                        <option key={v.venue_id as number} value={v.venue_id as number}>
-                          {v.venue_name as string} {(v.building as string) ? `(${v.building as string})` : ''}{' '}
-                          {[v.latitude, v.longitude, v.radius_meters].every((value) => value !== null && value !== undefined) ? '' : '(needs geofence)'}
-                        </option>
-                      ))}
-                    </Form.Select>
+                    <SearchableSelect
+                      name="venue_id"
+                      required
+                      placeholder="Select a venue..."
+                      searchPlaceholder="Search venue or building..."
+                      options={venues.map((venue) => ({
+                        value: String(venue.venue_id as number),
+                        label: `${venue.venue_name as string}${(venue.building as string) ? ` (${venue.building as string})` : ''}`,
+                        meta: [venue.latitude, venue.longitude, venue.radius_meters].every((item) => item !== null && item !== undefined)
+                          ? 'Geofence ready'
+                          : 'Needs geofence',
+                        keywords: `${String(venue.venue_name ?? '')} ${String(venue.building ?? '')}`,
+                      }))}
+                    />
                   )}
                 </Form.Group>
 

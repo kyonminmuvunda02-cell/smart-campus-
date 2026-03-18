@@ -4,13 +4,27 @@ import LoadingSkeleton from '@/components/common/LoadingSkeleton';
 import EmptyState from '@/components/common/EmptyState';
 import { useAuth } from '@/modules/auth/context/AuthProvider';
 import { useAttendance } from '../hooks/useAttendance';
+import { useSession } from '@/modules/sessions/hooks/useSession';
+import { useCourse } from '@/modules/courses/hooks/useCourse';
+import { buildLookupMap, getCourseDisplayName } from '@/utils/entityLabels';
 
 export default function AttendanceHistoryPage() {
   const { userId } = useAuth();
   const { useStudentRecords } = useAttendance();
+  const { useList: useSessionList } = useSession();
+  const { useList: useCourseList } = useCourse();
   const { data, isLoading } = useStudentRecords(userId ?? undefined);
+  const { data: sessionsData } = useSessionList({ query: { limit: 200 } });
+  const { data: coursesData } = useCourseList({ query: { limit: 500 } });
 
   const records = (data as { items?: Array<Record<string, unknown>> })?.items ?? [];
+  const sessions = (sessionsData as { items?: Array<Record<string, unknown>> } | undefined)?.items ?? [];
+  const courses = (coursesData as { items?: Array<Record<string, unknown>> } | undefined)?.items ?? [];
+  const courseLookup = buildLookupMap(courses, 'course_id', (course) => getCourseDisplayName(course, course.course_id as number));
+  const sessionLookup = new Map<number, Record<string, unknown>>();
+  sessions.forEach((session) => {
+    sessionLookup.set(Number(session.session_id), session);
+  });
 
   return (
     <div>
@@ -27,7 +41,13 @@ export default function AttendanceHistoryPage() {
             <tbody>
               {records.map((r: Record<string, unknown>) => (
                 <tr key={r.attendance_id as number}>
-                  <td className="fw-semibold">Session #{r.session_id as number}</td>
+                  <td className="fw-semibold">
+                    {(() => {
+                      const session = sessionLookup.get(r.session_id as number);
+                      if (!session) return `Session #${r.session_id as number}`;
+                      return `${String(session.session_type ?? 'Session')} - ${courseLookup.get(Number(session.course_id)) ?? `Course #${String(session.course_id ?? '-')}`}`;
+                    })()}
+                  </td>
                   <td className="text-secondary">{r.checked_in_at ? new Date(r.checked_in_at as string).toLocaleDateString() : '-'}</td>
                   <td className="text-secondary">{r.checked_in_at ? new Date(r.checked_in_at as string).toLocaleTimeString() : '-'}</td>
                   <td>

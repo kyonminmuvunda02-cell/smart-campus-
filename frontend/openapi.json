@@ -3615,7 +3615,7 @@
             "anyOf": [
               {
                 "type": "string",
-                "pattern": "^password$"
+                "pattern": "password"
               },
               {
                 "type": "null"
@@ -3629,7 +3629,6 @@
           },
           "password": {
             "type": "string",
-            "format": "password",
             "title": "Password"
           },
           "scope": {
@@ -3657,7 +3656,6 @@
                 "type": "null"
               }
             ],
-            "format": "password",
             "title": "Client Secret"
           }
         },

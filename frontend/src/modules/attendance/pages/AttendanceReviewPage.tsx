@@ -6,6 +6,16 @@ import EmptyState from '@/components/common/EmptyState';
 import { useAttendanceReview } from '../hooks/useAttendanceReview';
 import { getErrorMessage } from '@/utils/errors';
 import { useToast } from '@/components/common/ToastManager';
+import { useUser } from '@/modules/users/hooks/useUser';
+import { useCourse } from '@/modules/courses/hooks/useCourse';
+import { useVenue } from '@/modules/venues/hooks/useVenue';
+import {
+  buildLookupMap,
+  getCourseDisplayName,
+  getStudentDisplayName,
+  getUserDisplayName,
+  getVenueDisplayName,
+} from '@/utils/entityLabels';
 
 type ReviewFilter = 'All' | 'Pending' | 'Rejected' | 'Verified';
 
@@ -15,12 +25,25 @@ export default function AttendanceReviewPage() {
   const [reviewNote, setReviewNote] = useState('');
   const { showToast } = useToast();
   const { useQueue, review } = useAttendanceReview();
+  const { useList: useUserList } = useUser();
+  const { useList: useCourseList } = useCourse();
+  const { useList: useVenueList } = useVenue();
   const { data, isLoading } = useQueue({
     verification_status: filter === 'All' ? undefined : filter,
     limit: 100,
   });
+  const { data: usersData } = useUserList({ query: { limit: 500 } });
+  const { data: coursesData } = useCourseList({ query: { limit: 500 } });
+  const { data: venuesData } = useVenueList({ query: { limit: 500 } });
 
   const items = data?.items ?? [];
+  const users = (usersData as { items?: Array<Record<string, unknown>> } | undefined)?.items ?? [];
+  const courses = (coursesData as { items?: Array<Record<string, unknown>> } | undefined)?.items ?? [];
+  const venues = (venuesData as { items?: Array<Record<string, unknown>> } | undefined)?.items ?? [];
+  const userLookup = buildLookupMap(users, 'user_id', (user) => getUserDisplayName(user, user.user_id as number));
+  const studentLookup = buildLookupMap(users, 'user_id', (user) => getStudentDisplayName(user, user.user_id as number));
+  const courseLookup = buildLookupMap(courses, 'course_id', (course) => getCourseDisplayName(course, course.course_id as number));
+  const venueLookup = buildLookupMap(venues, 'venue_id', (venue) => getVenueDisplayName(venue, venue.venue_id as number));
   const pendingCount = items.filter((item) => item.verification_status === 'Pending').length;
   const rejectedCount = items.filter((item) => item.verification_status === 'Rejected').length;
   const selectedItem = items.find((item) => item.attendance_id === selectedId) ?? items[0] ?? null;
@@ -115,11 +138,11 @@ export default function AttendanceReviewPage() {
               <div className="detail-list">
                 <div className="detail-row">
                   <span className="detail-label">Student</span>
-                  <span className="detail-value">Student #{selectedItem.student_id}</span>
+                  <span className="detail-value">{studentLookup.get(selectedItem.student_id) ?? `Student #${selectedItem.student_id}`}</span>
                 </div>
                 <div className="detail-row">
                   <span className="detail-label">Session</span>
-                  <span className="detail-value">Session #{selectedItem.session_id} - {selectedItem.session_type}</span>
+                  <span className="detail-value">{selectedItem.session_type} - {courseLookup.get(selectedItem.course_id) ?? `Course #${selectedItem.course_id}`}</span>
                 </div>
                 <div className="detail-row">
                   <span className="detail-label">Scanned at</span>
@@ -162,7 +185,7 @@ export default function AttendanceReviewPage() {
                 <Alert variant="info" className="mb-0">
                   <i className="ti ti-info-circle me-2" />
                   Last reviewed {new Date(selectedItem.reviewed_at).toLocaleString()}
-                  {selectedItem.reviewed_by ? ` by user #${selectedItem.reviewed_by}` : ''}.
+                  {selectedItem.reviewed_by ? ` by ${userLookup.get(selectedItem.reviewed_by) ?? `User #${selectedItem.reviewed_by}`}` : ''}.
                 </Alert>
               ) : null}
             </div>
@@ -199,12 +222,12 @@ export default function AttendanceReviewPage() {
                     <tr key={item.attendance_id} className={selectedId === item.attendance_id ? 'table-primary-subtle' : ''}>
                       <td>
                         <div className="entity-copy">
-                          <strong>Student #{item.student_id}</strong>
+                          <strong>{studentLookup.get(item.student_id) ?? `Student #${item.student_id}`}</strong>
                           <span>{new Date(item.checked_in_at).toLocaleString()}</span>
                         </div>
                       </td>
                       <td className="text-secondary small">
-                        Session #{item.session_id} - Course #{item.course_id} - Venue #{item.venue_id}
+                        {item.session_type} - {courseLookup.get(item.course_id) ?? `Course #${item.course_id}`} - {venueLookup.get(item.venue_id) ?? `Venue #${item.venue_id}`}
                       </td>
                       <td>
                         <div className="entity-copy">

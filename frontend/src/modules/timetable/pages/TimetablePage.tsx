@@ -4,6 +4,7 @@ import PageHeader from '@/components/common/PageHeader';
 import LoadingSkeleton from '@/components/common/LoadingSkeleton';
 import EmptyState from '@/components/common/EmptyState';
 import ErrorAlert from '@/components/common/ErrorAlert';
+import SearchableSelect from '@/components/common/SearchableSelect';
 import { useAuth } from '@/modules/auth/context/AuthProvider';
 import { useCourse } from '@/modules/courses/hooks/useCourse';
 import { useUser } from '@/modules/users/hooks/useUser';
@@ -249,41 +250,56 @@ export default function TimetablePage() {
               <Form key={formKey} action={createAction}>
                 <div className="field-shell">
                   <Form.Label className="field-label">Course</Form.Label>
-                  <Form.Select name="course_id" required defaultValue={selectedEntry?.course_id ?? ''}>
-                    <option value="">Select course</option>
-                    {courses.map((course) => (
-                      <option key={Number(course.course_id)} value={Number(course.course_id)}>
-                        {String(course.course_code ?? course.course_id)} - {String(course.course_name ?? 'Unnamed')}
-                      </option>
-                    ))}
-                  </Form.Select>
+                  <SearchableSelect
+                    name="course_id"
+                    required
+                    defaultValue={selectedEntry ? String(selectedEntry.course_id) : ''}
+                    placeholder="Select course"
+                    searchPlaceholder="Search course code or title..."
+                    options={courses.map((course) => ({
+                      value: String(Number(course.course_id)),
+                      label: `${String(course.course_code ?? course.course_id)} - ${String(course.course_name ?? 'Unnamed')}`,
+                      meta: String(course.department ?? ''),
+                      keywords: `${String(course.course_code ?? '')} ${String(course.course_name ?? '')} ${String(course.department ?? '')}`,
+                    }))}
+                  />
                 </div>
 
                 <div className="field-shell">
                   <Form.Label className="field-label">Lecturer</Form.Label>
-                  <Form.Select name="lecturer_id" required defaultValue={selectedEntry?.lecturer_id ?? ''}>
-                    <option value="">Select lecturer</option>
-                    {lecturers.map((lecturer) => (
-                      <option key={Number(lecturer.user_id)} value={Number(lecturer.user_id)}>
-                        {String(lecturer.full_name ?? lecturer.email ?? `User #${lecturer.user_id}`)}
-                      </option>
-                    ))}
-                  </Form.Select>
+                  <SearchableSelect
+                    name="lecturer_id"
+                    required
+                    defaultValue={selectedEntry ? String(selectedEntry.lecturer_id) : ''}
+                    placeholder="Select lecturer"
+                    searchPlaceholder="Search lecturer..."
+                    options={lecturers.map((lecturer) => ({
+                      value: String(Number(lecturer.user_id)),
+                      label: String(lecturer.full_name ?? lecturer.email ?? `User #${lecturer.user_id}`),
+                      meta: String(lecturer.email ?? ''),
+                      keywords: `${String(lecturer.full_name ?? '')} ${String(lecturer.email ?? '')}`,
+                    }))}
+                  />
                 </div>
 
                 <div className="field-shell">
                   <Form.Label className="field-label">Venue</Form.Label>
-                  <Form.Select name="venue_id" required defaultValue={selectedEntry?.venue_id ?? ''}>
-                    <option value="">Select venue</option>
-                    {venues.map((venue) => {
+                  <SearchableSelect
+                    name="venue_id"
+                    required
+                    defaultValue={selectedEntry ? String(selectedEntry.venue_id) : ''}
+                    placeholder="Select venue"
+                    searchPlaceholder="Search venue or building..."
+                    options={venues.map((venue) => {
                       const ready = [venue.latitude, venue.longitude, venue.radius_meters].every((value) => value !== null && value !== undefined);
-                      return (
-                        <option key={Number(venue.venue_id)} value={Number(venue.venue_id)}>
-                          {String(venue.venue_name ?? venue.venue_id)}{ready ? '' : ' (needs geofence)'}
-                        </option>
-                      );
+                      return {
+                        value: String(Number(venue.venue_id)),
+                        label: String(venue.venue_name ?? venue.venue_id),
+                        meta: ready ? 'Geofence ready' : 'Needs geofence',
+                        keywords: `${String(venue.venue_name ?? '')} ${String(venue.building ?? '')}`,
+                      };
                     })}
-                  </Form.Select>
+                  />
                 </div>
 
                 <div className="session-stat-row timetable-form-grid">
