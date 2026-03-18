@@ -19,6 +19,26 @@ import {
 
 type ReviewFilter = 'All' | 'Pending' | 'Rejected' | 'Verified';
 
+function calculateDistanceMeters(
+  latitudeA: number,
+  longitudeA: number,
+  latitudeB: number,
+  longitudeB: number
+) {
+  const toRadians = (value: number) => (value * Math.PI) / 180;
+  const earthRadius = 6371000;
+  const deltaLatitude = toRadians(latitudeB - latitudeA);
+  const deltaLongitude = toRadians(longitudeB - longitudeA);
+  const a =
+    Math.sin(deltaLatitude / 2) * Math.sin(deltaLatitude / 2) +
+    Math.cos(toRadians(latitudeA)) *
+      Math.cos(toRadians(latitudeB)) *
+      Math.sin(deltaLongitude / 2) *
+      Math.sin(deltaLongitude / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return Math.round(earthRadius * c);
+}
+
 export default function AttendanceReviewPage() {
   const [filter, setFilter] = useState<ReviewFilter>('All');
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -47,6 +67,30 @@ export default function AttendanceReviewPage() {
   const pendingCount = items.filter((item) => item.verification_status === 'Pending').length;
   const rejectedCount = items.filter((item) => item.verification_status === 'Rejected').length;
   const selectedItem = items.find((item) => item.attendance_id === selectedId) ?? items[0] ?? null;
+  const deviceReuseCount = selectedItem ? items.filter((item) => item.device_id === selectedItem.device_id).length : 0;
+  const selectedVenue = selectedItem
+    ? venues.find((venue) => Number(venue.venue_id) === selectedItem.venue_id)
+    : undefined;
+  const distanceFromVenue =
+    selectedItem &&
+    selectedVenue &&
+    selectedItem.gps_latitude !== null &&
+    selectedItem.gps_longitude !== null &&
+    selectedVenue.latitude !== null &&
+    selectedVenue.latitude !== undefined &&
+    selectedVenue.longitude !== null &&
+    selectedVenue.longitude !== undefined
+      ? calculateDistanceMeters(
+          selectedItem.gps_latitude,
+          selectedItem.gps_longitude,
+          Number(selectedVenue.latitude),
+          Number(selectedVenue.longitude)
+        )
+      : null;
+  const venueRadius =
+    selectedVenue && selectedVenue.radius_meters !== null && selectedVenue.radius_meters !== undefined
+      ? Number(selectedVenue.radius_meters)
+      : null;
 
   useEffect(() => {
     setSelectedId(selectedItem?.attendance_id ?? null);
@@ -145,6 +189,10 @@ export default function AttendanceReviewPage() {
                   <span className="detail-value">{selectedItem.session_type} - {courseLookup.get(selectedItem.course_id) ?? `Course #${selectedItem.course_id}`}</span>
                 </div>
                 <div className="detail-row">
+                  <span className="detail-label">Venue</span>
+                  <span className="detail-value">{venueLookup.get(selectedItem.venue_id) ?? `Venue #${selectedItem.venue_id}`}</span>
+                </div>
+                <div className="detail-row">
                   <span className="detail-label">Scanned at</span>
                   <span className="detail-value">{new Date(selectedItem.checked_in_at).toLocaleString()}</span>
                 </div>
@@ -153,10 +201,40 @@ export default function AttendanceReviewPage() {
                   <span className="detail-value">{selectedItem.gps_accuracy ? `${Math.round(selectedItem.gps_accuracy)} m` : 'Unavailable'}</span>
                 </div>
                 <div className="detail-row">
+                  <span className="detail-label">Distance from venue</span>
+                  <span className="detail-value">
+                    {distanceFromVenue !== null
+                      ? `${distanceFromVenue} m${venueRadius ? ` of ${Math.round(venueRadius)} m allowed` : ''}`
+                      : 'Insufficient location data'}
+                  </span>
+                </div>
+                <div className="detail-row">
+                  <span className="detail-label">Device reuse</span>
+                  <span className="detail-value">
+                    {deviceReuseCount > 1
+                      ? `${deviceReuseCount} queued records share this device fingerprint`
+                      : 'No other queued records share this device fingerprint'}
+                  </span>
+                </div>
+                <div className="detail-row">
                   <span className="detail-label">Current status</span>
                   <span className="detail-value">{selectedItem.verification_status}</span>
                 </div>
               </div>
+
+              {selectedItem.fraud_flag || (distanceFromVenue !== null && venueRadius !== null && distanceFromVenue > venueRadius) ? (
+                <Alert variant="warning" className="mb-0">
+                  <i className="ti ti-alert-triangle me-2" />
+                  {selectedItem.fraud_flag
+                    ? 'Trust checks already marked this scan as risky.'
+                    : 'The reported coordinates appear outside the venue geofence.'}
+                </Alert>
+              ) : (
+                <Alert variant="info" className="mb-0">
+                  <i className="ti ti-info-circle me-2" />
+                  This evidence sits inside the current venue trust boundary based on the available GPS coordinates.
+                </Alert>
+              )}
 
               <div className="field-shell">
                 <Form.Label className="field-label">Review note</Form.Label>
@@ -232,7 +310,7 @@ export default function AttendanceReviewPage() {
                       <td>
                         <div className="entity-copy">
                           <strong>{item.gps_accuracy ? `${Math.round(item.gps_accuracy)} m` : 'No accuracy'}</strong>
-                          <span>{item.fraud_flag ? 'Flagged by trust checks' : 'Reviewed state'}</span>
+                          <span>{item.fraud_flag ? 'Flagged by trust checks' : 'Awaiting decision'}</span>
                         </div>
                       </td>
                       <td>

@@ -86,7 +86,7 @@ def health_check():
         "database": "connected" if db_healthy else "disconnected",
         "modules": [
             "auth", "users", "venues", "courses",
-            "enrollment", "digital_id", "attendance", "audit",
+            "enrollment", "digital_id", "attendance", "audit", "reporting",
         ],
     }
 
@@ -103,6 +103,7 @@ from app.modules.attendance.api.v1.session_router import router as session_route
 from app.modules.attendance.api.v1.record_router import router as record_router
 from app.modules.attendance.api.v1.timetable_router import router as timetable_router
 from app.modules.audit.api.v1.audit_router import router as audit_router
+from app.modules.reporting.api.v1.reporting_router import router as reporting_router
 
 PREFIX = "/api/v1"
 
@@ -116,6 +117,7 @@ app.include_router(session_router,     prefix=PREFIX)
 app.include_router(record_router,      prefix=PREFIX)
 app.include_router(timetable_router,   prefix=PREFIX)
 app.include_router(audit_router,       prefix=PREFIX)
+app.include_router(reporting_router,   prefix=PREFIX)
 
 
 # ── Custom OpenAPI schema ─────────────────────────────────────────────────────
@@ -151,6 +153,7 @@ def custom_openapi():
             {"name": "attendance-sessions", "description": "QR-code attendance sessions (Lecturer)"},
             {"name": "attendance-records",  "description": "Student check-in and attendance history"},
             {"name": "audit",               "description": "Immutable audit log (Admin only)"},
+            {"name": "reporting",           "description": "Role-based operational summaries"},
             {"name": "health",              "description": "Liveness probe"},
         ],
     )

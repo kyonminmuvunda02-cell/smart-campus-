@@ -1,8 +1,11 @@
 import { useState } from 'react';
+import { Link } from 'react-router';
 import PageHeader from '@/components/common/PageHeader';
 import LoadingSkeleton from '@/components/common/LoadingSkeleton';
 import EmptyState from '@/components/common/EmptyState';
 import { useAudit } from '../hooks/useAudit';
+import { useUser } from '@/modules/users/hooks/useUser';
+import { buildLookupMap, getUserDisplayName } from '@/utils/entityLabels';
 
 type AuditScope = 'All' | 'Auth' | 'Mutation' | 'Attendance' | 'Other';
 
@@ -21,25 +24,44 @@ function getAuditTone(scope: AuditScope) {
   return 'amber';
 }
 
+function getAuditDestination(tableName: string | null, recordId: number | null) {
+  if (!tableName || recordId === null) return null;
+  const normalized = tableName.toLowerCase();
+  if (normalized.includes('appuser') || normalized.includes('student') || normalized.includes('lecturer') || normalized.includes('admin')) {
+    return `/users/${recordId}`;
+  }
+  if (normalized.includes('course')) return `/courses/${recordId}`;
+  if (normalized.includes('venue')) return `/venues/${recordId}`;
+  if (normalized.includes('attendancesession')) return `/sessions/${recordId}`;
+  if (normalized.includes('attendancerecord')) return '/attendance-review';
+  return null;
+}
+
 export default function AuditLogPage() {
   const [search, setSearch] = useState('');
   const [scope, setScope] = useState<AuditScope>('All');
   const { useList } = useAudit();
+  const { useList: useUserList } = useUser();
   const { data, isLoading } = useList();
+  const { data: usersData } = useUserList({ query: { limit: 500 } });
   const logs = (data as { items?: Array<Record<string, unknown>> })?.items ?? [];
+  const users = (usersData as { items?: Array<Record<string, unknown>> } | undefined)?.items ?? [];
+  const userLookup = buildLookupMap(users, 'user_id', (user) => getUserDisplayName(user, user.user_id as number));
 
   const filteredLogs = logs.filter((log) => {
     const action = String(log.action ?? '');
-    const entityType = String(log.entity_type ?? '');
-    const entityId = String(log.entity_id ?? '');
+    const entityType = String(log.table_name ?? '');
+    const entityId = String(log.record_id ?? '');
     const userId = String(log.user_id ?? '');
+    const detail = String(log.detail ?? '');
     const term = search.trim().toLowerCase();
     const matchesSearch =
       !term ||
       action.toLowerCase().includes(term) ||
       entityType.toLowerCase().includes(term) ||
       entityId.includes(term) ||
-      userId.includes(term);
+      userId.includes(term) ||
+      detail.toLowerCase().includes(term);
     const matchesScope = scope === 'All' || classifyAuditAction(action) === scope;
     return matchesSearch && matchesScope;
   });
@@ -173,18 +195,30 @@ export default function AuditLogPage() {
                   {filteredLogs.map((log) => {
                     const action = String(log.action ?? 'Unknown action');
                     const auditClass = classifyAuditAction(action);
+                    const tableName = (log.table_name as string | null) ?? null;
+                    const recordId = (log.record_id as number | null) ?? null;
+                    const destination = getAuditDestination(tableName, recordId);
                     return (
-                      <tr key={log.audit_id as number}>
+                      <tr key={log.log_id as number}>
                         <td>
                           <div className="entity-copy">
                             <strong>{action}</strong>
-                            <span>Audit ID #{String(log.audit_id ?? '-')}</span>
+                            <span>{String(log.detail ?? `Audit ID #${String(log.log_id ?? '-')}`)}</span>
                           </div>
                         </td>
-                        <td className="text-secondary">{log.user_id ? `User #${String(log.user_id)}` : '-'}</td>
+                        <td className="text-secondary">{log.user_id ? (userLookup.get(Number(log.user_id)) ?? `User #${String(log.user_id)}`) : '-'}</td>
                         <td className="text-secondary small">
-                          {String(log.entity_type ?? 'Unknown')}
-                          {log.entity_id ? ` #${String(log.entity_id)}` : ''}
+                          {destination ? (
+                            <Link to={destination} className="audit-entity-link">
+                              {String(tableName ?? 'System')}
+                              {recordId !== null ? ` #${String(recordId)}` : ''}
+                            </Link>
+                          ) : (
+                            <>
+                              {String(tableName ?? 'System')}
+                              {recordId !== null ? ` #${String(recordId)}` : ''}
+                            </>
+                          )}
                         </td>
                         <td>
                           <span className={`status-pill ${getAuditTone(auditClass)}`}>

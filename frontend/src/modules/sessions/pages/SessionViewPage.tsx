@@ -27,6 +27,10 @@ function formatCountdown(seconds: number) {
   return `${String(minutes).padStart(2, '0')}:${String(remainder).padStart(2, '0')}`;
 }
 
+function formatDateTime(value: unknown) {
+  return value ? new Date(String(value)).toLocaleString() : '-';
+}
+
 function getSessionState(session: Record<string, unknown> | undefined) {
   if (!session) return 'unknown';
   if (Boolean(session.is_active)) return 'live';
@@ -38,7 +42,7 @@ export default function SessionViewPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { showToast } = useToast();
-  const { useDetail, useSessionRecords, start, close, refreshQr } = useSession();
+  const { useDetail, useSessionRecords, start, update, close, refreshQr } = useSession();
   const { useDetail: useCourseDetail } = useCourse();
   const { useDetail: useVenueDetail } = useVenue();
   const { useList: useUserList } = useUser();
@@ -71,6 +75,12 @@ export default function SessionViewPage() {
     semester: sessionRecord?.semester as string | undefined,
     academicYear: sessionRecord?.academic_year as string | undefined,
   };
+  const venueRecord = venueData as Record<string, unknown> | undefined;
+  const geofenceReady = [venueRecord?.latitude, venueRecord?.longitude, venueRecord?.radius_meters].every(
+    (value) => value !== null && value !== undefined
+  );
+  const sessionEnd = sessionRecord?.session_end ? new Date(sessionRecord.session_end as string) : null;
+  const minutesRemaining = sessionEnd ? Math.max(0, Math.round((sessionEnd.getTime() - Date.now()) / 60000)) : 0;
 
   useEffect(() => {
     const expiryValue = qrExpiry ?? (isLive ? String(sessionRecord?.qr_code_expiry ?? '') : null);
@@ -114,6 +124,21 @@ export default function SessionViewPage() {
     }
   }
 
+  async function handleExtendSession(minutes: number) {
+    if (!sessionRecord?.session_end) return;
+    try {
+      const nextEnd = new Date(sessionRecord.session_end as string);
+      nextEnd.setMinutes(nextEnd.getMinutes() + minutes);
+      await update.mutateAsync({
+        path: { session_id: sessionId! },
+        body: { session_end: nextEnd },
+      });
+      showToast('success', 'Session extended', `Attendance will now remain open until ${nextEnd.toLocaleTimeString()}.`);
+    } catch (err) {
+      showToast('danger', 'Extension failed', getErrorMessage(err));
+    }
+  }
+
   if (isLoading) {
     return <div className="empty-panel"><i className="ti ti-loader" /><div>Loading session...</div></div>;
   }
@@ -146,6 +171,14 @@ export default function SessionViewPage() {
         ) : null}
         {isLive ? (
           <>
+            <Button variant="outline-secondary" onClick={() => void handleExtendSession(10)} disabled={update.isPending}>
+              <i className="ti ti-clock-plus" />
+              Extend 10 min
+            </Button>
+            <Button variant="outline-secondary" onClick={() => void handleExtendSession(20)} disabled={update.isPending}>
+              <i className="ti ti-calendar-time" />
+              Extend 20 min
+            </Button>
             <Button variant="outline-secondary" onClick={() => void handleRefreshQr()} disabled={refreshQr.isPending}>
               <i className="ti ti-refresh" />
               {qrImage ? 'Rotate QR' : 'Load QR'}
@@ -251,8 +284,26 @@ export default function SessionViewPage() {
               <div className="timeline-row">
                 <div className="timeline-pin"><i className="ti ti-calendar-event" /></div>
                 <div className="timeline-text">
-                  <strong>{sessionRecord.session_start ? new Date(sessionRecord.session_start as string).toLocaleString() : '-'}</strong>
+                  <strong>{formatDateTime(sessionRecord.session_start)}</strong>
                   <span>Scheduled class start</span>
+                </div>
+              </div>
+              <div className="timeline-row">
+                <div className="timeline-pin"><i className="ti ti-clock-hour-4" /></div>
+                <div className="timeline-text">
+                  <strong>{formatDateTime(sessionRecord.session_end)}</strong>
+                  <span>{isLive ? `${minutesRemaining} minute${minutesRemaining === 1 ? '' : 's'} remaining in the live window` : 'Scheduled class end'}</span>
+                </div>
+              </div>
+              <div className="timeline-row">
+                <div className="timeline-pin"><i className="ti ti-map-pin-check" /></div>
+                <div className="timeline-text">
+                  <strong>{geofenceReady ? `${String(venueRecord?.radius_meters)} m radius` : 'Geofence incomplete'}</strong>
+                  <span>
+                    {geofenceReady
+                      ? `${String(venueRecord?.latitude)}, ${String(venueRecord?.longitude)}`
+                      : 'Attendance trust depends on completing venue coordinates.'}
+                  </span>
                 </div>
               </div>
             </div>
@@ -304,6 +355,16 @@ export default function SessionViewPage() {
                 </table>
               </div>
             )}
+          </div>
+
+          <div className="callout-panel teal">
+            <i className="ti ti-pulse" style={{ color: 'var(--teal)' }} />
+            <div>
+              <div className="callout-title">Operational controls</div>
+              <div className="callout-copy">
+                Extend the session only when the room genuinely needs more time. QR rotation and time extensions both change the trust conditions students must satisfy.
+              </div>
+            </div>
           </div>
         </div>
       </div>

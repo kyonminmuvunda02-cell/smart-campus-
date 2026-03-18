@@ -2744,10 +2744,77 @@
           }
         }
       }
+    },
+    "/api/v1/reporting/dashboard-summary": {
+      "get": {
+        "tags": [
+          "reporting"
+        ],
+        "summary": "Get Dashboard Summary",
+        "operationId": "getDashboardSummary",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardSummaryResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
     }
   },
   "components": {
     "schemas": {
+      "AdminDashboardSummary": {
+        "properties": {
+          "active_identities": {
+            "type": "integer",
+            "title": "Active Identities"
+          },
+          "geofenced_venues": {
+            "type": "integer",
+            "title": "Geofenced Venues"
+          },
+          "total_venues": {
+            "type": "integer",
+            "title": "Total Venues"
+          },
+          "open_exceptions": {
+            "type": "integer",
+            "title": "Open Exceptions"
+          },
+          "live_sessions": {
+            "type": "integer",
+            "title": "Live Sessions"
+          },
+          "latest_audit": {
+            "items": {
+              "$ref": "#/components/schemas/AuditActivityItem"
+            },
+            "type": "array",
+            "title": "Latest Audit"
+          }
+        },
+        "type": "object",
+        "required": [
+          "active_identities",
+          "geofenced_venues",
+          "total_venues",
+          "open_exceptions",
+          "live_sessions",
+          "latest_audit"
+        ],
+        "title": "AdminDashboardSummary"
+      },
       "AppUserList": {
         "properties": {
           "items": {
@@ -3506,6 +3573,74 @@
         "type": "object",
         "title": "AttendanceSessionUpdate"
       },
+      "AuditActivityItem": {
+        "properties": {
+          "log_id": {
+            "type": "integer",
+            "title": "Log Id"
+          },
+          "action": {
+            "type": "string",
+            "title": "Action"
+          },
+          "actor_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor Name"
+          },
+          "table_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Table Name"
+          },
+          "record_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Record Id"
+          },
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "log_id",
+          "action",
+          "created_at"
+        ],
+        "title": "AuditActivityItem"
+      },
       "AuditLogList": {
         "properties": {
           "items": {
@@ -3882,6 +4017,49 @@
         "type": "object",
         "title": "CourseUpdate"
       },
+      "DashboardSummaryResponse": {
+        "properties": {
+          "role": {
+            "type": "string",
+            "title": "Role"
+          },
+          "student": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/StudentDashboardSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lecturer": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LecturerDashboardSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "admin": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdminDashboardSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "role"
+        ],
+        "title": "DashboardSummaryResponse"
+      },
       "DigitalIDCreate": {
         "properties": {
           "student_id": {
@@ -4230,6 +4408,195 @@
         "title": "LecturerCreate",
         "description": "Create a Lecturer \u2014 AppUser fields + lecturer profile fields."
       },
+      "LecturerDashboardSummary": {
+        "properties": {
+          "active_session_count": {
+            "type": "integer",
+            "title": "Active Session Count"
+          },
+          "current_verified_rate": {
+            "type": "integer",
+            "title": "Current Verified Rate"
+          },
+          "open_review_items": {
+            "type": "integer",
+            "title": "Open Review Items"
+          },
+          "timetable_slots": {
+            "type": "integer",
+            "title": "Timetable Slots"
+          },
+          "live_session": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LecturerLiveSessionSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "upcoming_sessions": {
+            "items": {
+              "$ref": "#/components/schemas/LecturerUpcomingSessionItem"
+            },
+            "type": "array",
+            "title": "Upcoming Sessions"
+          },
+          "review_queue": {
+            "items": {
+              "$ref": "#/components/schemas/LecturerReviewItem"
+            },
+            "type": "array",
+            "title": "Review Queue"
+          }
+        },
+        "type": "object",
+        "required": [
+          "active_session_count",
+          "current_verified_rate",
+          "open_review_items",
+          "timetable_slots",
+          "upcoming_sessions",
+          "review_queue"
+        ],
+        "title": "LecturerDashboardSummary"
+      },
+      "LecturerLiveSessionSummary": {
+        "properties": {
+          "session_id": {
+            "type": "integer",
+            "title": "Session Id"
+          },
+          "session_type": {
+            "type": "string",
+            "title": "Session Type"
+          },
+          "course_label": {
+            "type": "string",
+            "title": "Course Label"
+          },
+          "venue_label": {
+            "type": "string",
+            "title": "Venue Label"
+          },
+          "timetable_slot": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timetable Slot"
+          },
+          "session_start": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Session Start"
+          },
+          "session_end": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Session End"
+          },
+          "live_records": {
+            "type": "integer",
+            "title": "Live Records"
+          },
+          "pending_reviews": {
+            "type": "integer",
+            "title": "Pending Reviews"
+          }
+        },
+        "type": "object",
+        "required": [
+          "session_id",
+          "session_type",
+          "course_label",
+          "venue_label",
+          "session_start",
+          "session_end",
+          "live_records",
+          "pending_reviews"
+        ],
+        "title": "LecturerLiveSessionSummary"
+      },
+      "LecturerReviewItem": {
+        "properties": {
+          "attendance_id": {
+            "type": "integer",
+            "title": "Attendance Id"
+          },
+          "student_name": {
+            "type": "string",
+            "title": "Student Name"
+          },
+          "course_label": {
+            "type": "string",
+            "title": "Course Label"
+          },
+          "gps_accuracy": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gps Accuracy"
+          },
+          "verification_status": {
+            "type": "string",
+            "title": "Verification Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "attendance_id",
+          "student_name",
+          "course_label",
+          "verification_status"
+        ],
+        "title": "LecturerReviewItem"
+      },
+      "LecturerUpcomingSessionItem": {
+        "properties": {
+          "session_id": {
+            "type": "integer",
+            "title": "Session Id"
+          },
+          "course_label": {
+            "type": "string",
+            "title": "Course Label"
+          },
+          "timetable_slot": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timetable Slot"
+          },
+          "session_start": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Session Start"
+          }
+        },
+        "type": "object",
+        "required": [
+          "session_id",
+          "course_label",
+          "session_start"
+        ],
+        "title": "LecturerUpcomingSessionItem"
+      },
       "QRCodeResponse": {
         "properties": {
           "session_id": {
@@ -4260,6 +4627,50 @@
         ],
         "title": "QRCodeResponse",
         "description": "Returned when lecturer requests a fresh QR code for an existing session."
+      },
+      "StudentAttendanceItem": {
+        "properties": {
+          "attendance_id": {
+            "type": "integer",
+            "title": "Attendance Id"
+          },
+          "session_id": {
+            "type": "integer",
+            "title": "Session Id"
+          },
+          "session_type": {
+            "type": "string",
+            "title": "Session Type"
+          },
+          "course_label": {
+            "type": "string",
+            "title": "Course Label"
+          },
+          "checked_in_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Checked In At"
+          },
+          "verification_status": {
+            "type": "string",
+            "title": "Verification Status"
+          },
+          "fraud_flag": {
+            "type": "boolean",
+            "title": "Fraud Flag"
+          }
+        },
+        "type": "object",
+        "required": [
+          "attendance_id",
+          "session_id",
+          "session_type",
+          "course_label",
+          "checked_in_at",
+          "verification_status",
+          "fraud_flag"
+        ],
+        "title": "StudentAttendanceItem"
       },
       "StudentCreate": {
         "properties": {
@@ -4319,6 +4730,95 @@
         ],
         "title": "StudentCreate",
         "description": "Create a Student \u2014 AppUser fields + student profile fields."
+      },
+      "StudentDashboardSummary": {
+        "properties": {
+          "records_count": {
+            "type": "integer",
+            "title": "Records Count"
+          },
+          "verified_count": {
+            "type": "integer",
+            "title": "Verified Count"
+          },
+          "flagged_count": {
+            "type": "integer",
+            "title": "Flagged Count"
+          },
+          "active_enrollments": {
+            "type": "integer",
+            "title": "Active Enrollments"
+          },
+          "digital_id_active": {
+            "type": "boolean",
+            "title": "Digital Id Active"
+          },
+          "digital_id_expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Digital Id Expires At"
+          },
+          "recent_attendance": {
+            "items": {
+              "$ref": "#/components/schemas/StudentAttendanceItem"
+            },
+            "type": "array",
+            "title": "Recent Attendance"
+          },
+          "enrollments": {
+            "items": {
+              "$ref": "#/components/schemas/StudentEnrollmentItem"
+            },
+            "type": "array",
+            "title": "Enrollments"
+          }
+        },
+        "type": "object",
+        "required": [
+          "records_count",
+          "verified_count",
+          "flagged_count",
+          "active_enrollments",
+          "digital_id_active",
+          "recent_attendance",
+          "enrollments"
+        ],
+        "title": "StudentDashboardSummary"
+      },
+      "StudentEnrollmentItem": {
+        "properties": {
+          "course_id": {
+            "type": "integer",
+            "title": "Course Id"
+          },
+          "course_label": {
+            "type": "string",
+            "title": "Course Label"
+          },
+          "semester": {
+            "type": "string",
+            "title": "Semester"
+          },
+          "academic_year": {
+            "type": "string",
+            "title": "Academic Year"
+          }
+        },
+        "type": "object",
+        "required": [
+          "course_id",
+          "course_label",
+          "semester",
+          "academic_year"
+        ],
+        "title": "StudentEnrollmentItem"
       },
       "TimetableEntryCreate": {
         "properties": {
@@ -5102,6 +5602,10 @@
     {
       "name": "audit",
       "description": "Immutable audit log (Admin only)"
+    },
+    {
+      "name": "reporting",
+      "description": "Role-based operational summaries"
     },
     {
       "name": "health",

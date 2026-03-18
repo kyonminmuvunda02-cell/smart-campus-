@@ -6,6 +6,7 @@ import ErrorAlert from '@/components/common/ErrorAlert';
 import { useVenue } from '@/modules/venues/hooks/useVenue';
 import { useToast } from '@/components/common/ToastManager';
 import { getErrorMessage } from '@/utils/errors';
+import VenueLocationPicker from '@/modules/venues/components/VenueLocationPicker';
 
 interface ActionState {
   error: string | null;
@@ -96,6 +97,15 @@ export default function VenueFormPage() {
     );
   }
 
+  function handleMapSelection(nextLatitude: number, nextLongitude: number) {
+    setLatitude(nextLatitude.toFixed(6));
+    setLongitude(nextLongitude.toFixed(6));
+    if (!radiusMeters.trim()) {
+      setRadiusMeters('45');
+    }
+    setGeoMessage('Map location updated. Confirm the attendance radius and save the venue.');
+  }
+
   return (
     <div>
       <PageHeader
@@ -170,6 +180,13 @@ export default function VenueFormPage() {
                 </a>
               ) : null}
             </div>
+
+            <VenueLocationPicker
+              latitude={latitude.trim() ? Number(latitude) : null}
+              longitude={longitude.trim() ? Number(longitude) : null}
+              radiusMeters={radiusMeters.trim() ? Number(radiusMeters) : null}
+              onChange={handleMapSelection}
+            />
 
             <div className="coordinate-preview">
               <div className="coordinate-cell">
@@ -282,6 +299,14 @@ export default function VenueFormPage() {
                 value={radiusMeters}
                 onChange={(event) => setRadiusMeters(event.target.value)}
                 placeholder="45"
+              />
+              <Form.Range
+                min={10}
+                max={150}
+                step={5}
+                value={radiusMeters.trim() ? Number(radiusMeters) : 45}
+                onChange={(event) => setRadiusMeters(event.target.value)}
+                className="mt-3"
               />
             </div>
 

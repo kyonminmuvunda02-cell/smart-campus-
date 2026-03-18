@@ -12,6 +12,12 @@ import { useVenue } from '@/modules/venues/hooks/useVenue';
 import { useTimetable, type TimetableItem } from '../hooks/useTimetable';
 import { getErrorMessage } from '@/utils/errors';
 import { useToast } from '@/components/common/ToastManager';
+import {
+  buildLookupMap,
+  getCourseDisplayName,
+  getUserDisplayName,
+  getVenueDisplayName,
+} from '@/utils/entityLabels';
 
 interface ActionState {
   error: string | null;
@@ -35,6 +41,15 @@ function getInitialRange() {
   return { start: toDateInput(start), end: toDateInput(end) };
 }
 
+function getDefaultAcademicContext() {
+  const now = new Date();
+  const startYear = now.getMonth() >= 7 ? now.getFullYear() : now.getFullYear() - 1;
+  return {
+    academicYear: `${startYear}/${startYear + 1}`,
+    semester: now.getMonth() >= 7 ? 'Semester 1' : 'Semester 2',
+  };
+}
+
 export default function TimetablePage() {
   const { role } = useAuth();
   const { showToast } = useToast();
@@ -45,19 +60,34 @@ export default function TimetablePage() {
   const [selectedEntry, setSelectedEntry] = useState<TimetableItem | null>(null);
   const [generationRange, setGenerationRange] = useState(getInitialRange);
   const [generationSummary, setGenerationSummary] = useState<{ created: number; skipped: number } | null>(null);
+  const defaultAcademicContext = getDefaultAcademicContext();
+  const [filters, setFilters] = useState({
+    courseId: '',
+    semester: defaultAcademicContext.semester,
+    academicYear: defaultAcademicContext.academicYear,
+    showArchived: false,
+  });
 
-  const { data, isLoading } = useList({ limit: 200 });
-  const { data: courseData } = useCourseList({ query: { limit: 200 } });
-  const { data: userData } = useUserList({ query: { limit: 200 } });
-  const { data: venueData } = useVenueList({ query: { limit: 200 } });
+  const { data, isLoading } = useList({
+    limit: 200,
+    course_id: filters.courseId ? Number(filters.courseId) : undefined,
+    semester: filters.semester || undefined,
+    academic_year: filters.academicYear || undefined,
+  });
+  const { data: courseData } = useCourseList({ query: { limit: 500 } });
+  const { data: userData } = useUserList({ query: { limit: 500 } });
+  const { data: venueData } = useVenueList({ query: { limit: 500 } });
 
   const entries = data?.items ?? [];
   const courses = (courseData as { items?: Array<Record<string, unknown>> })?.items ?? [];
   const users = (userData as { items?: Array<Record<string, unknown>> })?.items ?? [];
   const venues = (venueData as { items?: Array<Record<string, unknown>> })?.items ?? [];
   const lecturers = users.filter((user) => String(user.role ?? '') === 'Lecturer');
-
-  const activeEntries = entries.filter((entry) => entry.is_active);
+  const visibleEntries = filters.showArchived ? entries : entries.filter((entry) => entry.is_active);
+  const courseLookup = buildLookupMap(courses, 'course_id', (course) => getCourseDisplayName(course, course.course_id as number));
+  const userLookup = buildLookupMap(users, 'user_id', (user) => getUserDisplayName(user, user.user_id as number));
+  const venueLookup = buildLookupMap(venues, 'venue_id', (venue) => getVenueDisplayName(venue, venue.venue_id as number));
+  const activeEntries = visibleEntries.filter((entry) => entry.is_active);
   const weekCoverage = new Set(activeEntries.map((entry) => entry.weekday)).size;
   const archivedEntries = entries.filter((entry) => !entry.is_active).length;
   const formKey = selectedEntry ? `edit-${selectedEntry.timetable_id}` : 'create';
@@ -103,6 +133,10 @@ export default function TimetablePage() {
   const [createState, createAction, createPending] = useActionState(handleCreateOrUpdate, { error: null });
 
   async function handleGenerate() {
+    if (generationRange.end < generationRange.start) {
+      showToast('danger', 'Invalid range', 'The generation end date must be on or after the start date.');
+      return;
+    }
     try {
       const result = await generateSessions.mutateAsync({
         start_date: generationRange.start,
@@ -120,6 +154,13 @@ export default function TimetablePage() {
     } catch (error) {
       showToast('danger', 'Generation failed', getErrorMessage(error));
     }
+  }
+
+  function applyGenerationPreset(days: number) {
+    const start = new Date();
+    const end = new Date(start);
+    end.setDate(end.getDate() + days);
+    setGenerationRange({ start: toDateInput(start), end: toDateInput(end) });
   }
 
   async function handleArchive(timetableId: number) {
@@ -190,6 +231,73 @@ export default function TimetablePage() {
           <div className="surface-card section-card">
             <div className="section-title">
               <div>
+                <h3>Timetable scope</h3>
+                <div className="section-subtle">Filter the recurring view before editing or generating scheduled sessions.</div>
+              </div>
+            </div>
+            <div className="stack">
+              <div className="field-shell">
+                <Form.Label className="field-label">Course filter</Form.Label>
+                <SearchableSelect
+                  name="timetable_course_filter"
+                  value={filters.courseId}
+                  onValueChange={(value) => setFilters((current) => ({ ...current, courseId: value }))}
+                  placeholder="All courses"
+                  searchPlaceholder="Filter by course..."
+                  options={courses.map((course) => ({
+                    value: String(Number(course.course_id)),
+                    label: getCourseDisplayName(course, course.course_id as number),
+                    meta: String(course.department ?? ''),
+                    keywords: `${String(course.course_code ?? '')} ${String(course.course_name ?? '')} ${String(course.department ?? '')}`,
+                  }))}
+                />
+              </div>
+
+              <div className="session-stat-row timetable-form-grid">
+                <div className="field-shell">
+                  <Form.Label className="field-label">Semester filter</Form.Label>
+                  <Form.Select value={filters.semester} onChange={(event) => setFilters((current) => ({ ...current, semester: event.target.value }))}>
+                    <option value="">All semesters</option>
+                    <option value="Semester 1">Semester 1</option>
+                    <option value="Semester 2">Semester 2</option>
+                  </Form.Select>
+                </div>
+                <div className="field-shell">
+                  <Form.Label className="field-label">Academic year filter</Form.Label>
+                  <Form.Control
+                    value={filters.academicYear}
+                    onChange={(event) => setFilters((current) => ({ ...current, academicYear: event.target.value }))}
+                    placeholder="2025/2026"
+                  />
+                </div>
+              </div>
+
+              <div className="timetable-filter-row">
+                <Form.Check
+                  type="switch"
+                  id="show-archived-slots"
+                  label="Include archived slots"
+                  checked={filters.showArchived}
+                  onChange={(event) => setFilters((current) => ({ ...current, showArchived: event.target.checked }))}
+                />
+                <Button
+                  variant="outline-secondary"
+                  onClick={() => setFilters({
+                    courseId: '',
+                    semester: defaultAcademicContext.semester,
+                    academicYear: defaultAcademicContext.academicYear,
+                    showArchived: false,
+                  })}
+                >
+                  <i className="ti ti-restore" />Reset filters
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          <div className="surface-card section-card">
+            <div className="section-title">
+              <div>
                 <h3>Generation range</h3>
                 <div className="section-subtle">Choose the date window used to create scheduled attendance sessions from the timetable.</div>
               </div>
@@ -211,6 +319,18 @@ export default function TimetablePage() {
                   onChange={(event) => setGenerationRange((current) => ({ ...current, end: event.target.value }))}
                 />
               </div>
+            </div>
+
+            <div className="generation-presets">
+              <Button variant="outline-secondary" size="sm" onClick={() => applyGenerationPreset(13)}>
+                <i className="ti ti-calendar-week" />Next 2 weeks
+              </Button>
+              <Button variant="outline-secondary" size="sm" onClick={() => applyGenerationPreset(29)}>
+                <i className="ti ti-calendar-month" />Next 30 days
+              </Button>
+              <Button variant="outline-secondary" size="sm" onClick={() => applyGenerationPreset(59)}>
+                <i className="ti ti-calendar-repeat" />Next 60 days
+              </Button>
             </div>
 
             {generationSummary ? (
@@ -338,7 +458,7 @@ export default function TimetablePage() {
                   </div>
                   <div className="field-shell">
                     <Form.Label className="field-label">Academic year</Form.Label>
-                    <Form.Control name="academic_year" defaultValue={selectedEntry?.academic_year ?? '2025/2026'} required />
+                    <Form.Control name="academic_year" defaultValue={selectedEntry?.academic_year ?? defaultAcademicContext.academicYear} required />
                   </div>
                 </div>
 
@@ -370,10 +490,10 @@ export default function TimetablePage() {
               <h3>Recurring slots</h3>
               <div className="section-subtle">Timetable entries visible to the current workspace</div>
             </div>
-            <span className="status-pill teal"><i className="ti ti-calendar-event" />{entries.length} slots</span>
+            <span className="status-pill teal"><i className="ti ti-calendar-event" />{visibleEntries.length} slots</span>
           </div>
 
-          {entries.length === 0 ? (
+          {visibleEntries.length === 0 ? (
             <EmptyState icon="ti-calendar-off" title="No timetable slots" message="Create recurring classes before generating scheduled attendance sessions." />
           ) : (
             <div className="table-shell">
@@ -388,7 +508,7 @@ export default function TimetablePage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {entries.map((entry) => (
+                  {visibleEntries.map((entry) => (
                     <tr key={entry.timetable_id}>
                       <td>
                         <div className="entity-copy">
@@ -399,7 +519,7 @@ export default function TimetablePage() {
                       <td>
                         <div className="entity-copy">
                           <strong>{entry.session_type}</strong>
-                          <span>Course #{entry.course_id} - {entry.semester} - {entry.academic_year}</span>
+                          <span>{courseLookup.get(entry.course_id) ?? `Course #${entry.course_id}`} - {entry.semester} - {entry.academic_year}</span>
                         </div>
                       </td>
                       <td className="text-secondary small">
@@ -408,7 +528,7 @@ export default function TimetablePage() {
                           : 'Open-ended recurring slot'}
                       </td>
                       <td className="text-secondary small">
-                        Lecturer #{entry.lecturer_id} - Venue #{entry.venue_id}
+                        {userLookup.get(entry.lecturer_id) ?? `User #${entry.lecturer_id}`} - {venueLookup.get(entry.venue_id) ?? `Venue #${entry.venue_id}`}
                       </td>
                       {role === 'Admin' ? (
                         <td className="text-end">

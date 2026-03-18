@@ -25,21 +25,25 @@ what Students, Lecturers, and Admins can do.
 
 ## Quick Start
 
-### 1. Prerequisites
+### 1. Prerequisites (Windows Setup)
 
-- Python 3.11+
-- PostgreSQL 14+ running locally (or via Docker)
-- `pip` or a virtual environment manager
+- **Python 3.11+**: Download and install from [python.org](https://www.python.org/downloads/).
+  - > [!IMPORTANT]
+  - > During installation, **MUST check "Add Python to PATH"**.
+- **Pip**: Included with Python. To verify, run `python --version` and `pip --version` in your terminal.
+- **PostgreSQL 14+**: Install via [EDB Installer](https://www.enterprisedb.com/downloads/postgres-postgresql-downloads). Ensure the service is running.
 
-### 2. Clone & install
+### 2. Virtual Environment & Dependencies
 
-```bash
-git clone <your-repo-url>
-cd smartcampus
+A virtual environment keeps the project dependencies isolated from your system Python.
 
-python -m venv .venv
-source .venv/bin/activate          # Windows: .venv\Scripts\activate
+```powershell
+# In the backend directory:
+python -m venv venv
+.\venv\Scripts\activate
 
+# Install all dependencies (FastAPI, SQLAlchemy, etc.)
+pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
@@ -284,21 +288,35 @@ npx @hey-api/openapi-ts \
 
 ---
 
+## Seeding & Resetting
+
+To completely wipe the database and repopulate it with fresh test data:
+
+```bash
+python reset_db.py
+```
+
+This utility performs a schema-level `CASCADE` drop, applies all migrations, and runs both `seed_admin.py` and `seed_data.py`.
+
+---
+
 ## Sample Accounts
 
-After running the seeders (`seed_admin.py` and `seed_data.py`), you can use the following default accounts to test the application.
-
-> **Password for all generated accounts:** `password123`
+**Password for all generated accounts:** `password123` (except admin)
 
 ### Admin
-- `admin@smartcampus.com`
+- **Email**: `admin@smartcampus.com`
+- **Password**: `adminpassword123`
 
-### Lecturers (Example)
-- `julie.king@smartcampus.com`
-- `sandra.rivera@smartcampus.com`
-- `michael.williams@smartcampus.com`
+### Fixed Test Accounts (Seeder v2)
+- **Lecturer**: `lecturer@smartcampus.com` / `password123`
+- **Student**: `student@smartcampus.com` / `password123`
 
-### Students (Example)
-- `krista.lewis@student.smartcampus.com`
-- `harold.peters@student.smartcampus.com`
-- `alyssa.miller@student.smartcampus.com`
+---
+
+## Advanced Features
+
+1.  **Geofencing**: Venues contain GPS coordinates and a radius. Check-ins are flagged if the student's location is outside the bounds.
+2.  **Timetable Integration**: Recurring weekly slots are used to automatically populate session metadata.
+3.  **Audit Trail**: Every mutation and authentication event is logged with detailed metadata for security review.
+4.  **QR Rotation**: Lecturers can rotate the QR code during a live session to prevent static image sharing.

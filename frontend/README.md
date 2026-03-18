@@ -66,39 +66,45 @@ This will automatically fetch `http://localhost:8000/openapi.json` and rebuild t
 
 ## Project Structure
 
-```
+The frontend uses a **Feature-Based Modular Architecture**:
+
+```text
 frontend/
-├── openapi-ts.config.ts        # Configuration for hey-api code generation
-├── public/                     # Static assets
-└── src/
-    ├── app.css                 # Global stylesheets
-    ├── client/                 # Auto-generated API SDK (Do not edit directly)
-    ├── components/             # Reusable UI elements (Navigation, Alerts, Loaders)
-    ├── context/                # React Contexts (AuthProvider)
-    ├── pages/                  # Route-level components
-    │   ├── admin/              # Admin dashboard and management views
-    │   ├── auth/               # LoginPage.tsx
-    │   ├── lecturer/           # Session management views
-    │   └── student/            # Attendance history and Digital ID views
-    ├── routes/                 # React Router v7 configuration and loaders
-    └── utils/                  # Helper functions (Errors, Interceptors, etc.)
+├── src/
+│   ├── client/              # Auto-generated API SDK
+│   ├── components/          # Shared layout & common UI (Skeletons, Toasts)
+│   ├── lib/                 # API client config
+│   ├── modules/             # [MAJOR] Atomic feature modules
+│   │   ├── attendance/      # QR scanning & history
+│   │   ├── auth/            # Login & flow logic
+│   │   ├── courses/         # Catalogue & View
+│   │   ├── dashboard/       # Role-specific analytics
+│   │   ├── venues/          # GPS & Geofence management
+│   │   └── ...              # Other modules
+│   ├── providers/           # Auth & Query providers
+│   ├── routes/              # Lazy-loaded RBAC routing
+│   └── utils/               # Labels, entity mapping, error helpers
 ```
 
 ---
 
-## Testing locally
+## Key Features
 
-After running the backend seeders, you can test the application using the following accounts: 
+-   **Geofenced Check-in**: Mobile-first scanning with Leaflet map integration for venue setup.
+-   **SearchableSelect**: Robust dropdowns for searching across thousands of students or courses.
+-   **Entity Mapping**: Resolves raw internal IDs into human-readable labels globally.
+-   **Dynamic Dashboards**: Tailored views for Students, Lecturers, and Admins with live session tracking.
 
-**Admin**
-- `admin@smartcampus.com` / `password123`
+---
 
-**Lecturers**
-- `julie.king@smartcampus.com` / `password123`
-- `sandra.rivera@smartcampus.com` / `password123`
+## Testing Locally
 
-**Students**
-- `krista.lewis@student.smartcampus.com` / `password123`
-- `harold.peters@student.smartcampus.com` / `password123`
+**Credentials for pre-seeded accounts:**
 
-*(These test accounts require a locally seeded database)*
+| Role | Email | Password |
+|---|---|---|
+| **Admin** | `admin@smartcampus.com` | `adminpassword123` |
+| **Lecturer** | `lecturer@smartcampus.com` | `password123` |
+| **Student** | `student@smartcampus.com` | `password123` |
+
+*(Wipe and reseed anytime using `reset_db.py` in the backend folder.)*
