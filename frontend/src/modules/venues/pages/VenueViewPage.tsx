@@ -13,6 +13,10 @@ export default function VenueViewPage() {
 
   const currentVenue = venue as Record<string, unknown>;
   const capacity = Number(currentVenue.capacity ?? 0);
+  const hasGeofence = [currentVenue.latitude, currentVenue.longitude, currentVenue.radius_meters].every((value) => value !== null && value !== undefined);
+  const mapHref = hasGeofence
+    ? `https://www.openstreetmap.org/?mlat=${encodeURIComponent(String(currentVenue.latitude))}&mlon=${encodeURIComponent(String(currentVenue.longitude))}#map=19/${encodeURIComponent(String(currentVenue.latitude))}/${encodeURIComponent(String(currentVenue.longitude))}`
+    : null;
 
   return (
     <div>
@@ -24,6 +28,11 @@ export default function VenueViewPage() {
         tone="teal"
       >
         <Link to="/venues"><Button variant="outline-secondary"><i className="ti ti-arrow-left" />Back</Button></Link>
+        {mapHref ? (
+          <a href={mapHref} target="_blank" rel="noreferrer">
+            <Button variant="outline-primary"><i className="ti ti-map-2" />Open map</Button>
+          </a>
+        ) : null}
         <Link to={`/venues/${id}/edit`}><Button variant="primary"><i className="ti ti-edit" />Edit</Button></Link>
       </PageHeader>
 
@@ -47,7 +56,7 @@ export default function VenueViewPage() {
               </div>
               <div className="session-stat">
                 <label>Status</label>
-                <strong>Approved</strong>
+                <strong>{hasGeofence ? 'Geofenced' : 'Needs geofence'}</strong>
               </div>
             </div>
           </div>
@@ -57,7 +66,7 @@ export default function VenueViewPage() {
             <div>
               <div className="callout-title">Space quality affects scan confidence</div>
               <div className="callout-copy">
-                Accurate building and capacity data helps lecturers and administrators trust attendance events tied to this room.
+                Accurate building, geofence, and map positioning data helps lecturers and administrators trust attendance events tied to this room.
               </div>
             </div>
           </div>
@@ -80,13 +89,27 @@ export default function VenueViewPage() {
               <span className="detail-label">Building</span>
               <span className="detail-value">{String(currentVenue.building ?? '-')}</span>
             </div>
-            <div className="detail-row">
-              <span className="detail-label">Capacity</span>
-              <span className="detail-value mono">{capacity || '-'}</span>
+              <div className="detail-row">
+                <span className="detail-label">Capacity</span>
+                <span className="detail-value mono">{capacity || '-'}</span>
+              </div>
+              <div className="detail-row">
+                <span className="detail-label">Latitude</span>
+                <span className="detail-value mono">{currentVenue.latitude !== undefined && currentVenue.latitude !== null ? String(currentVenue.latitude) : '-'}</span>
+              </div>
+              <div className="detail-row">
+                <span className="detail-label">Longitude</span>
+                <span className="detail-value mono">{currentVenue.longitude !== undefined && currentVenue.longitude !== null ? String(currentVenue.longitude) : '-'}</span>
+              </div>
+              <div className="detail-row">
+                <span className="detail-label">Geofence radius</span>
+                <span className="detail-value mono">
+                  {currentVenue.radius_meters !== undefined && currentVenue.radius_meters !== null ? `${String(currentVenue.radius_meters)} m` : '-'}
+                </span>
+              </div>
             </div>
           </div>
         </div>
-      </div>
     </div>
   );
 }

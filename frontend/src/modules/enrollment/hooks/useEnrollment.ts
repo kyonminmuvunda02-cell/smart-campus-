@@ -5,10 +5,37 @@ import {
   createEnrollmentMutation,
   updateEnrollmentMutation,
 } from '@/client/@tanstack/react-query.gen';
-import type { Options, ListStudentEnrollmentsData, ListCourseEnrollmentsData } from '@/client';
+import { client } from '@/client/client.gen';
+import type { EnrollmentList, Options, ListStudentEnrollmentsData, ListCourseEnrollmentsData } from '@/client';
+
+type EnrollmentFilters = {
+  student_id?: number;
+  course_id?: number;
+  semester?: string;
+  academic_year?: string;
+  enrollment_status?: string;
+  skip?: number;
+  limit?: number;
+};
 
 export function useEnrollment() {
   const queryClient = useQueryClient();
+
+  const useList = (filters: EnrollmentFilters = {}) =>
+    useQuery({
+      queryKey: ['listEnrollments', filters],
+      queryFn: async () => {
+        const query = Object.fromEntries(
+          Object.entries(filters).filter(([, value]) => value !== undefined && value !== '')
+        );
+        const { data } = await client.get<EnrollmentList, unknown, true>({
+          url: '/api/v1/enrollments/',
+          query,
+          throwOnError: true,
+        });
+        return data;
+      },
+    });
 
   const useStudentEnrollments = (studentId: number) =>
     useQuery({
@@ -31,6 +58,7 @@ export function useEnrollment() {
   const create = useMutation({
     ...createEnrollmentMutation(),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['listEnrollments'] });
       queryClient.invalidateQueries({ queryKey: ['listStudentEnrollments'] });
       queryClient.invalidateQueries({ queryKey: ['listCourseEnrollments'] });
     },
@@ -39,10 +67,11 @@ export function useEnrollment() {
   const update = useMutation({
     ...updateEnrollmentMutation(),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['listEnrollments'] });
       queryClient.invalidateQueries({ queryKey: ['listStudentEnrollments'] });
       queryClient.invalidateQueries({ queryKey: ['listCourseEnrollments'] });
     },
   });
 
-  return { useStudentEnrollments, useCourseEnrollments, create, update };
+  return { useList, useStudentEnrollments, useCourseEnrollments, create, update };
 }

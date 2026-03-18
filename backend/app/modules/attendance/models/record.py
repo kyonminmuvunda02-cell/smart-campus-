@@ -34,6 +34,11 @@ class AttendanceRecord(Base):
     )
     # Set TRUE when gps_accuracy is NULL — mirrors the DB trigger behaviour
     fraud_flag: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    reviewed_by: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("appuser.user_id", ondelete="SET NULL"), nullable=True
+    )
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    review_note: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
     checked_in_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()

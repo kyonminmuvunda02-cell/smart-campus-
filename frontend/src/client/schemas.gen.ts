@@ -271,6 +271,40 @@ export const AttendanceRecordResponseSchema = {
             type: 'string',
             format: 'date-time',
             title: 'Checked In At'
+        },
+        reviewed_by: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Reviewed By'
+        },
+        reviewed_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Reviewed At'
+        },
+        review_note: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Review Note'
         }
     },
     type: 'object',
@@ -289,6 +323,212 @@ export const AttendanceRecordResponseSchema = {
     title: 'AttendanceRecordResponse'
 } as const;
 
+export const AttendanceRecordReviewUpdateSchema = {
+    properties: {
+        verification_status: {
+            type: 'string',
+            title: 'Verification Status',
+            example: 'Verified'
+        },
+        review_note: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 255
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Review Note'
+        }
+    },
+    type: 'object',
+    required: [
+        'verification_status'
+    ],
+    title: 'AttendanceRecordReviewUpdate'
+} as const;
+
+export const AttendanceReviewRecordListSchema = {
+    properties: {
+        items: {
+            items: {
+                $ref: '#/components/schemas/AttendanceReviewRecordResponse'
+            },
+            type: 'array',
+            title: 'Items'
+        },
+        total: {
+            type: 'integer',
+            title: 'Total'
+        },
+        skip: {
+            type: 'integer',
+            title: 'Skip'
+        },
+        limit: {
+            type: 'integer',
+            title: 'Limit'
+        }
+    },
+    type: 'object',
+    required: [
+        'items',
+        'total',
+        'skip',
+        'limit'
+    ],
+    title: 'AttendanceReviewRecordList'
+} as const;
+
+export const AttendanceReviewRecordResponseSchema = {
+    properties: {
+        attendance_id: {
+            type: 'integer',
+            title: 'Attendance Id'
+        },
+        session_id: {
+            type: 'integer',
+            title: 'Session Id'
+        },
+        student_id: {
+            type: 'integer',
+            title: 'Student Id'
+        },
+        device_id: {
+            type: 'string',
+            title: 'Device Id'
+        },
+        gps_latitude: {
+            anyOf: [
+                {
+                    type: 'number'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Gps Latitude'
+        },
+        gps_longitude: {
+            anyOf: [
+                {
+                    type: 'number'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Gps Longitude'
+        },
+        gps_accuracy: {
+            anyOf: [
+                {
+                    type: 'number'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Gps Accuracy'
+        },
+        verification_status: {
+            type: 'string',
+            title: 'Verification Status'
+        },
+        fraud_flag: {
+            type: 'boolean',
+            title: 'Fraud Flag'
+        },
+        checked_in_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Checked In At'
+        },
+        reviewed_by: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Reviewed By'
+        },
+        reviewed_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Reviewed At'
+        },
+        review_note: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Review Note'
+        },
+        course_id: {
+            type: 'integer',
+            title: 'Course Id'
+        },
+        venue_id: {
+            type: 'integer',
+            title: 'Venue Id'
+        },
+        lecturer_id: {
+            type: 'integer',
+            title: 'Lecturer Id'
+        },
+        session_start: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Session Start'
+        },
+        session_end: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Session End'
+        },
+        session_type: {
+            type: 'string',
+            title: 'Session Type'
+        }
+    },
+    type: 'object',
+    required: [
+        'attendance_id',
+        'session_id',
+        'student_id',
+        'device_id',
+        'gps_latitude',
+        'gps_longitude',
+        'gps_accuracy',
+        'verification_status',
+        'fraud_flag',
+        'checked_in_at',
+        'course_id',
+        'venue_id',
+        'lecturer_id',
+        'session_start',
+        'session_end',
+        'session_type'
+    ],
+    title: 'AttendanceReviewRecordResponse'
+} as const;
+
 export const AttendanceSessionCreateSchema = {
     properties: {
         course_id: {
@@ -298,6 +538,25 @@ export const AttendanceSessionCreateSchema = {
         venue_id: {
             type: 'integer',
             title: 'Venue Id'
+        },
+        session_type: {
+            type: 'string',
+            title: 'Session Type',
+            default: 'Lecture',
+            example: 'Lecture'
+        },
+        timetable_slot: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 100
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Timetable Slot',
+            example: 'Mon 08:00-10:00'
         },
         semester: {
             type: 'string',
@@ -373,6 +632,25 @@ export const AttendanceSessionResponseSchema = {
         venue_id: {
             type: 'integer',
             title: 'Venue Id'
+        },
+        session_type: {
+            type: 'string',
+            title: 'Session Type',
+            default: 'Lecture',
+            example: 'Lecture'
+        },
+        timetable_slot: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 100
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Timetable Slot',
+            example: 'Mon 08:00-10:00'
         },
         semester: {
             type: 'string',
@@ -464,6 +742,29 @@ export const AttendanceSessionUpdateSchema = {
                 }
             ],
             title: 'Is Active'
+        },
+        session_type: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Session Type'
+        },
+        timetable_slot: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 100
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Timetable Slot'
         }
     },
     type: 'object',
@@ -581,7 +882,7 @@ export const Body_loginAccessTokenSchema = {
             anyOf: [
                 {
                     type: 'string',
-                    pattern: 'password'
+                    pattern: '^password$'
                 },
                 {
                     type: 'null'
@@ -595,6 +896,7 @@ export const Body_loginAccessTokenSchema = {
         },
         password: {
             type: 'string',
+            format: 'password',
             title: 'Password'
         },
         scope: {
@@ -622,6 +924,7 @@ export const Body_loginAccessTokenSchema = {
                     type: 'null'
                 }
             ],
+            format: 'password',
             title: 'Client Secret'
         }
     },
@@ -1306,6 +1609,417 @@ export const StudentCreateSchema = {
     description: 'Create a Student — AppUser fields + student profile fields.'
 } as const;
 
+export const TimetableEntryCreateSchema = {
+    properties: {
+        course_id: {
+            type: 'integer',
+            title: 'Course Id'
+        },
+        lecturer_id: {
+            type: 'integer',
+            title: 'Lecturer Id'
+        },
+        venue_id: {
+            type: 'integer',
+            title: 'Venue Id'
+        },
+        weekday: {
+            type: 'string',
+            title: 'Weekday',
+            example: 'Monday'
+        },
+        start_time: {
+            type: 'string',
+            format: 'time',
+            title: 'Start Time'
+        },
+        end_time: {
+            type: 'string',
+            format: 'time',
+            title: 'End Time'
+        },
+        session_type: {
+            type: 'string',
+            title: 'Session Type',
+            default: 'Lecture',
+            example: 'Lecture'
+        },
+        semester: {
+            type: 'string',
+            title: 'Semester',
+            example: 'Semester 1'
+        },
+        academic_year: {
+            type: 'string',
+            title: 'Academic Year',
+            example: '2025/2026'
+        },
+        effective_start_date: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Effective Start Date'
+        },
+        effective_end_date: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Effective End Date'
+        }
+    },
+    type: 'object',
+    required: [
+        'course_id',
+        'lecturer_id',
+        'venue_id',
+        'weekday',
+        'start_time',
+        'end_time',
+        'semester',
+        'academic_year'
+    ],
+    title: 'TimetableEntryCreate'
+} as const;
+
+export const TimetableEntryListSchema = {
+    properties: {
+        items: {
+            items: {
+                $ref: '#/components/schemas/TimetableEntryResponse'
+            },
+            type: 'array',
+            title: 'Items'
+        },
+        total: {
+            type: 'integer',
+            title: 'Total'
+        },
+        skip: {
+            type: 'integer',
+            title: 'Skip'
+        },
+        limit: {
+            type: 'integer',
+            title: 'Limit'
+        }
+    },
+    type: 'object',
+    required: [
+        'items',
+        'total',
+        'skip',
+        'limit'
+    ],
+    title: 'TimetableEntryList'
+} as const;
+
+export const TimetableEntryResponseSchema = {
+    properties: {
+        course_id: {
+            type: 'integer',
+            title: 'Course Id'
+        },
+        lecturer_id: {
+            type: 'integer',
+            title: 'Lecturer Id'
+        },
+        venue_id: {
+            type: 'integer',
+            title: 'Venue Id'
+        },
+        weekday: {
+            type: 'string',
+            title: 'Weekday',
+            example: 'Monday'
+        },
+        start_time: {
+            type: 'string',
+            format: 'time',
+            title: 'Start Time'
+        },
+        end_time: {
+            type: 'string',
+            format: 'time',
+            title: 'End Time'
+        },
+        session_type: {
+            type: 'string',
+            title: 'Session Type',
+            default: 'Lecture',
+            example: 'Lecture'
+        },
+        semester: {
+            type: 'string',
+            title: 'Semester',
+            example: 'Semester 1'
+        },
+        academic_year: {
+            type: 'string',
+            title: 'Academic Year',
+            example: '2025/2026'
+        },
+        effective_start_date: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Effective Start Date'
+        },
+        effective_end_date: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Effective End Date'
+        },
+        timetable_id: {
+            type: 'integer',
+            title: 'Timetable Id'
+        },
+        is_active: {
+            type: 'boolean',
+            title: 'Is Active'
+        },
+        created_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Created At'
+        },
+        updated_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Updated At'
+        }
+    },
+    type: 'object',
+    required: [
+        'course_id',
+        'lecturer_id',
+        'venue_id',
+        'weekday',
+        'start_time',
+        'end_time',
+        'semester',
+        'academic_year',
+        'timetable_id',
+        'is_active',
+        'created_at',
+        'updated_at'
+    ],
+    title: 'TimetableEntryResponse'
+} as const;
+
+export const TimetableEntryUpdateSchema = {
+    properties: {
+        course_id: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Course Id'
+        },
+        lecturer_id: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Lecturer Id'
+        },
+        venue_id: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Venue Id'
+        },
+        weekday: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Weekday'
+        },
+        start_time: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Start Time'
+        },
+        end_time: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'End Time'
+        },
+        session_type: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Session Type'
+        },
+        semester: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Semester'
+        },
+        academic_year: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Academic Year'
+        },
+        effective_start_date: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Effective Start Date'
+        },
+        effective_end_date: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Effective End Date'
+        },
+        is_active: {
+            anyOf: [
+                {
+                    type: 'boolean'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Is Active'
+        }
+    },
+    type: 'object',
+    title: 'TimetableEntryUpdate'
+} as const;
+
+export const TimetableGenerationRequestSchema = {
+    properties: {
+        start_date: {
+            type: 'string',
+            format: 'date',
+            title: 'Start Date'
+        },
+        end_date: {
+            type: 'string',
+            format: 'date',
+            title: 'End Date'
+        }
+    },
+    type: 'object',
+    required: [
+        'start_date',
+        'end_date'
+    ],
+    title: 'TimetableGenerationRequest'
+} as const;
+
+export const TimetableGenerationResponseSchema = {
+    properties: {
+        created_session_ids: {
+            items: {
+                type: 'integer'
+            },
+            type: 'array',
+            title: 'Created Session Ids'
+        },
+        skipped_dates: {
+            items: {
+                type: 'string'
+            },
+            type: 'array',
+            title: 'Skipped Dates'
+        }
+    },
+    type: 'object',
+    required: [
+        'created_session_ids',
+        'skipped_dates'
+    ],
+    title: 'TimetableGenerationResponse'
+} as const;
+
 export const TokenSchema = {
     properties: {
         access_token: {
@@ -1390,6 +2104,47 @@ export const VenueCreateSchema = {
             ],
             title: 'Building',
             example: 'Main Block'
+        },
+        latitude: {
+            anyOf: [
+                {
+                    type: 'number',
+                    maximum: 90,
+                    minimum: -90
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Latitude',
+            example: -15.385
+        },
+        longitude: {
+            anyOf: [
+                {
+                    type: 'number',
+                    maximum: 180,
+                    minimum: -180
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Longitude',
+            example: 28.322
+        },
+        radius_meters: {
+            anyOf: [
+                {
+                    type: 'number',
+                    exclusiveMinimum: 0
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Radius Meters',
+            example: 45
         }
     },
     type: 'object',
@@ -1463,6 +2218,47 @@ export const VenueResponseSchema = {
             title: 'Building',
             example: 'Main Block'
         },
+        latitude: {
+            anyOf: [
+                {
+                    type: 'number',
+                    maximum: 90,
+                    minimum: -90
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Latitude',
+            example: -15.385
+        },
+        longitude: {
+            anyOf: [
+                {
+                    type: 'number',
+                    maximum: 180,
+                    minimum: -180
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Longitude',
+            example: 28.322
+        },
+        radius_meters: {
+            anyOf: [
+                {
+                    type: 'number',
+                    exclusiveMinimum: 0
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Radius Meters',
+            example: 45
+        },
         venue_id: {
             type: 'integer',
             title: 'Venue Id'
@@ -1517,6 +2313,44 @@ export const VenueUpdateSchema = {
                 }
             ],
             title: 'Building'
+        },
+        latitude: {
+            anyOf: [
+                {
+                    type: 'number',
+                    maximum: 90,
+                    minimum: -90
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Latitude'
+        },
+        longitude: {
+            anyOf: [
+                {
+                    type: 'number',
+                    maximum: 180,
+                    minimum: -180
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Longitude'
+        },
+        radius_meters: {
+            anyOf: [
+                {
+                    type: 'number',
+                    exclusiveMinimum: 0
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Radius Meters'
         }
     },
     type: 'object',

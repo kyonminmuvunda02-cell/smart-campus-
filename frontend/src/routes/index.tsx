@@ -17,9 +17,11 @@ import SessionViewPage from '@/modules/sessions/pages/SessionViewPage';
 import SessionFormPage from '@/modules/sessions/pages/SessionFormPage';
 import CheckInPage from '@/modules/attendance/pages/CheckInPage';
 import AttendanceHistoryPage from '@/modules/attendance/pages/AttendanceHistoryPage';
+import AttendanceReviewPage from '@/modules/attendance/pages/AttendanceReviewPage';
 import DigitalIDPage from '@/modules/digital-id/pages/DigitalIDPage';
 import EnrollmentListPage from '@/modules/enrollment/pages/EnrollmentListPage';
 import AuditLogPage from '@/modules/audit/pages/AuditLogPage';
+import TimetablePage from '@/modules/timetable/pages/TimetablePage';
 
 function requireAuth() {
   const token = localStorage.getItem('access_token');
@@ -54,6 +56,8 @@ export const router = createBrowserRouter([
       { path: 'sessions/new', element: <SessionFormPage />, loader: () => requireRole('Lecturer') },
       { path: 'sessions/:id', element: <SessionViewPage />, loader: () => requireRole('Lecturer', 'Admin') },
       { path: 'sessions', element: <SessionListPage />, loader: () => requireRole('Lecturer', 'Admin') },
+      { path: 'timetable', element: <TimetablePage />, loader: () => requireRole('Lecturer', 'Admin') },
+      { path: 'attendance-review', element: <AttendanceReviewPage />, loader: () => requireRole('Lecturer', 'Admin') },
 
       // Admin: Users CRUD
       { path: 'users', element: <UserListPage />, loader: () => requireRole('Admin') },

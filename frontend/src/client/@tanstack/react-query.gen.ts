@@ -4,7 +4,7 @@ import { type DefaultError, queryOptions, type UseMutationOptions } from '@tanst
 
 import { client } from '../client.gen';
 import { AttendanceRecords, AttendanceSessions, Audit, Auth, Courses, DigitalIds, Enrollments, Health, type Options, Users, Venues } from '../sdk.gen';
-import type { AssignLecturerToCourseData, AssignLecturerToCourseError, AssignLecturerToCourseResponse, CloseAttendanceSessionData, CloseAttendanceSessionError, CloseAttendanceSessionResponse, CreateAttendanceSessionData, CreateAttendanceSessionError, CreateAttendanceSessionResponse, CreateCourseData, CreateCourseError, CreateCourseResponse, CreateEnrollmentData, CreateEnrollmentError, CreateEnrollmentResponse, CreateLecturerData, CreateLecturerError, CreateLecturerResponse, CreateStudentData, CreateStudentError, CreateStudentResponse, CreateVenueData, CreateVenueError, CreateVenueResponse, DeleteCourseData, DeleteCourseError, DeleteCourseResponse, DeleteUserData, DeleteUserError, DeleteUserResponse, DeleteVenueData, DeleteVenueError, DeleteVenueResponse, GetActiveDigitalIdData, GetActiveDigitalIdError, GetActiveDigitalIdResponse, GetAttendanceSessionData, GetAttendanceSessionError, GetAttendanceSessionResponse, GetCourseData, GetCourseError, GetCourseResponse, GetCurrentUserData, GetCurrentUserResponse, GetUserData, GetUserError, GetUserResponse, GetVenueData, GetVenueError, GetVenueResponse, HealthCheckHealthGetData, IssueDigitalIdData, IssueDigitalIdError, IssueDigitalIdResponse, ListAttendanceSessionsData, ListAttendanceSessionsError, ListAttendanceSessionsResponse, ListAuditLogsData, ListAuditLogsError, ListAuditLogsResponse, ListCourseAssignmentsData, ListCourseAssignmentsError, ListCourseAssignmentsResponse, ListCourseEnrollmentsData, ListCourseEnrollmentsError, ListCourseEnrollmentsResponse, ListCoursesData, ListCoursesError, ListCoursesResponse, ListSessionRecordsData, ListSessionRecordsError, ListSessionRecordsResponse, ListStudentDigitalIdsData, ListStudentDigitalIdsError, ListStudentDigitalIdsResponse, ListStudentEnrollmentsData, ListStudentEnrollmentsError, ListStudentEnrollmentsResponse, ListStudentRecordsData, ListStudentRecordsError, ListStudentRecordsResponse, ListUsersData, ListUsersError, ListUsersResponse, ListVenuesData, ListVenuesError, ListVenuesResponse, LoginAccessTokenData, LoginAccessTokenError, LoginAccessTokenResponse, RefreshQrCodeData, RefreshQrCodeError, RefreshQrCodeResponse, RemoveLecturerFromCourseData, RemoveLecturerFromCourseError, RemoveLecturerFromCourseResponse, RevokeDigitalIdData, RevokeDigitalIdError, RevokeDigitalIdResponse, StartAttendanceSessionData, StartAttendanceSessionError, StartAttendanceSessionResponse, StudentCheckinData, StudentCheckinError, StudentCheckinResponse, UpdateAttendanceSessionData, UpdateAttendanceSessionError, UpdateAttendanceSessionResponse, UpdateCourseData, UpdateCourseError, UpdateCourseResponse, UpdateEnrollmentData, UpdateEnrollmentError, UpdateEnrollmentResponse, UpdateUserData, UpdateUserError, UpdateUserResponse, UpdateVenueData, UpdateVenueError, UpdateVenueResponse } from '../types.gen';
+import type { AssignLecturerToCourseData, AssignLecturerToCourseError, AssignLecturerToCourseResponse, CloseAttendanceSessionData, CloseAttendanceSessionError, CloseAttendanceSessionResponse, CreateAttendanceSessionData, CreateAttendanceSessionError, CreateAttendanceSessionResponse, CreateCourseData, CreateCourseError, CreateCourseResponse, CreateEnrollmentData, CreateEnrollmentError, CreateEnrollmentResponse, CreateLecturerData, CreateLecturerError, CreateLecturerResponse, CreateStudentData, CreateStudentError, CreateStudentResponse, CreateTimetableEntryData, CreateTimetableEntryError, CreateTimetableEntryResponse, CreateVenueData, CreateVenueError, CreateVenueResponse, DeleteCourseData, DeleteCourseError, DeleteCourseResponse, DeleteTimetableEntryData, DeleteTimetableEntryError, DeleteUserData, DeleteUserError, DeleteUserResponse, DeleteVenueData, DeleteVenueError, DeleteVenueResponse, GenerateTimetableSessionsData, GenerateTimetableSessionsError, GenerateTimetableSessionsResponse, GetActiveDigitalIdData, GetActiveDigitalIdError, GetActiveDigitalIdResponse, GetAttendanceSessionData, GetAttendanceSessionError, GetAttendanceSessionResponse, GetCourseData, GetCourseError, GetCourseResponse, GetCurrentUserData, GetCurrentUserResponse, GetUserData, GetUserError, GetUserResponse, GetVenueData, GetVenueError, GetVenueResponse, HealthCheckHealthGetData, IssueDigitalIdData, IssueDigitalIdError, IssueDigitalIdResponse, ListAttendanceReviewQueueData, ListAttendanceReviewQueueError, ListAttendanceReviewQueueResponse, ListAttendanceSessionsData, ListAttendanceSessionsError, ListAttendanceSessionsResponse, ListAuditLogsData, ListAuditLogsError, ListAuditLogsResponse, ListCourseAssignmentsData, ListCourseAssignmentsError, ListCourseAssignmentsResponse, ListCourseEnrollmentsData, ListCourseEnrollmentsError, ListCourseEnrollmentsResponse, ListCoursesData, ListCoursesError, ListCoursesResponse, ListEnrollmentsData, ListEnrollmentsError, ListEnrollmentsResponse, ListSessionRecordsData, ListSessionRecordsError, ListSessionRecordsResponse, ListStudentDigitalIdsData, ListStudentDigitalIdsError, ListStudentDigitalIdsResponse, ListStudentEnrollmentsData, ListStudentEnrollmentsError, ListStudentEnrollmentsResponse, ListStudentRecordsData, ListStudentRecordsError, ListStudentRecordsResponse, ListTimetableEntriesData, ListTimetableEntriesError, ListTimetableEntriesResponse, ListUsersData, ListUsersError, ListUsersResponse, ListVenuesData, ListVenuesError, ListVenuesResponse, LoginAccessTokenData, LoginAccessTokenError, LoginAccessTokenResponse, RefreshQrCodeData, RefreshQrCodeError, RefreshQrCodeResponse, RemoveLecturerFromCourseData, RemoveLecturerFromCourseError, RemoveLecturerFromCourseResponse, ReviewAttendanceRecordData, ReviewAttendanceRecordError, ReviewAttendanceRecordResponse, RevokeDigitalIdData, RevokeDigitalIdError, RevokeDigitalIdResponse, StartAttendanceSessionData, StartAttendanceSessionError, StartAttendanceSessionResponse, StudentCheckinData, StudentCheckinError, StudentCheckinResponse, UpdateAttendanceSessionData, UpdateAttendanceSessionError, UpdateAttendanceSessionResponse, UpdateCourseData, UpdateCourseError, UpdateCourseResponse, UpdateEnrollmentData, UpdateEnrollmentError, UpdateEnrollmentResponse, UpdateTimetableEntryData, UpdateTimetableEntryError, UpdateTimetableEntryResponse, UpdateUserData, UpdateUserError, UpdateUserResponse, UpdateVenueData, UpdateVenueError, UpdateVenueResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -466,6 +466,26 @@ export const removeLecturerFromCourseMutation = (options?: Partial<Options<Remov
     return mutationOptions;
 };
 
+export const listEnrollmentsQueryKey = (options?: Options<ListEnrollmentsData>) => createQueryKey('listEnrollments', options);
+
+/**
+ * List Enrollments
+ *
+ * Admin: browse enrollments across students, courses, and academic periods.
+ */
+export const listEnrollmentsOptions = (options?: Options<ListEnrollmentsData>) => queryOptions<ListEnrollmentsResponse, ListEnrollmentsError, ListEnrollmentsResponse, ReturnType<typeof listEnrollmentsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await Enrollments.listEnrollments({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: listEnrollmentsQueryKey(options)
+});
+
 /**
  * Create Enrollment
  *
@@ -821,6 +841,127 @@ export const listStudentRecordsOptions = (options: Options<ListStudentRecordsDat
     },
     queryKey: listStudentRecordsQueryKey(options)
 });
+
+export const listAttendanceReviewQueueQueryKey = (options?: Options<ListAttendanceReviewQueueData>) => createQueryKey('listAttendanceReviewQueue', options);
+
+/**
+ * List Attendance Review Queue
+ */
+export const listAttendanceReviewQueueOptions = (options?: Options<ListAttendanceReviewQueueData>) => queryOptions<ListAttendanceReviewQueueResponse, ListAttendanceReviewQueueError, ListAttendanceReviewQueueResponse, ReturnType<typeof listAttendanceReviewQueueQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await AttendanceRecords.listAttendanceReviewQueue({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: listAttendanceReviewQueueQueryKey(options)
+});
+
+/**
+ * Review Attendance Record
+ */
+export const reviewAttendanceRecordMutation = (options?: Partial<Options<ReviewAttendanceRecordData>>): UseMutationOptions<ReviewAttendanceRecordResponse, ReviewAttendanceRecordError, Options<ReviewAttendanceRecordData>> => {
+    const mutationOptions: UseMutationOptions<ReviewAttendanceRecordResponse, ReviewAttendanceRecordError, Options<ReviewAttendanceRecordData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await AttendanceRecords.reviewAttendanceRecord({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const listTimetableEntriesQueryKey = (options?: Options<ListTimetableEntriesData>) => createQueryKey('listTimetableEntries', options);
+
+/**
+ * List Timetable Entries
+ */
+export const listTimetableEntriesOptions = (options?: Options<ListTimetableEntriesData>) => queryOptions<ListTimetableEntriesResponse, ListTimetableEntriesError, ListTimetableEntriesResponse, ReturnType<typeof listTimetableEntriesQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await AttendanceSessions.listTimetableEntries({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: listTimetableEntriesQueryKey(options)
+});
+
+/**
+ * Create Timetable Entry
+ */
+export const createTimetableEntryMutation = (options?: Partial<Options<CreateTimetableEntryData>>): UseMutationOptions<CreateTimetableEntryResponse, CreateTimetableEntryError, Options<CreateTimetableEntryData>> => {
+    const mutationOptions: UseMutationOptions<CreateTimetableEntryResponse, CreateTimetableEntryError, Options<CreateTimetableEntryData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await AttendanceSessions.createTimetableEntry({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Delete Timetable Entry
+ */
+export const deleteTimetableEntryMutation = (options?: Partial<Options<DeleteTimetableEntryData>>): UseMutationOptions<unknown, DeleteTimetableEntryError, Options<DeleteTimetableEntryData>> => {
+    const mutationOptions: UseMutationOptions<unknown, DeleteTimetableEntryError, Options<DeleteTimetableEntryData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await AttendanceSessions.deleteTimetableEntry({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Update Timetable Entry
+ */
+export const updateTimetableEntryMutation = (options?: Partial<Options<UpdateTimetableEntryData>>): UseMutationOptions<UpdateTimetableEntryResponse, UpdateTimetableEntryError, Options<UpdateTimetableEntryData>> => {
+    const mutationOptions: UseMutationOptions<UpdateTimetableEntryResponse, UpdateTimetableEntryError, Options<UpdateTimetableEntryData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await AttendanceSessions.updateTimetableEntry({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Generate Timetable Sessions
+ */
+export const generateTimetableSessionsMutation = (options?: Partial<Options<GenerateTimetableSessionsData>>): UseMutationOptions<GenerateTimetableSessionsResponse, GenerateTimetableSessionsError, Options<GenerateTimetableSessionsData>> => {
+    const mutationOptions: UseMutationOptions<GenerateTimetableSessionsResponse, GenerateTimetableSessionsError, Options<GenerateTimetableSessionsData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await AttendanceSessions.generateTimetableSessions({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
 
 export const listAuditLogsQueryKey = (options?: Options<ListAuditLogsData>) => createQueryKey('listAuditLogs', options);
 

@@ -17,6 +17,8 @@ const NAV_ITEMS: AppNavItem[] = [
   { to: '/my-digital-id', icon: 'id', label: 'Digital ID', roles: ['Student'], section: 'Student' },
   { to: '/sessions', icon: 'presentation', label: 'Sessions', roles: ['Lecturer', 'Admin'], section: 'Teaching' },
   { to: '/sessions/new', icon: 'plus', label: 'Start Session', roles: ['Lecturer'], section: 'Teaching' },
+  { to: '/timetable', icon: 'calendar-time', label: 'Timetable', roles: ['Lecturer', 'Admin'], section: 'Teaching' },
+  { to: '/attendance-review', icon: 'shield-search', label: 'Review Queue', roles: ['Lecturer', 'Admin'], section: 'Teaching' },
   { to: '/users', icon: 'users', label: 'Users', roles: ['Admin'], section: 'Administration' },
   { to: '/courses', icon: 'books', label: 'Courses', roles: ['Admin'], section: 'Administration' },
   { to: '/venues', icon: 'building', label: 'Venues', roles: ['Admin'], section: 'Administration' },

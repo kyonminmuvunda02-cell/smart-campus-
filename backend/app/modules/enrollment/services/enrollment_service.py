@@ -12,6 +12,49 @@ logger = logging.getLogger(__name__)
 class EnrollmentService:
 
     @staticmethod
+    def list_enrollments(
+        db: Session,
+        student_id: int | None = None,
+        course_id: int | None = None,
+        semester: str | None = None,
+        academic_year: str | None = None,
+        enrollment_status: str | None = None,
+        skip: int = 0,
+        limit: int = 50,
+    ) -> dict:
+        """Return paginated enrollments filtered for admin management views."""
+        filters = []
+        if student_id is not None:
+            filters.append(Enrollment.student_id == student_id)
+        if course_id is not None:
+            filters.append(Enrollment.course_id == course_id)
+        if semester is not None:
+            filters.append(Enrollment.semester == semester)
+        if academic_year is not None:
+            filters.append(Enrollment.academic_year == academic_year)
+        if enrollment_status is not None:
+            filters.append(Enrollment.enrollment_status == enrollment_status)
+
+        base_query = select(Enrollment)
+        count_query = select(sa_func.count()).select_from(Enrollment)
+        if filters:
+            base_query = base_query.where(*filters)
+            count_query = count_query.where(*filters)
+
+        total = db.execute(count_query).scalar_one()
+        items = db.execute(
+            base_query
+            .order_by(
+                Enrollment.academic_year.desc(),
+                Enrollment.semester.desc(),
+                Enrollment.student_id.asc(),
+            )
+            .offset(skip)
+            .limit(limit)
+        ).scalars().all()
+        return {"items": items, "total": total, "skip": skip, "limit": limit}
+
+    @staticmethod
     def enroll_student(db: Session, data: EnrollmentCreate) -> Enrollment:
         """Enroll a student in a course for a given semester/year.
 

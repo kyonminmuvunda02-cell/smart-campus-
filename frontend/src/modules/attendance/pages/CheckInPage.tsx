@@ -270,17 +270,20 @@ export default function CheckInPage() {
 
       let lat = 0;
       let lng = 0;
+      let accuracy: number | null = null;
       try {
         const position = await new Promise<GeolocationPosition>((resolve, reject) =>
           navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000, enableHighAccuracy: true })
         );
         lat = position.coords.latitude;
         lng = position.coords.longitude;
+        accuracy = position.coords.accuracy ?? null;
         setGpsCoords(`${lat.toFixed(4)}, ${lng.toFixed(4)}`);
         setGpsState('verified');
       } catch {
         setGpsState('unavailable');
         setGpsCoords('Location unavailable');
+        throw new Error('Location permission is required to confirm attendance in the classroom.');
       }
 
       await checkin.mutateAsync({
@@ -290,7 +293,7 @@ export default function CheckInPage() {
           device_id: deviceId,
           gps_latitude: lat,
           gps_longitude: lng,
-          gps_accuracy: null,
+          gps_accuracy: accuracy,
         },
       });
 

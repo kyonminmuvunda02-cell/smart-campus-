@@ -6,6 +6,7 @@ from app.modules.auth.dependencies import require_role, get_current_user
 from app.modules.attendance.services.checkin_service import CheckInService
 from app.modules.attendance.schemas.attendance import (
     AttendanceCheckIn, AttendanceRecordResponse, AttendanceRecordList,
+    AttendanceRecordReviewUpdate, AttendanceReviewRecordList,
 )
 
 router = APIRouter(prefix="/attendance/records", tags=["attendance-records"])
@@ -70,3 +71,54 @@ def list_student_records(
         from fastapi import HTTPException
         raise HTTPException(status_code=403, detail="Students can only view their own records")
     return CheckInService.list_records_for_student(db, student_id, skip, limit)
+
+
+@router.get(
+    "/review-queue",
+    response_model=AttendanceReviewRecordList,
+    name="list_attendance_review_queue",
+    operation_id="listAttendanceReviewQueue",
+    dependencies=[Depends(require_role("Lecturer", "Admin"))],
+)
+def list_attendance_review_queue(
+    verification_status: str | None = None,
+    session_id: int | None = None,
+    skip: int = 0,
+    limit: int = 50,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    return CheckInService.list_review_queue(
+        db,
+        reviewer_role=current_user["role"],
+        reviewer_user_id=current_user["user_id"],
+        verification_status=verification_status,
+        session_id=session_id,
+        skip=skip,
+        limit=limit,
+    )
+
+
+@router.patch(
+    "/{attendance_id}/review",
+    response_model=AttendanceRecordResponse,
+    name="review_attendance_record",
+    operation_id="reviewAttendanceRecord",
+    dependencies=[Depends(require_role("Lecturer", "Admin"))],
+)
+def review_attendance_record(
+    attendance_id: int,
+    data: AttendanceRecordReviewUpdate,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    record = CheckInService.review_record(
+        db,
+        attendance_id,
+        data,
+        reviewer_role=current_user["role"],
+        reviewer_user_id=current_user["user_id"],
+    )
+    db.commit()
+    db.refresh(record)
+    return record

@@ -35,15 +35,21 @@ export default function SessionListPage() {
       ) : (
         <Card className="border-0 shadow-sm">
           <Table responsive hover className="table-vcenter card-table mb-0">
-            <thead><tr><th>Session</th><th>Course</th><th>Venue</th><th>Status</th><th>Date</th><th className="text-end">Actions</th></tr></thead>
+            <thead><tr><th>Session</th><th>Course</th><th>Venue</th><th>Timetable</th><th>Status</th><th>Date</th><th className="text-end">Actions</th></tr></thead>
             <tbody>
               {sessions.map((s: Record<string, unknown>) => {
                 const state = getSessionState(s);
                 return (
                   <tr key={s.session_id as number}>
-                    <td className="fw-semibold">#{s.session_id as number}</td>
+                    <td>
+                      <div className="entity-copy">
+                        <strong>#{s.session_id as number}</strong>
+                        <span>{String(s.session_type ?? 'Lecture')}</span>
+                      </div>
+                    </td>
                     <td className="text-secondary">Course #{s.course_id as number}</td>
                     <td className="text-secondary">Venue #{s.venue_id as number}</td>
+                    <td className="text-secondary small">{String(s.timetable_slot ?? 'Ad hoc session')}</td>
                     <td>
                       <span className={`status-pill ${state.tone}`}>
                         <i className={`ti ti-${state.label === 'Live' ? 'broadcast' : state.label === 'Scheduled' ? 'calendar-event' : 'lock'}`} />

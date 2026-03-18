@@ -12,6 +12,20 @@ logger = logging.getLogger(__name__)
 class VenueService:
 
     @staticmethod
+    def has_geofence(venue: Venue) -> bool:
+        return all(
+            value is not None
+            for value in (venue.latitude, venue.longitude, venue.radius_meters)
+        )
+
+    @staticmethod
+    def require_geofence(venue: Venue) -> None:
+        if not VenueService.has_geofence(venue):
+            raise ConflictException(
+                "Venue geofence is incomplete. Configure latitude, longitude, and radius before using it for attendance."
+            )
+
+    @staticmethod
     def create_venue(db: Session, data: VenueCreate) -> Venue:
         """Create a new venue. Raises 409 if venue_name already exists."""
         existing = db.execute(

@@ -12,6 +12,36 @@ from app.modules.enrollment.schemas.enrollment import (
 router = APIRouter(prefix="/enrollments", tags=["enrollments"])
 
 
+@router.get(
+    "/",
+    response_model=EnrollmentList,
+    name="list_enrollments",
+    operation_id="listEnrollments",
+    dependencies=[Depends(require_role("Admin"))],
+)
+def list_enrollments(
+    student_id: int | None = None,
+    course_id: int | None = None,
+    semester: str | None = None,
+    academic_year: str | None = None,
+    enrollment_status: str | None = None,
+    skip: int = 0,
+    limit: int = 50,
+    db: Session = Depends(get_db),
+):
+    """Admin: browse enrollments across students, courses, and academic periods."""
+    return EnrollmentService.list_enrollments(
+        db,
+        student_id=student_id,
+        course_id=course_id,
+        semester=semester,
+        academic_year=academic_year,
+        enrollment_status=enrollment_status,
+        skip=skip,
+        limit=limit,
+    )
+
+
 @router.post(
     "/",
     response_model=EnrollmentResponse,

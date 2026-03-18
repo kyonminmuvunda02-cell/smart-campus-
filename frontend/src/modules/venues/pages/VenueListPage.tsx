@@ -33,6 +33,7 @@ export default function VenueListPage() {
 
   const totalCapacity = venues.reduce((sum, venue) => sum + Number(venue.capacity ?? 0), 0);
   const largeVenueCount = venues.filter((venue) => getCapacityBand(Number(venue.capacity ?? 0)) === 'Large').length;
+  const geofencedVenues = venues.filter((venue) => [venue.latitude, venue.longitude, venue.radius_meters].every((value) => value !== null && value !== undefined)).length;
   const largestVenue = venues.reduce((largest, venue) => {
     const capacity = Number(venue.capacity ?? 0);
     if (!largest || capacity > largest.capacity) {
@@ -114,6 +115,10 @@ export default function VenueListPage() {
                 <label>Large venues</label>
                 <strong>{largeVenueCount}</strong>
               </div>
+              <div className="session-stat">
+                <label>Geofenced</label>
+                <strong>{geofencedVenues}</strong>
+              </div>
             </div>
             <div className="callout-panel teal" style={{ marginTop: '0.9rem' }}>
               <i className="ti ti-building-bank" style={{ color: 'var(--teal)' }} />
@@ -158,18 +163,20 @@ export default function VenueListPage() {
             <div className="table-shell">
               <table className="table table-hover align-middle mb-0">
                 <thead>
-                  <tr>
-                    <th>Venue</th>
-                    <th>Building</th>
-                    <th>Capacity</th>
-                    <th>Scale</th>
-                    <th className="text-end">Actions</th>
-                  </tr>
+                    <tr>
+                      <th>Venue</th>
+                      <th>Building</th>
+                      <th>Capacity</th>
+                      <th>Geofence</th>
+                      <th>Scale</th>
+                      <th className="text-end">Actions</th>
+                    </tr>
                 </thead>
                 <tbody>
                   {filteredVenues.map((venue) => {
                     const capacity = Number(venue.capacity ?? 0);
                     const band = getCapacityBand(capacity);
+                    const geofenceReady = [venue.latitude, venue.longitude, venue.radius_meters].every((value) => value !== null && value !== undefined);
                     return (
                       <tr key={venue.venue_id as number}>
                         <td>
@@ -180,6 +187,12 @@ export default function VenueListPage() {
                         </td>
                         <td className="text-secondary">{String(venue.building ?? '-')}</td>
                         <td className="mono">{capacity || '-'}</td>
+                        <td>
+                          <span className={`status-pill ${geofenceReady ? 'green' : 'amber'}`}>
+                            <i className={`ti ti-${geofenceReady ? 'map-pin-check' : 'map-pin-question'}`} />
+                            {geofenceReady ? 'Ready' : 'Missing'}
+                          </span>
+                        </td>
                         <td>
                           <span className={`status-pill ${band === 'Large' ? 'amber' : band === 'Medium' ? 'teal' : 'royal'}`}>
                             <i className={`ti ti-${band === 'Large' ? 'arrows-maximize' : band === 'Medium' ? 'layout-grid' : 'square-rounded'}`} />

@@ -9,10 +9,20 @@ from datetime import datetime
 class AttendanceSessionBase(BaseModel):
     course_id: int
     venue_id: int
+    session_type: str = Field("Lecture", json_schema_extra={"example": "Lecture"})
+    timetable_slot: str | None = Field(None, max_length=100, json_schema_extra={"example": "Mon 08:00-10:00"})
     semester: str = Field(..., json_schema_extra={"example": "Semester 1"})
     academic_year: str = Field(..., json_schema_extra={"example": "2025/2026"})
     session_start: datetime
     session_end: datetime
+
+    @field_validator("session_type")
+    @classmethod
+    def validate_session_type(cls, v: str) -> str:
+        allowed = {"Lecture", "Tutorial", "Lab", "Seminar", "Exam", "Other"}
+        if v not in allowed:
+            raise ValueError(f"session_type must be one of: {allowed}")
+        return v
 
     @field_validator("semester")
     @classmethod
@@ -46,6 +56,18 @@ class AttendanceSessionCreate(AttendanceSessionBase):
 class AttendanceSessionUpdate(BaseModel):
     session_end: datetime | None = None
     is_active: bool | None = None
+    session_type: str | None = None
+    timetable_slot: str | None = Field(None, max_length=100)
+
+    @field_validator("session_type")
+    @classmethod
+    def validate_session_type(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        allowed = {"Lecture", "Tutorial", "Lab", "Seminar", "Exam", "Other"}
+        if v not in allowed:
+            raise ValueError(f"session_type must be one of: {allowed}")
+        return v
 
 
 class AttendanceSessionResponse(AttendanceSessionBase):
@@ -102,10 +124,42 @@ class AttendanceRecordResponse(BaseModel):
     verification_status: str
     fraud_flag: bool
     checked_in_at: datetime
+    reviewed_by: int | None = None
+    reviewed_at: datetime | None = None
+    review_note: str | None = None
 
 
 class AttendanceRecordList(BaseModel):
     items: list[AttendanceRecordResponse]
+    total: int
+    skip: int
+    limit: int
+
+
+class AttendanceRecordReviewUpdate(BaseModel):
+    verification_status: str = Field(..., json_schema_extra={"example": "Verified"})
+    review_note: str | None = Field(None, max_length=255)
+
+    @field_validator("verification_status")
+    @classmethod
+    def validate_review_status(cls, value: str) -> str:
+        allowed = {"Verified", "Pending", "Rejected"}
+        if value not in allowed:
+            raise ValueError(f"verification_status must be one of: {allowed}")
+        return value
+
+
+class AttendanceReviewRecordResponse(AttendanceRecordResponse):
+    course_id: int
+    venue_id: int
+    lecturer_id: int
+    session_start: datetime
+    session_end: datetime
+    session_type: str
+
+
+class AttendanceReviewRecordList(BaseModel):
+    items: list[AttendanceReviewRecordResponse]
     total: int
     skip: int
     limit: int

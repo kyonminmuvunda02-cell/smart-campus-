@@ -34,6 +34,8 @@ export default function SessionFormPage() {
     try {
       const courseId = Number(formData.get('course_id'));
       const venueId = Number(formData.get('venue_id'));
+      const sessionType = String(formData.get('session_type') || 'Lecture');
+      const timetableSlot = String(formData.get('timetable_slot') || '').trim() || null;
       const semester = String(formData.get('semester'));
       const academicYear = String(formData.get('academic_year'));
       const sessionStart = new Date(String(formData.get('session_start')));
@@ -43,6 +45,8 @@ export default function SessionFormPage() {
         body: {
           course_id: courseId,
           venue_id: venueId,
+          session_type: sessionType,
+          timetable_slot: timetableSlot,
           semester,
           academic_year: academicYear,
           session_start: sessionStart,
@@ -110,7 +114,8 @@ export default function SessionFormPage() {
                       <option value="">Select a venue...</option>
                       {venues.map((v) => (
                         <option key={v.venue_id as number} value={v.venue_id as number}>
-                          {v.venue_name as string} {(v.building as string) ? `(${v.building as string})` : ''}
+                          {v.venue_name as string} {(v.building as string) ? `(${v.building as string})` : ''}{' '}
+                          {[v.latitude, v.longitude, v.radius_meters].every((value) => value !== null && value !== undefined) ? '' : '(needs geofence)'}
                         </option>
                       ))}
                     </Form.Select>
@@ -118,6 +123,19 @@ export default function SessionFormPage() {
                 </Form.Group>
 
                 <Row className="g-3 mb-3">
+                  <Col sm={6}>
+                    <Form.Group>
+                      <Form.Label className="small fw-semibold">Session type</Form.Label>
+                      <Form.Select name="session_type" defaultValue="Lecture" required className="py-2">
+                        <option value="Lecture">Lecture</option>
+                        <option value="Tutorial">Tutorial</option>
+                        <option value="Lab">Lab</option>
+                        <option value="Seminar">Seminar</option>
+                        <option value="Exam">Exam</option>
+                        <option value="Other">Other</option>
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
                   <Col sm={6}>
                     <Form.Group>
                       <Form.Label className="small fw-semibold">Semester</Form.Label>
@@ -139,6 +157,15 @@ export default function SessionFormPage() {
                     </Form.Group>
                   </Col>
                 </Row>
+
+                <Form.Group className="mb-3">
+                  <Form.Label className="small fw-semibold">Timetable slot</Form.Label>
+                  <Form.Control
+                    name="timetable_slot"
+                    placeholder="e.g. Mon 08:00-10:00"
+                    className="py-2"
+                  />
+                </Form.Group>
 
                 <Row className="g-3 mb-4">
                   <Col sm={6}>
@@ -168,7 +195,7 @@ export default function SessionFormPage() {
                 </Row>
 
                 <div className="login-hint mb-4">
-                  Scheduling a session does not open attendance immediately. The lecturer still starts the live check-in window when the class actually begins.
+                  Scheduling a session does not open attendance immediately. The lecturer still starts the live check-in window when the class actually begins, and only geofenced venues can be scheduled.
                 </div>
 
                 <div className="d-grid">

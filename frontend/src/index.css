@@ -641,6 +641,7 @@ a {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--space-4);
+  margin-bottom: var(--space-4);
 }
 
 .metric-card {
@@ -1478,6 +1479,43 @@ a {
     color: var(--tx2);
 }
 
+.coordinate-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 0.9rem;
+}
+
+.coordinate-preview {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 0.9rem;
+}
+
+.coordinate-cell {
+  border: 1px solid var(--card-bd);
+  border-radius: var(--r-lg);
+  background: rgba(255, 255, 255, 0.8);
+  padding: 0.9rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.coordinate-cell strong {
+  font-size: 1rem;
+  color: var(--tx1);
+}
+
+.timetable-form-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.attendance-review-actions {
+  gap: 0.55rem;
+}
+
 .session-grid {
   display: grid;
   grid-template-columns: minmax(320px, 0.9fr) minmax(0, 1.1fr);
@@ -1674,6 +1712,19 @@ a {
 
   .scanner-actions .btn {
     width: 100%;
+  }
+
+  .coordinate-preview,
+  .timetable-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .attendance-review-actions {
+    width: 100%;
+  }
+
+  .attendance-review-actions .btn {
+    flex: 1 1 100%;
   }
 
   .detail-row {

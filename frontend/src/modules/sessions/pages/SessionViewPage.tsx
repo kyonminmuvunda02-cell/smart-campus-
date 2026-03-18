@@ -47,6 +47,8 @@ export default function SessionViewPage() {
   const sessionMeta = {
     courseId: sessionRecord?.course_id as number | undefined,
     venueId: sessionRecord?.venue_id as number | undefined,
+    sessionType: sessionRecord?.session_type as string | undefined,
+    timetableSlot: sessionRecord?.timetable_slot as string | undefined,
     semester: sessionRecord?.semester as string | undefined,
     academicYear: sessionRecord?.academic_year as string | undefined,
   };
@@ -216,7 +218,7 @@ export default function SessionViewPage() {
               <div className="timeline-row">
                 <div className="timeline-pin"><i className="ti ti-book" /></div>
                 <div className="timeline-text">
-                  <strong>Course #{sessionMeta.courseId ?? '-'}</strong>
+                  <strong>{sessionMeta.sessionType ?? 'Lecture'} for course #{sessionMeta.courseId ?? '-'}</strong>
                   <span>{sessionMeta.semester ?? '-'} / {sessionMeta.academicYear ?? '-'}</span>
                 </div>
               </div>
@@ -224,7 +226,7 @@ export default function SessionViewPage() {
                 <div className="timeline-pin"><i className="ti ti-building" /></div>
                 <div className="timeline-text">
                   <strong>Venue #{sessionMeta.venueId ?? '-'}</strong>
-                  <span>Attendance is accepted only while the live session remains active.</span>
+                  <span>{sessionMeta.timetableSlot ?? 'No timetable slot captured'}.</span>
                 </div>
               </div>
               <div className="timeline-row">
