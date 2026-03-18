@@ -87,6 +87,22 @@ export function useTimetable() {
     },
   });
 
+  const update = useMutation({
+    mutationFn: async ({ timetableId, body }: { timetableId: number; body: Partial<TimetableMutationPayload> & { is_active?: boolean } }) => {
+      const { data } = await client.patch<TimetableItem, unknown, true>({
+        url: '/api/v1/attendance/timetable/{timetable_id}',
+        path: { timetable_id: timetableId },
+        body,
+        throwOnError: true,
+      });
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['timetableEntries'] });
+      queryClient.invalidateQueries({ queryKey: ['listAttendanceSessions'] });
+    },
+  });
+
   const remove = useMutation({
     mutationFn: async (timetableId: number) => {
       await client.delete<unknown, unknown, true>({
@@ -115,5 +131,5 @@ export function useTimetable() {
     },
   });
 
-  return { useList, create, remove, generateSessions };
+  return { useList, create, update, remove, generateSessions };
 }

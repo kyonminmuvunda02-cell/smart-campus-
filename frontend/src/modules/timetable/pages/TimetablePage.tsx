@@ -1,5 +1,5 @@
-import { useActionState } from 'react';
-import { Button, Form, Spinner } from 'react-bootstrap';
+import { useActionState, useMemo, useState } from 'react';
+import { Alert, Button, Form, Spinner } from 'react-bootstrap';
 import PageHeader from '@/components/common/PageHeader';
 import LoadingSkeleton from '@/components/common/LoadingSkeleton';
 import EmptyState from '@/components/common/EmptyState';
@@ -8,7 +8,7 @@ import { useAuth } from '@/modules/auth/context/AuthProvider';
 import { useCourse } from '@/modules/courses/hooks/useCourse';
 import { useUser } from '@/modules/users/hooks/useUser';
 import { useVenue } from '@/modules/venues/hooks/useVenue';
-import { useTimetable } from '../hooks/useTimetable';
+import { useTimetable, type TimetableItem } from '../hooks/useTimetable';
 import { getErrorMessage } from '@/utils/errors';
 import { useToast } from '@/components/common/ToastManager';
 
@@ -23,18 +23,32 @@ function formatTimeRange(startTime: string, endTime: string) {
   return `${startTime.slice(0, 5)} - ${endTime.slice(0, 5)}`;
 }
 
+function toDateInput(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function getInitialRange() {
+  const start = new Date();
+  const end = new Date(start);
+  end.setDate(end.getDate() + 13);
+  return { start: toDateInput(start), end: toDateInput(end) };
+}
+
 export default function TimetablePage() {
   const { role } = useAuth();
   const { showToast } = useToast();
   const { useList: useCourseList } = useCourse();
   const { useList: useUserList } = useUser();
   const { useList: useVenueList } = useVenue();
-  const { useList, create, remove, generateSessions } = useTimetable();
+  const { useList, create, update, remove, generateSessions } = useTimetable();
+  const [selectedEntry, setSelectedEntry] = useState<TimetableItem | null>(null);
+  const [generationRange, setGenerationRange] = useState(getInitialRange);
+  const [generationSummary, setGenerationSummary] = useState<{ created: number; skipped: number } | null>(null);
 
-  const { data, isLoading } = useList();
-  const { data: courseData } = useCourseList();
-  const { data: userData } = useUserList();
-  const { data: venueData } = useVenueList();
+  const { data, isLoading } = useList({ limit: 200 });
+  const { data: courseData } = useCourseList({ query: { limit: 200 } });
+  const { data: userData } = useUserList({ query: { limit: 200 } });
+  const { data: venueData } = useVenueList({ query: { limit: 200 } });
 
   const entries = data?.items ?? [];
   const courses = (courseData as { items?: Array<Record<string, unknown>> })?.items ?? [];
@@ -44,10 +58,17 @@ export default function TimetablePage() {
 
   const activeEntries = entries.filter((entry) => entry.is_active);
   const weekCoverage = new Set(activeEntries.map((entry) => entry.weekday)).size;
+  const archivedEntries = entries.filter((entry) => !entry.is_active).length;
+  const formKey = selectedEntry ? `edit-${selectedEntry.timetable_id}` : 'create';
 
-  async function handleCreate(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const schedulePressure = useMemo(
+    () => activeEntries.reduce((acc, entry) => acc + (entry.weekday === 'Friday' ? 1 : 0), 0),
+    [activeEntries],
+  );
+
+  async function handleCreateOrUpdate(_prev: ActionState, formData: FormData): Promise<ActionState> {
     try {
-      await create.mutateAsync({
+      const payload = {
         course_id: Number(formData.get('course_id')),
         lecturer_id: Number(formData.get('lecturer_id')),
         venue_id: Number(formData.get('venue_id')),
@@ -59,29 +80,41 @@ export default function TimetablePage() {
         academic_year: String(formData.get('academic_year')),
         effective_start_date: String(formData.get('effective_start_date') || '').trim() || null,
         effective_end_date: String(formData.get('effective_end_date') || '').trim() || null,
-      });
-      showToast('success', 'Timetable updated', 'The recurring teaching slot is now available for session generation.');
+      };
+
+      if (selectedEntry) {
+        await update.mutateAsync({
+          timetableId: selectedEntry.timetable_id,
+          body: payload,
+        });
+        showToast('success', 'Timetable updated', 'The recurring teaching slot has been refreshed.');
+        setSelectedEntry(null);
+      } else {
+        await create.mutateAsync(payload);
+        showToast('success', 'Timetable updated', 'The recurring teaching slot is now available for session generation.');
+      }
       return { error: null };
     } catch (error) {
       return { error: getErrorMessage(error) };
     }
   }
 
-  const [createState, createAction, createPending] = useActionState(handleCreate, { error: null });
+  const [createState, createAction, createPending] = useActionState(handleCreateOrUpdate, { error: null });
 
   async function handleGenerate() {
-    const today = new Date();
-    const end = new Date(today);
-    end.setDate(end.getDate() + 13);
     try {
       const result = await generateSessions.mutateAsync({
-        start_date: today.toISOString().slice(0, 10),
-        end_date: end.toISOString().slice(0, 10),
+        start_date: generationRange.start,
+        end_date: generationRange.end,
+      });
+      setGenerationSummary({
+        created: result.created_session_ids.length,
+        skipped: result.skipped_dates.length,
       });
       showToast(
         'success',
         'Sessions generated',
-        `${result.created_session_ids.length} scheduled session${result.created_session_ids.length === 1 ? '' : 's'} created for the next two weeks.`,
+        `${result.created_session_ids.length} scheduled session${result.created_session_ids.length === 1 ? '' : 's'} created in the selected range.`,
       );
     } catch (error) {
       showToast('danger', 'Generation failed', getErrorMessage(error));
@@ -91,10 +124,17 @@ export default function TimetablePage() {
   async function handleArchive(timetableId: number) {
     try {
       await remove.mutateAsync(timetableId);
+      if (selectedEntry?.timetable_id === timetableId) {
+        setSelectedEntry(null);
+      }
       showToast('success', 'Timetable archived', 'The recurring slot has been retired.');
     } catch (error) {
       showToast('danger', 'Archive failed', getErrorMessage(error));
     }
+  }
+
+  if (isLoading) {
+    return <LoadingSkeleton rows={8} columns={6} />;
   }
 
   return (
@@ -102,13 +142,13 @@ export default function TimetablePage() {
       <PageHeader
         eyebrow="Teaching operations"
         title="Recurring timetable"
-        subtitle="Define repeatable teaching slots, then generate scheduled attendance sessions before the week starts."
+        subtitle="Define repeatable teaching slots, generate scheduled sessions in batches, and keep the timetable aligned with reality."
         icon="calendar-time"
         tone="teal"
       >
         <Button variant="primary" onClick={() => void handleGenerate()} disabled={generateSessions.isPending}>
           {generateSessions.isPending ? <Spinner animation="border" size="sm" /> : <i className="ti ti-calendar-plus" />}
-          Generate 14 days
+          Generate sessions
         </Button>
       </PageHeader>
 
@@ -131,10 +171,53 @@ export default function TimetablePage() {
                 <strong>{weekCoverage}</strong>
               </div>
               <div className="session-stat">
-                <label>Generated range</label>
-                <strong>14 days</strong>
+                <label>Archived slots</label>
+                <strong>{archivedEntries}</strong>
               </div>
             </div>
+            <div className="callout-panel teal" style={{ marginTop: '0.9rem' }}>
+              <i className="ti ti-calendar-stats" style={{ color: 'var(--teal)' }} />
+              <div>
+                <div className="callout-title">Friday load</div>
+                <div className="callout-copy">
+                  {schedulePressure} active recurring slot{schedulePressure === 1 ? '' : 's'} currently land on Friday.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="surface-card section-card">
+            <div className="section-title">
+              <div>
+                <h3>Generation range</h3>
+                <div className="section-subtle">Choose the date window used to create scheduled attendance sessions from the timetable.</div>
+              </div>
+            </div>
+            <div className="session-stat-row timetable-form-grid">
+              <div className="field-shell">
+                <Form.Label className="field-label">Start date</Form.Label>
+                <Form.Control
+                  type="date"
+                  value={generationRange.start}
+                  onChange={(event) => setGenerationRange((current) => ({ ...current, start: event.target.value }))}
+                />
+              </div>
+              <div className="field-shell">
+                <Form.Label className="field-label">End date</Form.Label>
+                <Form.Control
+                  type="date"
+                  value={generationRange.end}
+                  onChange={(event) => setGenerationRange((current) => ({ ...current, end: event.target.value }))}
+                />
+              </div>
+            </div>
+
+            {generationSummary ? (
+              <Alert variant="info" className="mb-0">
+                <i className="ti ti-info-circle me-2" />
+                Created {generationSummary.created} session{generationSummary.created === 1 ? '' : 's'} and skipped {generationSummary.skipped} already-existing slot{generationSummary.skipped === 1 ? '' : 's'} in the last run.
+              </Alert>
+            ) : null}
           </div>
 
           <div className="callout-panel teal">
@@ -151,17 +234,22 @@ export default function TimetablePage() {
             <div className="surface-card section-card">
               <div className="section-title">
                 <div>
-                  <h3>Create recurring slot</h3>
+                  <h3>{selectedEntry ? `Edit recurring slot #${selectedEntry.timetable_id}` : 'Create recurring slot'}</h3>
                   <div className="section-subtle">Only lecturers assigned to the course and venues with geofences are valid timetable targets.</div>
                 </div>
+                {selectedEntry ? (
+                  <Button variant="outline-secondary" onClick={() => setSelectedEntry(null)}>
+                    <i className="ti ti-x" />Cancel edit
+                  </Button>
+                ) : null}
               </div>
 
               <ErrorAlert error={createState.error} dismissible />
 
-              <Form action={createAction}>
+              <Form key={formKey} action={createAction}>
                 <div className="field-shell">
                   <Form.Label className="field-label">Course</Form.Label>
-                  <Form.Select name="course_id" required>
+                  <Form.Select name="course_id" required defaultValue={selectedEntry?.course_id ?? ''}>
                     <option value="">Select course</option>
                     {courses.map((course) => (
                       <option key={Number(course.course_id)} value={Number(course.course_id)}>
@@ -173,7 +261,7 @@ export default function TimetablePage() {
 
                 <div className="field-shell">
                   <Form.Label className="field-label">Lecturer</Form.Label>
-                  <Form.Select name="lecturer_id" required>
+                  <Form.Select name="lecturer_id" required defaultValue={selectedEntry?.lecturer_id ?? ''}>
                     <option value="">Select lecturer</option>
                     {lecturers.map((lecturer) => (
                       <option key={Number(lecturer.user_id)} value={Number(lecturer.user_id)}>
@@ -185,7 +273,7 @@ export default function TimetablePage() {
 
                 <div className="field-shell">
                   <Form.Label className="field-label">Venue</Form.Label>
-                  <Form.Select name="venue_id" required>
+                  <Form.Select name="venue_id" required defaultValue={selectedEntry?.venue_id ?? ''}>
                     <option value="">Select venue</option>
                     {venues.map((venue) => {
                       const ready = [venue.latitude, venue.longitude, venue.radius_meters].every((value) => value !== null && value !== undefined);
@@ -201,13 +289,13 @@ export default function TimetablePage() {
                 <div className="session-stat-row timetable-form-grid">
                   <div className="field-shell">
                     <Form.Label className="field-label">Weekday</Form.Label>
-                    <Form.Select name="weekday" defaultValue="Monday" required>
+                    <Form.Select name="weekday" defaultValue={selectedEntry?.weekday ?? 'Monday'} required>
                       {WEEKDAYS.map((weekday) => <option key={weekday} value={weekday}>{weekday}</option>)}
                     </Form.Select>
                   </div>
                   <div className="field-shell">
                     <Form.Label className="field-label">Session type</Form.Label>
-                    <Form.Select name="session_type" defaultValue="Lecture" required>
+                    <Form.Select name="session_type" defaultValue={selectedEntry?.session_type ?? 'Lecture'} required>
                       {SESSION_TYPES.map((sessionType) => <option key={sessionType} value={sessionType}>{sessionType}</option>)}
                     </Form.Select>
                   </div>
@@ -216,43 +304,43 @@ export default function TimetablePage() {
                 <div className="session-stat-row timetable-form-grid">
                   <div className="field-shell">
                     <Form.Label className="field-label">Start time</Form.Label>
-                    <Form.Control type="time" name="start_time" required />
+                    <Form.Control type="time" name="start_time" required defaultValue={selectedEntry?.start_time?.slice(0, 5) ?? ''} />
                   </div>
                   <div className="field-shell">
                     <Form.Label className="field-label">End time</Form.Label>
-                    <Form.Control type="time" name="end_time" required />
+                    <Form.Control type="time" name="end_time" required defaultValue={selectedEntry?.end_time?.slice(0, 5) ?? ''} />
                   </div>
                 </div>
 
                 <div className="session-stat-row timetable-form-grid">
                   <div className="field-shell">
                     <Form.Label className="field-label">Semester</Form.Label>
-                    <Form.Select name="semester" defaultValue="Semester 1" required>
+                    <Form.Select name="semester" defaultValue={selectedEntry?.semester ?? 'Semester 1'} required>
                       <option value="Semester 1">Semester 1</option>
                       <option value="Semester 2">Semester 2</option>
                     </Form.Select>
                   </div>
                   <div className="field-shell">
                     <Form.Label className="field-label">Academic year</Form.Label>
-                    <Form.Control name="academic_year" defaultValue="2025/2026" required />
+                    <Form.Control name="academic_year" defaultValue={selectedEntry?.academic_year ?? '2025/2026'} required />
                   </div>
                 </div>
 
                 <div className="session-stat-row timetable-form-grid">
                   <div className="field-shell">
                     <Form.Label className="field-label">Effective from</Form.Label>
-                    <Form.Control type="date" name="effective_start_date" />
+                    <Form.Control type="date" name="effective_start_date" defaultValue={selectedEntry?.effective_start_date ?? ''} />
                   </div>
                   <div className="field-shell">
                     <Form.Label className="field-label">Effective to</Form.Label>
-                    <Form.Control type="date" name="effective_end_date" />
+                    <Form.Control type="date" name="effective_end_date" defaultValue={selectedEntry?.effective_end_date ?? ''} />
                   </div>
                 </div>
 
                 <div className="ph-actions attendance-review-actions" style={{ marginTop: '1rem' }}>
                   <Button type="submit" variant="primary" disabled={createPending}>
-                    {createPending ? <Spinner animation="border" size="sm" /> : <i className="ti ti-plus" />}
-                    Save slot
+                    {createPending ? <Spinner animation="border" size="sm" /> : <i className={`ti ti-${selectedEntry ? 'device-floppy' : 'plus'}`} />}
+                    {selectedEntry ? 'Save changes' : 'Save slot'}
                   </Button>
                 </div>
               </Form>
@@ -269,9 +357,7 @@ export default function TimetablePage() {
             <span className="status-pill teal"><i className="ti ti-calendar-event" />{entries.length} slots</span>
           </div>
 
-          {isLoading ? (
-            <LoadingSkeleton rows={8} columns={6} />
-          ) : entries.length === 0 ? (
+          {entries.length === 0 ? (
             <EmptyState icon="ti-calendar-off" title="No timetable slots" message="Create recurring classes before generating scheduled attendance sessions." />
           ) : (
             <div className="table-shell">
@@ -280,8 +366,8 @@ export default function TimetablePage() {
                   <tr>
                     <th>When</th>
                     <th>Academic context</th>
+                    <th>Lifecycle</th>
                     <th>Ownership</th>
-                    <th>Status</th>
                     {role === 'Admin' ? <th className="text-end">Actions</th> : null}
                   </tr>
                 </thead>
@@ -297,21 +383,23 @@ export default function TimetablePage() {
                       <td>
                         <div className="entity-copy">
                           <strong>{entry.session_type}</strong>
-                          <span>Course #{entry.course_id} · {entry.semester} · {entry.academic_year}</span>
+                          <span>Course #{entry.course_id} - {entry.semester} - {entry.academic_year}</span>
                         </div>
                       </td>
                       <td className="text-secondary small">
-                        Lecturer #{entry.lecturer_id} · Venue #{entry.venue_id}
+                        {entry.effective_start_date || entry.effective_end_date
+                          ? `${entry.effective_start_date ?? 'Start now'} -> ${entry.effective_end_date ?? 'Open-ended'}`
+                          : 'Open-ended recurring slot'}
                       </td>
-                      <td>
-                        <span className={`status-pill ${entry.is_active ? 'green' : 'amber'}`}>
-                          <i className={`ti ti-${entry.is_active ? 'calendar-check' : 'calendar-off'}`} />
-                          {entry.is_active ? 'Active' : 'Archived'}
-                        </span>
+                      <td className="text-secondary small">
+                        Lecturer #{entry.lecturer_id} - Venue #{entry.venue_id}
                       </td>
                       {role === 'Admin' ? (
                         <td className="text-end">
                           <div className="table-actions">
+                            <Button variant="outline-primary" size="sm" onClick={() => setSelectedEntry(entry)} disabled={remove.isPending || update.isPending}>
+                              <i className="ti ti-edit" />Edit
+                            </Button>
                             <Button variant="outline-secondary" size="sm" onClick={() => void handleArchive(entry.timetable_id)} disabled={remove.isPending}>
                               <i className="ti ti-archive" />Archive
                             </Button>

@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Button } from 'react-bootstrap';
+import { useEffect, useState } from 'react';
+import { Alert, Button, Form } from 'react-bootstrap';
 import PageHeader from '@/components/common/PageHeader';
 import LoadingSkeleton from '@/components/common/LoadingSkeleton';
 import EmptyState from '@/components/common/EmptyState';
@@ -11,21 +11,34 @@ type ReviewFilter = 'All' | 'Pending' | 'Rejected' | 'Verified';
 
 export default function AttendanceReviewPage() {
   const [filter, setFilter] = useState<ReviewFilter>('All');
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [reviewNote, setReviewNote] = useState('');
   const { showToast } = useToast();
   const { useQueue, review } = useAttendanceReview();
   const { data, isLoading } = useQueue({
     verification_status: filter === 'All' ? undefined : filter,
+    limit: 100,
   });
 
   const items = data?.items ?? [];
   const pendingCount = items.filter((item) => item.verification_status === 'Pending').length;
   const rejectedCount = items.filter((item) => item.verification_status === 'Rejected').length;
+  const selectedItem = items.find((item) => item.attendance_id === selectedId) ?? items[0] ?? null;
 
-  async function handleDecision(attendanceId: number, verificationStatus: 'Verified' | 'Rejected' | 'Pending') {
+  useEffect(() => {
+    setSelectedId(selectedItem?.attendance_id ?? null);
+    setReviewNote(selectedItem?.review_note ?? '');
+  }, [selectedItem?.attendance_id, selectedItem?.review_note]);
+
+  async function handleDecision(verificationStatus: 'Verified' | 'Rejected' | 'Pending') {
+    if (!selectedItem) return;
     try {
       await review.mutateAsync({
-        attendanceId,
-        body: { verification_status: verificationStatus },
+        attendanceId: selectedItem.attendance_id,
+        body: {
+          verification_status: verificationStatus,
+          review_note: reviewNote.trim() || null,
+        },
       });
       showToast('success', 'Review updated', `Attendance record marked as ${verificationStatus}.`);
     } catch (error) {
@@ -38,7 +51,7 @@ export default function AttendanceReviewPage() {
       <PageHeader
         eyebrow="Teaching operations"
         title="Attendance review queue"
-        subtitle="Resolve flagged scans, weak GPS submissions, and pending attendance evidence before reporting locks in."
+        subtitle="Resolve flagged scans, capture a review note, and keep an auditable decision trail for disputed attendance."
         icon="shield-search"
         tone="purple"
       />
@@ -89,13 +102,78 @@ export default function AttendanceReviewPage() {
               </div>
             </div>
           </div>
+
+          {selectedItem ? (
+            <div className="surface-card section-card">
+              <div className="section-title">
+                <div>
+                  <h3>Review detail</h3>
+                  <div className="section-subtle">Record the decision and why the scan should be trusted or rejected.</div>
+                </div>
+              </div>
+
+              <div className="detail-list">
+                <div className="detail-row">
+                  <span className="detail-label">Student</span>
+                  <span className="detail-value">Student #{selectedItem.student_id}</span>
+                </div>
+                <div className="detail-row">
+                  <span className="detail-label">Session</span>
+                  <span className="detail-value">Session #{selectedItem.session_id} - {selectedItem.session_type}</span>
+                </div>
+                <div className="detail-row">
+                  <span className="detail-label">Scanned at</span>
+                  <span className="detail-value">{new Date(selectedItem.checked_in_at).toLocaleString()}</span>
+                </div>
+                <div className="detail-row">
+                  <span className="detail-label">GPS accuracy</span>
+                  <span className="detail-value">{selectedItem.gps_accuracy ? `${Math.round(selectedItem.gps_accuracy)} m` : 'Unavailable'}</span>
+                </div>
+                <div className="detail-row">
+                  <span className="detail-label">Current status</span>
+                  <span className="detail-value">{selectedItem.verification_status}</span>
+                </div>
+              </div>
+
+              <div className="field-shell">
+                <Form.Label className="field-label">Review note</Form.Label>
+                <Form.Control
+                  as="textarea"
+                  rows={4}
+                  value={reviewNote}
+                  onChange={(event) => setReviewNote(event.target.value)}
+                  placeholder="Record why this scan is approved, rejected, or still pending."
+                />
+              </div>
+
+              <div className="ph-actions attendance-review-actions">
+                <Button variant="outline-success" onClick={() => void handleDecision('Verified')} disabled={review.isPending}>
+                  <i className="ti ti-check" />Approve
+                </Button>
+                <Button variant="outline-danger" onClick={() => void handleDecision('Rejected')} disabled={review.isPending}>
+                  <i className="ti ti-x" />Reject
+                </Button>
+                <Button variant="outline-secondary" onClick={() => void handleDecision('Pending')} disabled={review.isPending}>
+                  <i className="ti ti-clock-hour-4" />Keep pending
+                </Button>
+              </div>
+
+              {selectedItem.reviewed_at ? (
+                <Alert variant="info" className="mb-0">
+                  <i className="ti ti-info-circle me-2" />
+                  Last reviewed {new Date(selectedItem.reviewed_at).toLocaleString()}
+                  {selectedItem.reviewed_by ? ` by user #${selectedItem.reviewed_by}` : ''}.
+                </Alert>
+              ) : null}
+            </div>
+          ) : null}
         </div>
 
         <div className="surface-card section-card">
           <div className="section-title">
             <div>
               <h3>Flagged attendance</h3>
-              <div className="section-subtle">Only scans requiring a decision remain in this queue</div>
+              <div className="section-subtle">Select a record to inspect its evidence and complete the decision</div>
             </div>
             <span className="status-pill purple"><i className="ti ti-list-details" />{items.length} records</span>
           </div>
@@ -113,12 +191,12 @@ export default function AttendanceReviewPage() {
                     <th>Context</th>
                     <th>GPS confidence</th>
                     <th>Status</th>
-                    <th className="text-end">Decision</th>
+                    <th className="text-end">Inspect</th>
                   </tr>
                 </thead>
                 <tbody>
                   {items.map((item) => (
-                    <tr key={item.attendance_id}>
+                    <tr key={item.attendance_id} className={selectedId === item.attendance_id ? 'table-primary-subtle' : ''}>
                       <td>
                         <div className="entity-copy">
                           <strong>Student #{item.student_id}</strong>
@@ -126,7 +204,7 @@ export default function AttendanceReviewPage() {
                         </div>
                       </td>
                       <td className="text-secondary small">
-                        Session #{item.session_id} · Course #{item.course_id} · Venue #{item.venue_id}
+                        Session #{item.session_id} - Course #{item.course_id} - Venue #{item.venue_id}
                       </td>
                       <td>
                         <div className="entity-copy">
@@ -141,12 +219,9 @@ export default function AttendanceReviewPage() {
                         </span>
                       </td>
                       <td className="text-end">
-                        <div className="table-actions attendance-review-actions">
-                          <Button variant="outline-success" size="sm" onClick={() => void handleDecision(item.attendance_id, 'Verified')} disabled={review.isPending}>
-                            <i className="ti ti-check" />Approve
-                          </Button>
-                          <Button variant="outline-danger" size="sm" onClick={() => void handleDecision(item.attendance_id, 'Rejected')} disabled={review.isPending}>
-                            <i className="ti ti-x" />Reject
+                        <div className="table-actions">
+                          <Button variant="outline-primary" size="sm" onClick={() => setSelectedId(item.attendance_id)}>
+                            <i className="ti ti-eye" />Inspect
                           </Button>
                         </div>
                       </td>

@@ -1,295 +1,379 @@
+import { useQuery } from '@tanstack/react-query';
 import { Button } from 'react-bootstrap';
 import { Link } from 'react-router';
+import { getActiveDigitalIdOptions } from '@/client/@tanstack/react-query.gen';
+import type { GetActiveDigitalIdData, Options } from '@/client';
+import EmptyState from '@/components/common/EmptyState';
+import LoadingSkeleton from '@/components/common/LoadingSkeleton';
 import PageHeader from '@/components/common/PageHeader';
+import { useAttendanceReview } from '@/modules/attendance/hooks/useAttendanceReview';
+import { useAttendance } from '@/modules/attendance/hooks/useAttendance';
 import { useAuth } from '@/modules/auth/context/AuthProvider';
+import { useAudit } from '@/modules/audit/hooks/useAudit';
+import { useCourse } from '@/modules/courses/hooks/useCourse';
+import { useEnrollment } from '@/modules/enrollment/hooks/useEnrollment';
+import { useSession } from '@/modules/sessions/hooks/useSession';
+import { useTimetable } from '@/modules/timetable/hooks/useTimetable';
+import { useUser } from '@/modules/users/hooks/useUser';
+import { useVenue } from '@/modules/venues/hooks/useVenue';
 
-export default function DashboardPage() {
-  const { role } = useAuth();
+type EntityRecord = Record<string, unknown>;
 
-  if (role === 'Student') {
-    return (
-      <div>
-        <PageHeader
-          eyebrow="Student workspace"
-          title="Attendance at a glance"
-          subtitle="Track live attendance status, on-campus verification, and upcoming classes from one surface."
-          icon="layout-dashboard"
-          tone="royal"
-        >
-          <Link to="/checkin"><Button variant="primary"><i className="ti ti-qrcode" />Scan QR</Button></Link>
-          <Link to="/my-attendance"><Button variant="outline-secondary"><i className="ti ti-calendar-check" />History</Button></Link>
-        </PageHeader>
+function formatDateTime(value: unknown) {
+  if (!value) return 'No timestamp';
+  return new Date(String(value)).toLocaleString();
+}
 
-        <div className="stat-grid">
-          <div className="metric-card royal">
-            <div className="metric-head">
-              <div className="metric-icon royal"><i className="ti ti-chart-bar" /></div>
-              <span className="status-pill royal">Stable</span>
-            </div>
-            <div className="metric-value">92%</div>
-            <div className="metric-label">Attendance rate</div>
-            <div className="metric-meta">Above the exam eligibility threshold</div>
-          </div>
-          <div className="metric-card green">
-            <div className="metric-head">
-              <div className="metric-icon green"><i className="ti ti-circle-check" /></div>
-              <span className="status-pill green">24 records</span>
-            </div>
-            <div className="metric-value">18</div>
-            <div className="metric-label">Verified check-ins</div>
-            <div className="metric-meta">No unresolved verification disputes</div>
-          </div>
-          <div className="metric-card amber">
-            <div className="metric-head">
-              <div className="metric-icon amber"><i className="ti ti-alert-triangle" /></div>
-              <span className="status-pill amber">Needs review</span>
-            </div>
-            <div className="metric-value">01</div>
-            <div className="metric-label">Flagged record</div>
-            <div className="metric-meta">One low-confidence scan is awaiting lecturer review</div>
-          </div>
-          <div className="metric-card teal">
-            <div className="metric-head">
-              <div className="metric-icon teal"><i className="ti ti-book" /></div>
-              <span className="status-pill teal">This term</span>
-            </div>
-            <div className="metric-value">06</div>
-            <div className="metric-label">Active modules</div>
-            <div className="metric-meta">Your weekly attendance coverage is healthy</div>
-          </div>
-        </div>
+function formatDate(value: unknown) {
+  if (!value) return 'Not set';
+  return new Date(String(value)).toLocaleDateString();
+}
 
-        <div className="dashboard-grid">
-          <div className="stack">
-            <div className="surface-card section-card">
-              <div className="section-title">
-                <div>
-                  <h3>Attendance snapshot</h3>
-                  <div className="section-subtle">Recent module performance and compliance trend</div>
-                </div>
-                <span className="status-pill green"><i className="ti ti-trending-up" />Healthy trend</span>
+function MetricCard({
+  tone,
+  icon,
+  pill,
+  value,
+  label,
+  meta,
+}: {
+  tone: 'royal' | 'green' | 'amber' | 'teal' | 'purple';
+  icon: string;
+  pill: string;
+  value: string | number;
+  label: string;
+  meta: string;
+}) {
+  return (
+    <div className={`metric-card ${tone}`}>
+      <div className="metric-head">
+        <div className={`metric-icon ${tone}`}><i className={`ti ti-${icon}`} /></div>
+        <span className={`status-pill ${tone}`}>{pill}</span>
+      </div>
+      <div className="metric-value">{value}</div>
+      <div className="metric-label">{label}</div>
+      <div className="metric-meta">{meta}</div>
+    </div>
+  );
+}
+
+function StudentDashboard({ userId }: { userId: number }) {
+  const { useStudentRecords } = useAttendance();
+  const { useStudentEnrollments } = useEnrollment();
+  const { data: recordsData, isLoading: recordsLoading } = useStudentRecords(userId);
+  const { data: enrollmentsData, isLoading: enrollmentsLoading } = useStudentEnrollments(userId);
+  const { data: digitalId, isLoading: digitalIdLoading } = useQuery({
+    ...getActiveDigitalIdOptions({ path: { student_id: userId } } as Options<GetActiveDigitalIdData>),
+    enabled: !!userId,
+  });
+
+  const records = (recordsData as { items?: Array<EntityRecord> } | undefined)?.items ?? [];
+  const enrollments = (enrollmentsData as { items?: Array<EntityRecord> } | undefined)?.items ?? [];
+  const verifiedRecords = records.filter((record) => !Boolean(record.fraud_flag) && String(record.verification_status ?? '') === 'Verified');
+  const flaggedRecords = records.filter((record) => Boolean(record.fraud_flag) || String(record.verification_status ?? '') !== 'Verified');
+  const enrolledCourses = enrollments.filter((enrollment) => String(enrollment.enrollment_status ?? '') === 'Enrolled');
+  const recordCoverage = records.length ? `${Math.round((verifiedRecords.length / records.length) * 100)}%` : '0%';
+  const latestRecords = [...records].sort((a, b) => {
+    const aTime = new Date(String(a.checked_in_at ?? 0)).getTime();
+    const bTime = new Date(String(b.checked_in_at ?? 0)).getTime();
+    return bTime - aTime;
+  }).slice(0, 4);
+
+  if (recordsLoading || enrollmentsLoading || digitalIdLoading) {
+    return <LoadingSkeleton rows={8} columns={4} />;
+  }
+
+  return (
+    <div>
+      <PageHeader
+        eyebrow="Student workspace"
+        title="Attendance at a glance"
+        subtitle="Track verified check-ins, digital identity status, and active course registrations from one surface."
+        icon="layout-dashboard"
+        tone="royal"
+      >
+        <Link to="/checkin"><Button variant="primary"><i className="ti ti-qrcode" />Scan QR</Button></Link>
+        <Link to="/my-attendance"><Button variant="outline-secondary"><i className="ti ti-calendar-check" />History</Button></Link>
+      </PageHeader>
+
+      <div className="stat-grid">
+        <MetricCard tone="royal" icon="clipboard-check" pill="Attendance" value={records.length} label="Attendance records" meta="Every successful classroom submission stored against your identity." />
+        <MetricCard tone="green" icon="circle-check" pill={recordCoverage} value={verifiedRecords.length} label="Verified check-ins" meta="Records that cleared geofence, QR, and device trust checks." />
+        <MetricCard tone="amber" icon="alert-triangle" pill={flaggedRecords.length ? 'Needs review' : 'Clear'} value={flaggedRecords.length} label="Flagged records" meta="Pending or low-confidence scans that still need a lecturer decision." />
+        <MetricCard tone="teal" icon="books" pill="Academic load" value={enrolledCourses.length} label="Active enrollments" meta="Courses where you are currently enrolled for attendance tracking." />
+      </div>
+
+      <div className="dashboard-grid">
+        <div className="stack">
+          <div className="surface-card section-card">
+            <div className="section-title">
+              <div>
+                <h3>Recent attendance evidence</h3>
+                <div className="section-subtle">Latest recorded check-ins tied to your student account</div>
               </div>
+              <span className="status-pill green"><i className="ti ti-history" />Live history</span>
+            </div>
+
+            {latestRecords.length === 0 ? (
+              <EmptyState icon="ti-calendar-off" title="No attendance records yet" message="Once you scan a live classroom QR, the result will appear here immediately." />
+            ) : (
               <div className="table-shell">
                 <table className="table table-hover align-middle mb-0">
                   <thead>
                     <tr>
-                      <th>Module</th>
-                      <th>Rate</th>
-                      <th>Latest</th>
+                      <th>Session</th>
+                      <th>Checked in</th>
                       <th>Status</th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr>
-                      <td className="fw-semibold">CS301 Web Development</td>
-                      <td className="mono">95%</td>
-                      <td className="mono">08:03</td>
-                      <td><span className="status-pill green">Present</span></td>
-                    </tr>
-                    <tr>
-                      <td className="fw-semibold">CS315 Data Security</td>
-                      <td className="mono">90%</td>
-                      <td className="mono">Tue 11:00</td>
-                      <td><span className="status-pill green">Present</span></td>
-                    </tr>
-                    <tr>
-                      <td className="fw-semibold">CS325 Networks</td>
-                      <td className="mono">78%</td>
-                      <td className="mono">Mon 14:00</td>
-                      <td><span className="status-pill amber">Watch</span></td>
-                    </tr>
+                    {latestRecords.map((record) => (
+                      <tr key={Number(record.attendance_id)}>
+                        <td className="fw-semibold">Session #{String(record.session_id ?? '-')}</td>
+                        <td className="text-secondary small">{formatDateTime(record.checked_in_at)}</td>
+                        <td>
+                          <span className={`status-pill ${record.fraud_flag ? 'amber' : 'green'}`}>
+                            <i className={`ti ti-${record.fraud_flag ? 'alert-triangle' : 'circle-check'}`} />
+                            {record.fraud_flag ? 'Flagged' : 'Verified'}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
-            </div>
+            )}
+          </div>
 
-            <div className="callout-panel teal">
-              <i className="ti ti-shield-check" style={{ color: 'var(--teal)' }} />
+          <div className="surface-card section-card">
+            <div className="section-title">
               <div>
-                <div className="callout-title">Identity and location remain linked</div>
-                <div className="callout-copy">
-                  Every attendance scan is tied to the device fingerprint generated at sign-in and checked against live geolocation.
-                </div>
+                <h3>Current enrollments</h3>
+                <div className="section-subtle">Academic periods your attendance currently depends on</div>
+              </div>
+            </div>
+            {enrolledCourses.length === 0 ? (
+              <EmptyState icon="ti-book-off" title="No active enrollments" message="An administrator must enroll you in courses before attendance can be validated." />
+            ) : (
+              <div className="mini-timeline">
+                {enrolledCourses.slice(0, 4).map((enrollment) => (
+                  <div className="timeline-row" key={`${enrollment.course_id}-${enrollment.semester}-${enrollment.academic_year}`}>
+                    <div className="timeline-pin"><i className="ti ti-book" /></div>
+                    <div className="timeline-text">
+                      <strong>Course #{String(enrollment.course_id ?? '-')}</strong>
+                      <span>{String(enrollment.semester ?? '-')} - {String(enrollment.academic_year ?? '-')}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="stack">
+          <div className="surface-card section-card">
+            <div className="section-title">
+              <div>
+                <h3>Digital identity</h3>
+                <div className="section-subtle">Campus identity status used during every attendance check</div>
+              </div>
+              <span className={`status-pill ${digitalId ? 'green' : 'amber'}`}>
+                <i className={`ti ti-${digitalId ? 'id-badge-2' : 'id-off'}`} />
+                {digitalId ? 'Issued' : 'Missing'}
+              </span>
+            </div>
+            <div className="detail-list">
+              <div className="detail-row">
+                <span className="detail-label">Card status</span>
+                <span className="detail-value">{digitalId ? 'Active and available for attendance' : 'No active digital ID on file'}</span>
+              </div>
+              <div className="detail-row">
+                <span className="detail-label">Card expiry</span>
+                <span className="detail-value">{formatDate((digitalId as EntityRecord | undefined)?.expires_at)}</span>
               </div>
             </div>
           </div>
 
-          <div className="stack">
-            <div className="gps-widget-shell">
-              <div className="gps-map">
-                <div className="gps-ring" />
-                <div className="gps-dot" />
-              </div>
-              <div className="gps-body">
-                <div className="section-title" style={{ marginBottom: '0.75rem' }}>
-                  <div>
-                    <h3>Campus location</h3>
-                    <div className="section-subtle">Ready for geofenced attendance capture</div>
-                  </div>
-                </div>
-                <div className="gps-row">
-                  <div className="gps-status">On campus</div>
-                  <div className="gps-coords">-15.4166, 28.2827</div>
-                </div>
-              </div>
-            </div>
-
-            <div className="surface-card section-card">
-              <div className="section-title">
-                <div>
-                  <h3>Today&apos;s timeline</h3>
-                  <div className="section-subtle">What matters next in your academic day</div>
-                </div>
-              </div>
-              <div className="mini-timeline">
-                <div className="timeline-row">
-                  <div className="timeline-pin"><i className="ti ti-presentation" /></div>
-                  <div className="timeline-text">
-                    <strong>CS301 Web Development</strong>
-                    <span>08:00 - 10:00, LT-1, attendance window currently open</span>
-                  </div>
-                </div>
-                <div className="timeline-row">
-                  <div className="timeline-pin"><i className="ti ti-book" /></div>
-                  <div className="timeline-text">
-                    <strong>CS315 Data Security</strong>
-                    <span>11:00 - 13:00, QR access opens 15 minutes before class</span>
-                  </div>
-                </div>
-                <div className="timeline-row">
-                  <div className="timeline-pin"><i className="ti ti-bell" /></div>
-                  <div className="timeline-text">
-                    <strong>Compliance reminder</strong>
-                    <span>Keep attendance above 85% to remain in good standing.</span>
-                  </div>
-                </div>
+          <div className="callout-panel teal">
+            <i className="ti ti-shield-check" style={{ color: 'var(--teal)' }} />
+            <div>
+              <div className="callout-title">Every scan still binds identity and location</div>
+              <div className="callout-copy">
+                Attendance is only accepted when your device fingerprint, QR code, enrollment, and classroom location align.
               </div>
             </div>
           </div>
         </div>
       </div>
-    );
+    </div>
+  );
+}
+
+function LecturerDashboard() {
+  const { useList, useSessionRecords } = useSession();
+  const { useQueue } = useAttendanceReview();
+  const { useList: useTimetableList } = useTimetable();
+  const { data: sessionsData, isLoading: sessionsLoading } = useList({ query: { limit: 200 } });
+  const { data: reviewData, isLoading: reviewLoading } = useQueue({ limit: 200 });
+  const { data: timetableData, isLoading: timetableLoading } = useTimetableList({ limit: 200 });
+
+  const sessions = (sessionsData as { items?: Array<EntityRecord> } | undefined)?.items ?? [];
+  const reviewItems = (reviewData as { items?: Array<EntityRecord> } | undefined)?.items ?? [];
+  const timetableEntries = (timetableData as { items?: Array<EntityRecord> } | undefined)?.items ?? [];
+  const now = Date.now();
+  const liveSessions = sessions.filter((session) => Boolean(session.is_active));
+  const nextSessions = sessions
+    .filter((session) => new Date(String(session.session_start ?? 0)).getTime() > now)
+    .sort((a, b) => new Date(String(a.session_start ?? 0)).getTime() - new Date(String(b.session_start ?? 0)).getTime());
+  const liveSession = liveSessions[0];
+  const liveSessionId = liveSession ? Number(liveSession.session_id) : undefined;
+  const { data: liveRecordsData, isLoading: liveRecordsLoading } = useSessionRecords(liveSessionId);
+  const liveRecords = (liveRecordsData as { items?: Array<EntityRecord> } | undefined)?.items ?? [];
+  const pendingReview = reviewItems.filter((item) => String(item.verification_status ?? '') === 'Pending');
+  const currentCaptureRate = liveRecords.length ? `${Math.round(((liveRecords.length - pendingReview.filter((item) => Number(item.session_id) === liveSessionId).length) / liveRecords.length) * 100)}%` : '0%';
+
+  if (sessionsLoading || reviewLoading || timetableLoading || (liveSessionId ? liveRecordsLoading : false)) {
+    return <LoadingSkeleton rows={8} columns={4} />;
   }
 
-  if (role === 'Lecturer') {
-    return (
-      <div>
-        <PageHeader
-          eyebrow="Lecturer workspace"
-          title="Live session control"
-          subtitle="Open attendance windows, rotate QR access, and monitor fraud signals while class is in progress."
-          icon="presentation"
-          tone="teal"
-        >
-          <Link to="/sessions/new"><Button variant="primary"><i className="ti ti-plus" />Start Session</Button></Link>
-          <Link to="/sessions"><Button variant="outline-secondary"><i className="ti ti-list" />All Sessions</Button></Link>
-        </PageHeader>
+  return (
+    <div>
+      <PageHeader
+        eyebrow="Lecturer workspace"
+        title="Live session control"
+        subtitle="Monitor active attendance windows, recurring timetable coverage, and scans that still need a decision."
+        icon="presentation"
+        tone="teal"
+      >
+        <Link to="/sessions/new"><Button variant="primary"><i className="ti ti-plus" />Start Session</Button></Link>
+        <Link to="/timetable"><Button variant="outline-secondary"><i className="ti ti-calendar-time" />Timetable</Button></Link>
+      </PageHeader>
 
-        <div className="stat-grid">
-          <div className="metric-card teal">
-            <div className="metric-head">
-              <div className="metric-icon teal"><i className="ti ti-broadcast" /></div>
-              <span className="status-pill green">Live now</span>
-            </div>
-            <div className="metric-value">01</div>
-            <div className="metric-label">Active session</div>
-            <div className="metric-meta">CS301 is currently collecting attendance</div>
-          </div>
-          <div className="metric-card green">
-            <div className="metric-head">
-              <div className="metric-icon green"><i className="ti ti-users" /></div>
-              <span className="status-pill green">34 scanned</span>
-            </div>
-            <div className="metric-value">87%</div>
-            <div className="metric-label">Current capture rate</div>
-            <div className="metric-meta">High turnout before the first hour closes</div>
-          </div>
-          <div className="metric-card amber">
-            <div className="metric-head">
-              <div className="metric-icon amber"><i className="ti ti-shield-exclamation" /></div>
-              <span className="status-pill amber">2 alerts</span>
-            </div>
-            <div className="metric-value">02</div>
-            <div className="metric-label">Flagged scans</div>
-            <div className="metric-meta">Shared-device and missing-GPS events need review</div>
-          </div>
-          <div className="metric-card royal">
-            <div className="metric-head">
-              <div className="metric-icon royal"><i className="ti ti-calendar-event" /></div>
-              <span className="status-pill royal">This week</span>
-            </div>
-            <div className="metric-value">08</div>
-            <div className="metric-label">Scheduled classes</div>
-            <div className="metric-meta">Three sessions remain before Friday close</div>
-          </div>
-        </div>
+      <div className="stat-grid">
+        <MetricCard tone="teal" icon="broadcast" pill={liveSessions.length ? 'Live now' : 'Idle'} value={liveSessions.length} label="Active sessions" meta="Attendance windows currently accepting student check-ins." />
+        <MetricCard tone="green" icon="users" pill="Capture" value={currentCaptureRate} label="Current verified rate" meta="Live-session share of records that are already trusted or approved." />
+        <MetricCard tone="amber" icon="shield-exclamation" pill={pendingReview.length ? 'Needs review' : 'Clear'} value={pendingReview.length} label="Open review items" meta="Flagged or pending scans still waiting on a lecturer decision." />
+        <MetricCard tone="royal" icon="calendar-event" pill="Recurring" value={timetableEntries.filter((entry) => Boolean(entry.is_active)).length} label="Timetable slots" meta="Recurring teaching slots you can use to generate scheduled attendance sessions." />
+      </div>
 
-        <div className="dashboard-grid">
-          <div className="stack">
-            <div className="surface-card section-card">
-              <div className="section-title">
-                <div>
-                  <h3>Session board</h3>
-                  <div className="section-subtle">Operational snapshot of attendance windows you control</div>
-                </div>
+      <div className="dashboard-grid">
+        <div className="stack">
+          <div className="surface-card section-card">
+            <div className="section-title">
+              <div>
+                <h3>Session board</h3>
+                <div className="section-subtle">Current live window and the next scheduled classes you own</div>
               </div>
+            </div>
+
+            {liveSession ? (
               <div className="stack">
                 <div className="surface-card section-card">
                   <div className="section-title">
                     <div>
-                      <h3>CS301 Web Development</h3>
-                      <div className="section-subtle">LT-1 • expires in 00:24</div>
+                      <h3>{String(liveSession.session_type ?? 'Session')} - Session #{String(liveSession.session_id)}</h3>
+                      <div className="section-subtle">{String(liveSession.timetable_slot ?? 'Ad hoc slot')}</div>
                     </div>
                     <span className="status-pill green"><i className="ti ti-circle-filled" />Live</span>
                   </div>
                   <div className="session-stat-row">
-                    <div className="session-stat"><label>Scanned</label><strong>34</strong></div>
-                    <div className="session-stat"><label>Absent</label><strong>06</strong></div>
-                    <div className="session-stat"><label>Flagged</label><strong>02</strong></div>
+                    <div className="session-stat"><label>Scanned</label><strong>{liveRecords.length}</strong></div>
+                    <div className="session-stat"><label>Flagged</label><strong>{pendingReview.filter((item) => Number(item.session_id) === liveSessionId).length}</strong></div>
+                    <div className="session-stat"><label>Venue</label><strong>#{String(liveSession.venue_id ?? '-')}</strong></div>
                   </div>
                 </div>
-                <div className="callout-panel amber">
-                  <i className="ti ti-alert-circle" style={{ color: 'var(--amber)' }} />
-                  <div>
-                    <div className="callout-title">Two submissions need lecturer attention</div>
-                    <div className="callout-copy">
-                      One device-sharing alert and one GPS-accuracy exception were recorded in the current session.
+
+                {nextSessions.length > 0 ? (
+                  <div className="mini-timeline">
+                    {nextSessions.slice(0, 3).map((session) => (
+                      <div className="timeline-row" key={Number(session.session_id)}>
+                        <div className="timeline-pin"><i className="ti ti-calendar-event" /></div>
+                        <div className="timeline-text">
+                          <strong>Session #{String(session.session_id)}</strong>
+                          <span>{formatDateTime(session.session_start)} - {String(session.timetable_slot ?? 'No timetable slot')}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            ) : (
+              <EmptyState icon="ti-calendar-off" title="No live attendance window" message="Start a scheduled session when class begins or generate sessions from the timetable first." />
+            )}
+          </div>
+        </div>
+
+        <div className="stack">
+          <div className="surface-card section-card">
+            <div className="section-title">
+              <div>
+                <h3>Review queue snapshot</h3>
+                <div className="section-subtle">Highest-risk attendance evidence still waiting on lecturer action</div>
+              </div>
+              <Link to="/attendance-review"><Button variant="outline-secondary"><i className="ti ti-shield-search" />Open queue</Button></Link>
+            </div>
+
+            {pendingReview.length === 0 ? (
+              <EmptyState icon="ti-shield-check" title="Queue clear" message="No current attendance records are waiting on a lecturer decision." />
+            ) : (
+              <div className="mini-timeline">
+                {pendingReview.slice(0, 4).map((item) => (
+                  <div className="timeline-row" key={Number(item.attendance_id)}>
+                    <div className="timeline-pin"><i className="ti ti-alert-circle" /></div>
+                    <div className="timeline-text">
+                      <strong>Student #{String(item.student_id ?? '-')}</strong>
+                      <span>Session #{String(item.session_id ?? '-')} - GPS {item.gps_accuracy ? `${Math.round(Number(item.gps_accuracy))} m` : 'unavailable'}</span>
                     </div>
                   </div>
-                </div>
+                ))}
               </div>
-            </div>
+            )}
           </div>
 
-          <div className="stack">
-            <div className="surface-card section-card">
-              <div className="section-title">
-                <div>
-                  <h3>Operational guidance</h3>
-                  <div className="section-subtle">Best-practice reminders for live attendance capture</div>
-                </div>
-              </div>
-              <div className="mini-timeline">
-                <div className="timeline-row">
-                  <div className="timeline-pin"><i className="ti ti-qrcode" /></div>
-                  <div className="timeline-text">
-                    <strong>Rotate the QR only when necessary</strong>
-                    <span>Refreshing a live code invalidates the last one immediately for students still scanning.</span>
-                  </div>
-                </div>
-                <div className="timeline-row">
-                  <div className="timeline-pin"><i className="ti ti-map-pin" /></div>
-                  <div className="timeline-text">
-                    <strong>Watch geofence exceptions</strong>
-                    <span>Low-confidence scans usually signal permission issues or attempted remote attendance.</span>
-                  </div>
-                </div>
+          <div className="callout-panel amber">
+            <i className="ti ti-alert-circle" style={{ color: 'var(--amber)' }} />
+            <div>
+              <div className="callout-title">Live QR rotation should remain deliberate</div>
+              <div className="callout-copy">
+                Only rotate a QR after you are sure the room needs a fresh code, because every earlier image becomes invalid immediately.
               </div>
             </div>
           </div>
         </div>
       </div>
-    );
+    </div>
+  );
+}
+
+function AdminDashboard() {
+  const { useList: useUserList } = useUser();
+  const { useList: useVenueList } = useVenue();
+  const { useList: useCourseList } = useCourse();
+  const { useList: useSessionList } = useSession();
+  const { useQueue } = useAttendanceReview();
+  const { useList: useAuditList } = useAudit();
+
+  const { data: usersData, isLoading: usersLoading } = useUserList({ query: { limit: 500 } });
+  const { data: venuesData, isLoading: venuesLoading } = useVenueList({ query: { limit: 500 } });
+  const { data: coursesData, isLoading: coursesLoading } = useCourseList({ query: { limit: 500 } });
+  const { data: sessionsData, isLoading: sessionsLoading } = useSessionList({ query: { limit: 200 } });
+  const { data: reviewData, isLoading: reviewLoading } = useQueue({ limit: 200 });
+  const { data: auditData, isLoading: auditLoading } = useAuditList({ query: { limit: 20 } });
+
+  const users = (usersData as { items?: Array<EntityRecord> } | undefined)?.items ?? [];
+  const venues = (venuesData as { items?: Array<EntityRecord> } | undefined)?.items ?? [];
+  const courses = (coursesData as { items?: Array<EntityRecord> } | undefined)?.items ?? [];
+  const sessions = (sessionsData as { items?: Array<EntityRecord> } | undefined)?.items ?? [];
+  const reviewItems = (reviewData as { items?: Array<EntityRecord> } | undefined)?.items ?? [];
+  const auditLogs = (auditData as { items?: Array<EntityRecord> } | undefined)?.items ?? [];
+
+  const geofencedVenues = venues.filter((venue) => [venue.latitude, venue.longitude, venue.radius_meters].every((value) => value !== null && value !== undefined));
+  const liveSessions = sessions.filter((session) => Boolean(session.is_active));
+  const pendingReview = reviewItems.filter((item) => String(item.verification_status ?? '') === 'Pending');
+  const latestAudit = auditLogs.slice(0, 4);
+
+  if (usersLoading || venuesLoading || coursesLoading || sessionsLoading || reviewLoading || auditLoading) {
+    return <LoadingSkeleton rows={8} columns={4} />;
   }
 
   return (
@@ -297,7 +381,7 @@ export default function DashboardPage() {
       <PageHeader
         eyebrow="Admin workspace"
         title="System operations overview"
-        subtitle="Manage the academic directory, review platform health, and watch compliance indicators across the campus."
+        subtitle="Watch the real academic directory, venue compliance, and attendance exception load across the platform."
         icon="shield"
         tone="purple"
       >
@@ -306,42 +390,10 @@ export default function DashboardPage() {
       </PageHeader>
 
       <div className="stat-grid">
-        <div className="metric-card royal">
-          <div className="metric-head">
-            <div className="metric-icon royal"><i className="ti ti-users" /></div>
-            <span className="status-pill royal">Directory</span>
-          </div>
-          <div className="metric-value">526</div>
-          <div className="metric-label">Active identities</div>
-          <div className="metric-meta">Students, lecturers, and administrators under governance</div>
-        </div>
-        <div className="metric-card green">
-          <div className="metric-head">
-            <div className="metric-icon green"><i className="ti ti-shield-check" /></div>
-            <span className="status-pill green">Healthy</span>
-          </div>
-          <div className="metric-value">99.4%</div>
-          <div className="metric-label">Platform integrity</div>
-          <div className="metric-meta">Attendance capture is stable across the reporting window</div>
-        </div>
-        <div className="metric-card amber">
-          <div className="metric-head">
-            <div className="metric-icon amber"><i className="ti ti-alert-triangle" /></div>
-            <span className="status-pill amber">Requires attention</span>
-          </div>
-          <div className="metric-value">07</div>
-          <div className="metric-label">Open exceptions</div>
-          <div className="metric-meta">Low-confidence scans and enrollment mismatches still need action</div>
-        </div>
-        <div className="metric-card teal">
-          <div className="metric-head">
-            <div className="metric-icon teal"><i className="ti ti-broadcast" /></div>
-            <span className="status-pill teal">Live sessions</span>
-          </div>
-          <div className="metric-value">03</div>
-          <div className="metric-label">Classes running now</div>
-          <div className="metric-meta">Real-time attendance events are flowing into the audit stream</div>
-        </div>
+        <MetricCard tone="royal" icon="users" pill="Directory" value={users.length} label="Active identities" meta="User accounts currently active across students, lecturers, and administrators." />
+        <MetricCard tone="green" icon="map-pin-check" pill={`${geofencedVenues.length}/${venues.length || 0}`} value={geofencedVenues.length} label="Geofenced venues" meta="Approved spaces that are fully ready for trusted attendance capture." />
+        <MetricCard tone="amber" icon="alert-triangle" pill={pendingReview.length ? 'Needs attention' : 'Clear'} value={pendingReview.length} label="Open exceptions" meta="Attendance records still waiting on review before reporting can be trusted." />
+        <MetricCard tone="teal" icon="broadcast" pill="Live sessions" value={liveSessions.length} label="Classes running now" meta="Attendance windows currently active and accepting check-ins." />
       </div>
 
       <div className="dashboard-grid">
@@ -350,36 +402,36 @@ export default function DashboardPage() {
             <div className="section-title">
               <div>
                 <h3>Control surfaces</h3>
-                <div className="section-subtle">The areas administrators touch most often</div>
+                <div className="section-subtle">The areas administrators should touch first based on live platform state</div>
               </div>
             </div>
-            <div className="hero-grid" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
+            <div className="hero-grid">
               <Link to="/users" className="text-decoration-none">
                 <div className="hero-feature" style={{ background: 'var(--royal-lt)', color: 'var(--tx1)' }}>
                   <i className="ti ti-users" style={{ color: 'var(--royal)' }} />
                   <strong style={{ color: 'var(--tx1)' }}>Identity management</strong>
-                  <span style={{ color: 'var(--tx3)' }}>Create and govern student and lecturer accounts.</span>
+                  <span style={{ color: 'var(--tx3)' }}>{users.length} active identities currently under governance.</span>
                 </div>
               </Link>
               <Link to="/courses" className="text-decoration-none">
                 <div className="hero-feature" style={{ background: 'var(--green-lt)', color: 'var(--tx1)' }}>
                   <i className="ti ti-books" style={{ color: 'var(--green)' }} />
                   <strong style={{ color: 'var(--tx1)' }}>Academic catalog</strong>
-                  <span style={{ color: 'var(--tx3)' }}>Keep courses and teaching structure consistent.</span>
+                  <span style={{ color: 'var(--tx3)' }}>{courses.length} courses currently exposed to enrollment and teaching workflows.</span>
                 </div>
               </Link>
               <Link to="/venues" className="text-decoration-none">
                 <div className="hero-feature" style={{ background: 'var(--teal-lt)', color: 'var(--tx1)' }}>
                   <i className="ti ti-building" style={{ color: 'var(--teal)' }} />
                   <strong style={{ color: 'var(--tx1)' }}>Venue control</strong>
-                  <span style={{ color: 'var(--tx3)' }}>Maintain where attendance can legally be captured.</span>
+                  <span style={{ color: 'var(--tx3)' }}>{venues.length - geofencedVenues.length} venues still need geofence completion.</span>
                 </div>
               </Link>
-              <Link to="/audit" className="text-decoration-none">
+              <Link to="/attendance-review" className="text-decoration-none">
                 <div className="hero-feature" style={{ background: 'var(--purple-lt)', color: 'var(--tx1)' }}>
-                  <i className="ti ti-file-text" style={{ color: 'var(--purple)' }} />
-                  <strong style={{ color: 'var(--tx1)' }}>Audit evidence</strong>
-                  <span style={{ color: 'var(--tx3)' }}>Inspect disputed scans and system-side events.</span>
+                  <i className="ti ti-shield-search" style={{ color: 'var(--purple)' }} />
+                  <strong style={{ color: 'var(--tx1)' }}>Attendance review</strong>
+                  <span style={{ color: 'var(--tx3)' }}>{pendingReview.length} records currently need a compliance decision.</span>
                 </div>
               </Link>
             </div>
@@ -390,9 +442,9 @@ export default function DashboardPage() {
           <div className="callout-panel amber">
             <i className="ti ti-shield-exclamation" style={{ color: 'var(--amber)' }} />
             <div>
-              <div className="callout-title">Policy reminder</div>
+              <div className="callout-title">Current operations focus</div>
               <div className="callout-copy">
-                Avoid rotating QR sessions from read-only views unless the classroom needs a fresh attendance window.
+                Keep venue geofences complete and review pending attendance evidence before it feeds downstream reporting.
               </div>
             </div>
           </div>
@@ -400,36 +452,46 @@ export default function DashboardPage() {
           <div className="surface-card section-card">
             <div className="section-title">
               <div>
-                <h3>Recent focus areas</h3>
-                <div className="section-subtle">Where admin effort is currently best spent</div>
+                <h3>Latest audit activity</h3>
+                <div className="section-subtle">Most recent platform events recorded in the immutable audit trail</div>
               </div>
             </div>
-            <div className="mini-timeline">
-              <div className="timeline-row">
-                <div className="timeline-pin"><i className="ti ti-alert-circle" /></div>
-                <div className="timeline-text">
-                  <strong>Review open attendance exceptions</strong>
-                  <span>Seven records still require a compliance decision before closeout.</span>
-                </div>
+            {latestAudit.length === 0 ? (
+              <EmptyState icon="ti-file-off" title="No audit activity" message="Once the system records activity, the latest events will appear here." />
+            ) : (
+              <div className="mini-timeline">
+                {latestAudit.map((log) => (
+                  <div className="timeline-row" key={Number(log.log_id ?? log.audit_id)}>
+                    <div className="timeline-pin"><i className="ti ti-activity" /></div>
+                    <div className="timeline-text">
+                      <strong>{String(log.action ?? 'Unknown action')}</strong>
+                      <span>{formatDateTime(log.created_at)}{log.user_id ? ` - User #${String(log.user_id)}` : ''}</span>
+                    </div>
+                  </div>
+                ))}
               </div>
-              <div className="timeline-row">
-                <div className="timeline-pin"><i className="ti ti-building-bank" /></div>
-                <div className="timeline-text">
-                  <strong>Validate venue inventory</strong>
-                  <span>Ensure live attendance sessions are only tied to approved physical spaces.</span>
-                </div>
-              </div>
-              <div className="timeline-row">
-                <div className="timeline-pin"><i className="ti ti-users-group" /></div>
-                <div className="timeline-text">
-                  <strong>Complete enrollment hygiene</strong>
-                  <span>Incomplete enrollment workflows will undermine trust in attendance reports.</span>
-                </div>
-              </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
     </div>
   );
+}
+
+export default function DashboardPage() {
+  const { role, userId } = useAuth();
+
+  if (!role) {
+    return <LoadingSkeleton rows={6} columns={4} />;
+  }
+
+  if (role === 'Student' && userId) {
+    return <StudentDashboard userId={userId} />;
+  }
+
+  if (role === 'Lecturer' && userId) {
+    return <LecturerDashboard />;
+  }
+
+  return <AdminDashboard />;
 }

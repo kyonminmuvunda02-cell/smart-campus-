@@ -68,6 +68,7 @@ export default function VenueFormPage() {
   const mapHref = hasCoordinates
     ? `https://www.openstreetmap.org/?mlat=${encodeURIComponent(latitude)}&mlon=${encodeURIComponent(longitude)}#map=19/${encodeURIComponent(latitude)}/${encodeURIComponent(longitude)}`
     : null;
+  const mapEmbedHref = hasCoordinates ? buildMapEmbedHref(Number(latitude), Number(longitude)) : null;
 
   async function handleUseCurrentLocation() {
     if (!navigator.geolocation) {
@@ -185,6 +186,17 @@ export default function VenueFormPage() {
               </div>
             </div>
 
+            {mapEmbedHref ? (
+              <div className="map-embed-shell">
+                <iframe
+                  src={mapEmbedHref}
+                  title="Venue map preview"
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                />
+              </div>
+            ) : null}
+
             {geoMessage ? (
               <Alert variant={mapHref ? 'info' : 'warning'} className="mb-0">
                 <i className={`ti ti-${mapHref ? 'info-circle' : 'alert-triangle'} me-2`} />
@@ -301,4 +313,16 @@ function currentVenueValue(venue: unknown, key: string) {
 function currentNumber(value: unknown) {
   if (value === undefined || value === null || value === '') return '';
   return String(value);
+}
+
+function buildMapEmbedHref(latitude: number, longitude: number) {
+  const latDelta = 0.0018;
+  const lngDelta = 0.0018;
+  const bbox = [
+    longitude - lngDelta,
+    latitude - latDelta,
+    longitude + lngDelta,
+    latitude + latDelta,
+  ].join('%2C');
+  return `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${encodeURIComponent(`${latitude},${longitude}`)}`;
 }
