@@ -109,7 +109,7 @@ export default function UserListPage() {
             <div className="surface-card p-3 shadow-sm border-0 bg-purple text-white d-flex align-items-center justify-content-between">
               <div>
                 <span className="small fw-bold uppercase opacity-75">Access Governance</span>
-                <p className="mb-0 small">User roles determine access to sensitive academic data and session management controls.</p>
+                <p className="mb-0 small">User roles determine access to sensitive academic data and class management controls.</p>
               </div>
               <i className="ti ti-lock fs-1 opacity-25" />
             </div>
@@ -161,7 +161,8 @@ export default function UserListPage() {
               <EmptyState icon="ti-filter-off" title="No Matching Records" message="Try broadening your search or switching role filters." />
             </div>
           ) : (
-            <div className="table-responsive">
+            <>
+            <div className="d-none d-md-block table-responsive">
               <Table hover className="mb-0 border-0">
                 <thead className="bg-light-subtle">
                   <tr>
@@ -220,6 +221,56 @@ export default function UserListPage() {
                 </tbody>
               </Table>
             </div>
+
+            <div className="d-md-none p-3">
+              <div className="mobile-record-list">
+                {paginatedUsers.map((u) => {
+                  const role = String(u.role ?? 'User');
+                  const initials = `${String(u.first_name?.[0] ?? 'U')}${String(u.last_name?.[0] ?? '')}`;
+
+                  return (
+                    <div key={u.user_id} className="mobile-record-card">
+                      <div className="mobile-record-head">
+                        <div className="d-flex align-items-center gap-3">
+                          <div className={`sb-avatar ${role === 'Admin' ? 'bg-navy' : role === 'Lecturer' ? 'bg-purple-bg text-purple-text' : 'bg-accent-lt text-accent'}`}>
+                            {initials}
+                          </div>
+                          <div>
+                            <span className="mobile-record-title">{String(u.first_name ?? '')} {String(u.last_name ?? '')}</span>
+                            <span className="mobile-record-meta">{String(u.email ?? '-')}</span>
+                          </div>
+                        </div>
+                        <span className={`status-pill ${getRoleTone(role)}`}>
+                          <i className={`ti ti-${role === 'Admin' ? 'shield-lock' : role === 'Lecturer' ? 'school' : 'user'}`} />
+                          {role}
+                        </span>
+                      </div>
+
+                      <div className="detail-list">
+                        <div className="detail-row">
+                          <div className="detail-label">System ID</div>
+                          <div className="detail-value mono">ID-{String(u.user_id).padStart(4, '0')}</div>
+                        </div>
+                      </div>
+
+                      <div className="mobile-record-actions">
+                        <Link to={`/users/${u.user_id}`}>
+                          <Button variant="outline-secondary" size="sm">
+                            <i className="ti ti-eye" />
+                            Open
+                          </Button>
+                        </Link>
+                        <Button variant="outline-secondary" size="sm" onClick={() => handleEdit(u.user_id as number)}>
+                          <i className="ti ti-edit" />
+                          Edit
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            </>
           )}
 
           {filteredUsers.length > pageSize && (

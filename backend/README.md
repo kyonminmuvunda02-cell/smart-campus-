@@ -1,322 +1,616 @@
-# Smart Campus — Digital ID & Attendance Tracking System
-### BSc Computer Science Final Year Project — Cavendish University Zambia
+# Smart Campus Backend
 
-A FastAPI backend for a web-based smart campus system. Students scan a lecturer-generated,
-time-limited QR code to mark attendance. The system validates: active DigitalID → correct
-enrollment → GPS on campus → QR not expired. Role-Based Access Control (RBAC) governs
-what Students, Lecturers, and Admins can do.
+Backend API for the CUZ Smart Campus project.
 
----
+This backend is built with FastAPI and PostgreSQL. It handles:
 
-## Tech Stack
+- login and JWT authentication
+- users, courses, venues, and enrollments
+- digital IDs
+- class creation and attendance check-in
+- review queue and reporting
 
-| Layer      | Technology                          |
-|------------|-------------------------------------|
-| API        | FastAPI (sync — no async DB)        |
-| ORM        | SQLAlchemy 2.x (select() style)     |
-| Database   | PostgreSQL                          |
-| Validation | Pydantic v2                         |
-| Migrations | Alembic                             |
-| Auth       | JWT (python-jose) + bcrypt          |
-| QR Codes   | qrcode library                      |
-| Scheduling | pg_cron (bulk QR expiry sweeps)     |
+This guide is written for a beginner student. Follow the steps in order.
 
 ---
 
-## Quick Start
+## 1. What This Backend Does
 
-### 1. Prerequisites (Windows Setup)
+In simple terms, this backend supports this flow:
 
-- **Python 3.11+**: Download and install from [python.org](https://www.python.org/downloads/).
-  - > [!IMPORTANT]
-  - > During installation, **MUST check "Add Python to PATH"**.
-- **Pip**: Included with Python. To verify, run `python --version` and `pip --version` in your terminal.
-- **PostgreSQL 14+**: Install via [EDB Installer](https://www.enterprisedb.com/downloads/postgres-postgresql-downloads). Ensure the service is running.
+1. Admin creates the academic setup.
+2. Lecturer logs in and creates a class for a course.
+3. Lecturer opens check-in for that class.
+4. Student scans the QR code and submits attendance.
+5. The system checks:
+   - is the class active?
+   - is the student enrolled in that course?
+   - does the student have a valid digital ID?
+   - is the student inside the venue geofence?
+6. The attendance record is saved.
 
-### 2. Virtual Environment & Dependencies
+---
 
-A virtual environment keeps the project dependencies isolated from your system Python.
+## 2. What You Need Before You Start
+
+Install these first:
+
+- Python 3.11 or newer
+- PostgreSQL 14 or newer
+- Git
+- A code editor such as VS Code
+
+### Check that Python works
+
+Open PowerShell and run:
 
 ```powershell
-# In the backend directory:
-python -m venv venv
-.\venv\Scripts\activate
+python --version
+pip --version
+```
 
-# Install all dependencies (FastAPI, SQLAlchemy, etc.)
+If Python does not work:
+
+- reinstall Python
+- during installation, tick `Add Python to PATH`
+
+### Check that PostgreSQL works
+
+Open PowerShell and run:
+
+```powershell
+psql --version
+```
+
+If `psql` is not found, PostgreSQL may not be added to PATH. You can still continue, but you may need to use pgAdmin to create the database instead of the command line.
+
+---
+
+## 3. Project Folder
+
+This guide assumes your project looks like this:
+
+```text
+smartcampus/
+|-- backend/
+`-- frontend/
+```
+
+All commands in this README are run inside the `backend` folder unless stated otherwise.
+
+Move into the backend folder:
+
+```powershell
+cd d:\projects\smartcampus\backend
+```
+
+---
+
+## 4. Create a Virtual Environment
+
+A virtual environment keeps this project's Python packages separate from other projects.
+
+### Create it
+
+```powershell
+python -m venv venv
+```
+
+### Activate it
+
+```powershell
+.\venv\Scripts\activate
+```
+
+After activation, your terminal should show something like `(venv)`.
+
+---
+
+## 5. Install Backend Packages
+
+With the virtual environment activated, run:
+
+```powershell
 pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-### 3. Configure environment
+This installs FastAPI, SQLAlchemy, Alembic, psycopg, and other backend dependencies.
 
-```bash
-cp .env.example .env
+---
+
+## 6. Create the `.env` File
+
+Copy the example file:
+
+```powershell
+Copy-Item .env.example .env
 ```
 
-Open `.env` and fill in your values:
+Then open `.env` and edit it.
+
+Use values like this:
 
 ```env
-DATABASE_URL=postgresql://postgres:password@localhost/smartcampus
-SECRET_KEY=your-long-random-secret-key-here
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=your_postgres_password
+POSTGRES_SERVER=localhost
+POSTGRES_PORT=5432
+POSTGRES_DB=smartcampus
+
+SECRET_KEY=replace-this-with-a-long-random-secret
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_DAYS=8
-QR_CODE_TTL_SECONDS=60
+QR_CODE_TTL_SECONDS=600
+ATTENDANCE_SELF_CHECKIN_WINDOW_MINUTES=30
+GPS_MAX_TRUSTED_ACCURACY_METERS=75.0
 CORS_ORIGINS=["http://localhost:5173"]
 ENVIRONMENT=development
 ```
 
-> **Never commit `.env` to version control.**  
-> Generate a strong `SECRET_KEY` with: `python -c "import secrets; print(secrets.token_hex(32))"`
+### Important notes
 
-### 4. Create the database
+- `POSTGRES_PASSWORD` must match your PostgreSQL password.
+- `SECRET_KEY` must be long and random.
+- `QR_CODE_TTL_SECONDS=600` means the lecturer QR stays valid for 10 minutes.
+- `ATTENDANCE_SELF_CHECKIN_WINDOW_MINUTES=30` means students can self-check in during the first 30 minutes, after which late attendance should go to review logic.
 
-```bash
+### Generate a random secret key
+
+Run:
+
+```powershell
+python -c "import secrets; print(secrets.token_hex(32))"
+```
+
+Copy the result into `SECRET_KEY`.
+
+---
+
+## 7. Create the Database
+
+You need a PostgreSQL database called `smartcampus`.
+
+### Option A: using `psql`
+
+```powershell
 psql -U postgres -c "CREATE DATABASE smartcampus;"
 ```
 
-### 5. Run migrations
+If PostgreSQL asks for a password, enter your PostgreSQL password.
 
-```bash
+### Option B: using pgAdmin
+
+If `psql` is not working:
+
+1. Open pgAdmin.
+2. Connect to your local PostgreSQL server.
+3. Right-click `Databases`.
+4. Click `Create` -> `Database...`
+5. Name it `smartcampus`.
+6. Save.
+
+---
+
+## 8. Run Database Migrations
+
+Migrations create the tables used by the backend.
+
+Run:
+
+```powershell
 alembic upgrade head
 ```
 
-### 6. Start the server
-
-```bash
-uvicorn app.main:app --reload
-```
-
-The API is now running at **`http://localhost:8000`**
-
-| URL | Description |
-|-----|-------------|
-| `http://localhost:8000/docs` | Interactive Swagger UI |
-| `http://localhost:8000/redoc` | ReDoc documentation |
-| `http://localhost:8000/openapi.json` | Raw OpenAPI schema (for hey-api) |
-| `http://localhost:8000/health` | Liveness probe |
+If this succeeds, your database schema is ready.
 
 ---
 
-## Project Structure
+## 9. Start the Backend Server
 
-```
-smartcampus/
-├── alembic/                    # Database migration scripts
-│   ├── versions/               # Auto-generated migration files
-│   ├── env.py                  # Alembic config — imports all models
-│   └── script.py.mako          # Migration file template
-├── app/
-│   ├── main.py                 # FastAPI app, CORS, router registration
-│   └── modules/
-│       ├── core/               # DB engine, settings, security, exceptions
-│       ├── auth/               # Login endpoint, JWT, RBAC dependencies
-│       ├── users/              # AppUser, Student, Lecturer, Admin
-│       ├── venues/             # Lecture rooms
-│       ├── courses/            # Course catalogue + lecturer assignments
-│       ├── enrollment/         # Student ↔ Course enrollment per semester
-│       ├── digital_id/         # DigitalID cards (one active per student)
-│       ├── attendance/         # AttendanceSession (QR) + AttendanceRecord (check-in)
-│       └── audit/              # Immutable audit log
-├── requirements.txt
-├── alembic.ini
-└── .env.example
+Use this command:
+
+```powershell
+python main.py
 ```
 
-Each module follows the same four-layer pattern:
+You do not need to type `uvicorn` manually. `python main.py` starts the FastAPI app for you.
 
-```
-<module>/
-  models/       # SQLAlchemy ORM definitions
-  schemas/      # Pydantic v2 request / response shapes
-  services/     # ALL business logic (db.flush() only — never commit)
-  api/v1/       # FastAPI router — thin HTTP wrapper (db.commit() here)
-```
+When the server is running, open:
+
+- API docs: `http://localhost:8000/api/v1/docs`
+- ReDoc: `http://localhost:8000/api/v1/redoc`
+- OpenAPI JSON: `http://localhost:8000/api/v1/openapi.json`
+- Health check: `http://localhost:8000/health`
 
 ---
 
-## API Overview
+## 10. First Run Check
 
-All routes are prefixed with `/api/v1`.
+After starting the server:
 
-### Auth
-| Method | Path | Role | Description |
-|--------|------|------|-------------|
-| POST | `/auth/login` | Public | Email + password → JWT token |
-| GET | `/auth/me` | Any | Get current user's profile |
+1. Open `http://localhost:8000/health`
+2. Confirm you get a JSON response
+3. Open `http://localhost:8000/api/v1/docs`
+4. Confirm Swagger opens
 
-### Users
-| Method | Path | Role | Description |
-|--------|------|------|-------------|
-| POST | `/users/students` | Admin | Create a student account |
-| POST | `/users/lecturers` | Admin | Create a lecturer account |
-| GET | `/users/` | Admin | List all users |
-| GET | `/users/{id}` | Admin | Get user by ID |
-| PATCH | `/users/{id}` | Admin | Update user fields |
-| DELETE | `/users/{id}` | Admin | Delete a user |
-
-### Venues
-| Method | Path | Role | Description |
-|--------|------|------|-------------|
-| POST | `/venues/` | Admin | Create a venue |
-| GET | `/venues/` | Lecturer, Admin | List all venues |
-| GET | `/venues/{id}` | Lecturer, Admin | Get a venue |
-| PATCH | `/venues/{id}` | Admin | Update a venue |
-| DELETE | `/venues/{id}` | Admin | Delete a venue |
-
-### Courses
-| Method | Path | Role | Description |
-|--------|------|------|-------------|
-| POST | `/courses/` | Admin | Create a course |
-| GET | `/courses/` | All | List all courses |
-| GET | `/courses/{id}` | All | Get a course |
-| PATCH | `/courses/{id}` | Admin | Update a course |
-| DELETE | `/courses/{id}` | Admin | Delete a course |
-| POST | `/courses/assignments` | Admin | Assign lecturer to course |
-| DELETE | `/courses/assignments/{lecturer_id}/{course_id}` | Admin | Remove assignment |
-
-### Enrollment
-| Method | Path | Role | Description |
-|--------|------|------|-------------|
-| POST | `/enrollments/` | Admin | Enroll student in a course |
-| GET | `/enrollments/students/{id}` | Student (own), Admin | List student's enrollments |
-| GET | `/enrollments/courses/{id}` | Lecturer, Admin | List course's enrollments |
-| PATCH | `/enrollments/{student_id}/{course_id}` | Admin | Update enrollment status |
-
-### Digital IDs
-| Method | Path | Role | Description |
-|--------|------|------|-------------|
-| POST | `/digital-ids/` | Admin | Issue a DigitalID |
-| GET | `/digital-ids/students/{id}/active` | Student (own), Lecturer, Admin | Get active DigitalID |
-| GET | `/digital-ids/students/{id}` | Admin | List all DigitalIDs for student |
-| POST | `/digital-ids/{id}/revoke` | Admin | Revoke a DigitalID |
-
-### Attendance Sessions
-| Method | Path | Role | Description |
-|--------|------|------|-------------|
-| POST | `/attendance/sessions/` | Lecturer | Open a session + generate QR |
-| GET | `/attendance/sessions/` | Lecturer (own), Admin | List sessions |
-| GET | `/attendance/sessions/{id}` | Lecturer, Admin | Get a session |
-| PATCH | `/attendance/sessions/{id}` | Lecturer, Admin | Update session fields |
-| POST | `/attendance/sessions/{id}/close` | Lecturer (own) | Close a session |
-| POST | `/attendance/sessions/{id}/refresh-qr` | Lecturer (own) | Generate a new QR code |
-
-### Attendance Records
-| Method | Path | Role | Description |
-|--------|------|------|-------------|
-| POST | `/attendance/records/checkin` | Student | Scan QR → record attendance |
-| GET | `/attendance/records/sessions/{id}` | Lecturer, Admin | All records for a session |
-| GET | `/attendance/records/students/{id}` | Student (own), Lecturer, Admin | Student's history |
-
-### Audit Log
-| Method | Path | Role | Description |
-|--------|------|------|-------------|
-| GET | `/audit/logs` | Admin | Query immutable audit entries |
+If both work, the backend is running correctly.
 
 ---
 
-## RBAC — Three Roles
+## 11. Beginner Workflow: What To Do In The System
 
-| Role | Permissions |
-|------|-------------|
-| **Student** | Scan QR to check in, view own attendance history, view own DigitalID |
-| **Lecturer** | Create/close sessions, refresh QR codes, view session attendance |
-| **Admin** | Full access: users, courses, enrollment, digital IDs, audit logs |
+If you are testing the full project for the first time, follow this order.
 
-The role is embedded in the JWT at login — `require_role()` checks it without a DB query on every request.
+### Step 1: Admin logs in
+
+The admin is responsible for setting up the system.
+
+### Step 2: Admin creates venues
+
+Create venues first because classes need a valid venue.
+
+For each venue:
+
+- enter the venue name
+- enter the building
+- enter the capacity
+- pinpoint the location on the map
+- set the geofence radius
+
+Without a properly geofenced venue, attendance check-in will not work correctly.
+
+### Step 3: Admin creates courses
+
+Create the academic courses that students will attend.
+
+Examples:
+
+- `CS101 - Introduction to Smart Systems`
+- `IT201 - Database Systems`
+
+### Step 4: Admin creates lecturer and student accounts
+
+Create:
+
+- lecturer accounts
+- student accounts
+
+### Step 5: Admin assigns lecturers to courses
+
+A lecturer must be assigned to a course before they can manage classes for that course.
+
+### Step 6: Admin enrolls students into courses
+
+Enrollment links a student to:
+
+- a course
+- a semester
+- an academic year
+
+If a student is not enrolled, they should not be allowed to check into that course.
+
+### Step 7: Admin issues digital IDs
+
+Each student must have an active digital ID.
+
+Without a valid digital ID, attendance check-in should fail.
+
+### Step 8: Lecturer logs in
+
+The lecturer should:
+
+1. open `Classes`
+2. click `Start Class`
+3. select the course
+4. select the venue
+5. choose the class type
+6. set start and end time
+7. save the class
+
+### Step 9: Lecturer opens check-in
+
+Inside the class monitor:
+
+1. open the created class
+2. click `Open Check-in`
+3. display the QR code to students
+
+### Step 10: Student logs in
+
+The student should:
+
+1. open `Digital ID` and confirm it exists
+2. open `Courses` and confirm the course is listed
+3. open `Attendance` to view attendance later
+4. open `Check In`
+5. scan the lecturer QR code
+
+### Step 11: Lecturer reviews attendance
+
+After students check in:
+
+- lecturer can view class records
+- flagged records can be reviewed in `Review Queue`
 
 ---
 
-## Check-in Validation (in order)
+## 12. Main URLs
 
-When a student POSTs to `/attendance/records/checkin`, the server runs these checks:
+### Public / local development URLs
 
-1. **Session active** — `is_active=True` AND `qr_code_expiry > now()`
-2. **Enrolled** — student is enrolled in the session's course for the correct semester/year with status `Enrolled`
-3. **Valid DigitalID** — student has an active, non-expired DigitalID
-4. **No duplicate** — student has not already checked in to this session
-
-If GPS accuracy is `null`, `fraud_flag` is set to `true` automatically.
+| URL | What it is for |
+|---|---|
+| `http://localhost:8000/health` | Quick backend health check |
+| `http://localhost:8000/api/v1/docs` | Swagger UI |
+| `http://localhost:8000/api/v1/redoc` | ReDoc documentation |
+| `http://localhost:8000/api/v1/openapi.json` | API schema used by the frontend client |
 
 ---
 
-## Alembic Migrations
+## 13. Important Backend Commands
 
-```bash
-# After changing a model, generate a migration
-alembic revision --autogenerate -m "describe what changed"
+### Start the API
 
-# Review the generated file in alembic/versions/ before applying
+```powershell
+python main.py
+```
 
-# Apply all pending migrations
+### Apply migrations
+
+```powershell
 alembic upgrade head
+```
 
-# Roll back one step
-alembic downgrade -1
+### Create a new migration after model changes
 
-# Check current revision
+```powershell
+alembic revision --autogenerate -m "describe your change"
+```
+
+### See the current migration version
+
+```powershell
 alembic current
 ```
 
-> Always review auto-generated migrations before running them. Alembic may miss
-> partial indexes and CHECK constraints — add those manually if needed.
+### Roll back one migration
 
----
-
-## Frontend Integration (hey-api)
-
-Every endpoint has `name` (snake_case), `operation_id` (camelCase), and `response_model` set.
-This lets hey-api generate a fully typed TypeScript client directly from the OpenAPI schema:
-
-```bash
-npx @hey-api/openapi-ts \
-  --input http://localhost:8000/openapi.json \
-  --output src/client \
-  --client @hey-api/client-fetch
+```powershell
+alembic downgrade -1
 ```
 
 ---
 
-## Security Notes
+## 14. API Summary
 
-- Passwords hashed with **bcrypt** — never stored in plaintext
-- JWT tokens embed role — no extra DB query per request
-- QR codes expire in **≤ 60 seconds** — prevents screenshot/sharing fraud
-- Duplicate check-ins blocked at both service layer and DB (`UNIQUE` constraint)
-- `fraud_flag` auto-set when GPS accuracy is missing
-- Generic login error message — does not reveal whether email or password was wrong
-- All sensitive events written to the immutable `AuditLog` table
+All backend routes use the prefix:
+
+```text
+/api/v1
+```
+
+### Main route groups
+
+- `/auth`
+- `/users`
+- `/venues`
+- `/courses`
+- `/enrollments`
+- `/digital-ids`
+- `/attendance/sessions`
+- `/attendance/records`
+- `/audit`
+- `/reporting`
 
 ---
 
-## Seeding & Resetting
+## 15. Roles in the System
 
-To completely wipe the database and repopulate it with fresh test data:
+### Student
 
-```bash
+A student can:
+
+- log in
+- scan QR codes
+- view own attendance
+- view own courses
+- view own digital ID
+
+### Lecturer
+
+A lecturer can:
+
+- create classes for assigned courses
+- edit scheduled classes
+- open check-in
+- refresh QR codes
+- finish classes
+- view attendance records
+- review flagged attendance
+
+### Admin
+
+An admin can:
+
+- create users
+- create courses
+- create venues
+- manage enrollments
+- issue digital IDs
+- view audit logs
+
+---
+
+## 16. Security Rules the Backend Enforces
+
+When a student checks in, the backend validates:
+
+1. the class exists and is active
+2. the QR code is valid and not expired
+3. the student is enrolled in that course
+4. the student has an active digital ID
+5. the GPS location is inside the venue geofence
+6. the student has not already checked in
+
+If GPS confidence is weak, the record may be flagged for review.
+
+---
+
+## 17. Reseeding the Database
+
+If you want to reset the database and repopulate it with demo data, use:
+
+```powershell
 python reset_db.py
 ```
 
-This utility performs a schema-level `CASCADE` drop, applies all migrations, and runs both `seed_admin.py` and `seed_data.py`.
+What this script does:
+
+1. drops the current schema
+2. recreates the schema
+3. runs Alembic migrations
+4. seeds the admin account
+5. seeds demo data
+
+### Important note
+
+If you are actively changing models or seed scripts, reseeding may fail until the seed files are updated to match the latest backend structure.
+
+If that happens:
+
+1. read the error carefully
+2. fix the seed script or schema mismatch
+3. run `python reset_db.py` again
 
 ---
 
-## Sample Accounts
+## 18. Sample Accounts
 
-**Password for all generated accounts:** `password123` (except admin)
+If your database has already been seeded, these are the common demo accounts:
 
 ### Admin
-- **Email**: `admin@smartcampus.com`
-- **Password**: `adminpassword123`
 
-### Fixed Test Accounts (Seeder v2)
-- **Lecturer**: `lecturer@smartcampus.com` / `password123`
-- **Student**: `student@smartcampus.com` / `password123`
+- Email: `admin@smartcampus.com`
+- Password: `adminpassword123`
+
+### Lecturer
+
+- Email: `lecturer@smartcampus.com`
+- Password: `password123`
+
+### Student
+
+- Email: `student@smartcampus.com`
+- Password: `password123`
 
 ---
 
-## Advanced Features
+## 19. Common Problems and Fixes
 
-1.  **Geofencing**: Venues contain GPS coordinates and a radius. Check-ins are flagged if the student's location is outside the bounds.
-2.  **Timetable Integration**: Recurring weekly slots are used to automatically populate session metadata.
-3.  **Audit Trail**: Every mutation and authentication event is logged with detailed metadata for security review.
-4.  **QR Rotation**: Lecturers can rotate the QR code during a live session to prevent static image sharing.
+### Problem: `ModuleNotFoundError`
+
+Cause:
+
+- dependencies are not installed
+- virtual environment is not activated
+
+Fix:
+
+```powershell
+.\venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+### Problem: database connection failed
+
+Cause:
+
+- PostgreSQL is not running
+- wrong username or password in `.env`
+- database `smartcampus` was not created
+
+Fix:
+
+1. start PostgreSQL
+2. check `.env`
+3. make sure the database exists
+
+### Problem: `alembic upgrade head` fails
+
+Cause:
+
+- wrong database configuration
+- migration files out of sync
+
+Fix:
+
+1. check `.env`
+2. check PostgreSQL is running
+3. read the exact Alembic error
+
+### Problem: `python main.py` fails
+
+Cause:
+
+- missing package
+- `.env` values not set
+- database import or migration issue
+
+Fix:
+
+1. activate the virtual environment
+2. reinstall requirements if needed
+3. check the error in the terminal
+
+---
+
+## 20. Folder Structure
+
+```text
+backend/
+|-- alembic/
+|-- app/
+|   |-- main.py
+|   `-- modules/
+|       |-- auth/
+|       |-- users/
+|       |-- venues/
+|       |-- courses/
+|       |-- enrollment/
+|       |-- digital_id/
+|       |-- attendance/
+|       |-- audit/
+|       `-- reporting/
+|-- main.py
+|-- reset_db.py
+|-- requirements.txt
+`-- README.md
+```
+
+Inside each module you will usually see:
+
+- `models/` for database tables
+- `schemas/` for request and response shapes
+- `services/` for business logic
+- `api/v1/` for FastAPI routers
+
+---
+
+## 21. Final Advice for a Beginner
+
+Do not try to do everything at once.
+
+Use this order:
+
+1. get PostgreSQL working
+2. create `.env`
+3. run migrations
+4. start backend
+5. open Swagger
+6. test login
+7. test admin setup flow
+8. test lecturer class flow
+9. test student check-in flow
+
+If one step fails, stop there and fix it before moving on.

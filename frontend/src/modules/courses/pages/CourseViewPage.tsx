@@ -94,7 +94,7 @@ export default function CourseViewPage() {
             <div className="col-md-4">
               <div className="metric-card border-0 bg-light-subtle shadow-none p-4">
                 <label className="text-secondary small fw-bold uppercase mb-2">Catalog Integrity</label>
-                <div className="small text-muted">Immutable link to all session history records.</div>
+                <div className="small text-muted">Immutable link to all class history records.</div>
               </div>
             </div>
           </div>

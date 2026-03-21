@@ -9,9 +9,15 @@ import { invalidateQueryId } from '@/utils/queryInvalidation';
 export function useAttendance() {
   const queryClient = useQueryClient();
 
-  const useStudentRecords = (studentId?: number) =>
+  const useStudentRecords = (
+    studentId?: number,
+    query?: Options<ListStudentRecordsData>['query'],
+  ) =>
     useQuery({
-      ...listStudentRecordsOptions({ path: { student_id: studentId! } } as Options<ListStudentRecordsData>),
+      ...listStudentRecordsOptions({
+        path: { student_id: studentId! },
+        query,
+      } as Options<ListStudentRecordsData>),
       enabled: !!studentId,
     });
 

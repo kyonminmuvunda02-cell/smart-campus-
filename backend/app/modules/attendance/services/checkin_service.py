@@ -198,18 +198,49 @@ class CheckInService:
         db: Session, student_id: int, skip: int = 0, limit: int = 20
     ) -> dict:
         """Return all attendance records for a student (their own history)."""
+        from app.modules.courses.models.course import Course
+
         total = db.execute(
             select(sa_func.count()).select_from(AttendanceRecord).where(
                 AttendanceRecord.student_id == student_id
             )
         ).scalar_one()
-        items = db.execute(
-            select(AttendanceRecord)
+
+        rows = db.execute(
+            select(AttendanceRecord, AttendanceSession, Course)
+            .join(AttendanceSession, AttendanceSession.session_id == AttendanceRecord.session_id)
+            .join(Course, Course.course_id == AttendanceSession.course_id)
             .where(AttendanceRecord.student_id == student_id)
             .order_by(AttendanceRecord.checked_in_at.desc())
             .offset(skip)
             .limit(limit)
-        ).scalars().all()
+        ).all()
+
+        items = []
+        for record, session, course in rows:
+            items.append(
+                {
+                    "attendance_id": record.attendance_id,
+                    "session_id": record.session_id,
+                    "student_id": record.student_id,
+                    "device_id": record.device_id,
+                    "gps_latitude": record.gps_latitude,
+                    "gps_longitude": record.gps_longitude,
+                    "gps_accuracy": record.gps_accuracy,
+                    "verification_status": record.verification_status,
+                    "fraud_flag": record.fraud_flag,
+                    "checked_in_at": record.checked_in_at,
+                    "reviewed_by": record.reviewed_by,
+                    "reviewed_at": record.reviewed_at,
+                    "review_note": record.review_note,
+                    "course_id": session.course_id,
+                    "course_label": f"{course.course_code} - {course.course_name}",
+                    "session_type": session.session_type,
+                    "session_start": session.session_start,
+                    "semester": session.semester,
+                    "academic_year": session.academic_year,
+                }
+            )
         return {"items": items, "total": total, "skip": skip, "limit": limit}
 
     @staticmethod

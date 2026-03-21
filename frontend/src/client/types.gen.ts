@@ -467,6 +467,18 @@ export type AttendanceSessionResponse = {
  */
 export type AttendanceSessionUpdate = {
     /**
+     * Course Id
+     */
+    course_id?: number | null;
+    /**
+     * Venue Id
+     */
+    venue_id?: number | null;
+    /**
+     * Session Start
+     */
+    session_start?: Date | null;
+    /**
      * Session End
      */
     session_end?: Date | null;
@@ -482,6 +494,14 @@ export type AttendanceSessionUpdate = {
      * Timetable Slot
      */
     timetable_slot?: string | null;
+    /**
+     * Semester
+     */
+    semester?: string | null;
+    /**
+     * Academic Year
+     */
+    academic_year?: string | null;
 };
 
 /**

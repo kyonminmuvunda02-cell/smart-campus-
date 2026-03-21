@@ -31,7 +31,7 @@ function StudentEnrolledCoursesPanel({ enrollments }: { enrollments: Array<{ cou
     <div className="surface-card">
       <div className="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
         <h3 className="h6 mb-0 fw-bold uppercase tracking-wider text-secondary">Enrolled Courses</h3>
-        <Link to="/my-courses" className="small text-royal fw-bold text-decoration-none">Open My Courses</Link>
+        <Link to="/my-courses" className="small text-royal fw-bold text-decoration-none">Open Courses</Link>
       </div>
       {enrollments.length === 0 ? (
         <EmptyState title="No courses assigned" message="Your course enrollments will appear here once they are registered." />
@@ -79,8 +79,10 @@ function StudentDashboard() {
         tone="royal"
         breadcrumbs={[{ label: 'Home' }, { label: 'Dashboard' }]}
       >
-        <Link to="/checkin"><Button variant="primary"><i className="ti ti-qrcode" />Scan QR</Button></Link>
-        <Link to="/my-courses"><Button variant="outline-secondary"><i className="ti ti-books" />My Courses</Button></Link>
+        <div className="student-dashboard-actions">
+          <Link to="/checkin"><Button variant="primary"><i className="ti ti-qrcode" />Scan QR</Button></Link>
+          <Link to="/my-courses"><Button variant="outline-secondary"><i className="ti ti-books" />Courses</Button></Link>
+        </div>
       </PageHeader>
 
       <div className="row g-4">
@@ -108,11 +110,12 @@ function StudentDashboard() {
         {summary.recent_attendance.length === 0 ? (
           <EmptyState title="No Records Found" message="Scans will appear here as soon as they are captured." />
         ) : (
-          <div className="table-responsive">
-            <table className="table table-hover align-middle mb-0">
+          <>
+            <div className="d-none d-md-block table-responsive">
+              <table className="table table-hover align-middle mb-0">
               <thead className="bg-light-subtle">
                 <tr>
-                  <th className="ps-4 border-0 py-2 small fw-bold text-secondary uppercase">Session Details</th>
+                  <th className="ps-4 border-0 py-2 small fw-bold text-secondary uppercase">Class Details</th>
                   <th className="border-0 py-2 small fw-bold text-secondary uppercase">Timestamp</th>
                   <th className="text-end pe-4 border-0 py-2 small fw-bold text-secondary uppercase">Status</th>
                 </tr>
@@ -135,7 +138,31 @@ function StudentDashboard() {
                 ))}
               </tbody>
             </table>
-          </div>
+            </div>
+            <div className="d-md-none mobile-record-list">
+              {summary.recent_attendance.map((record) => (
+                <div key={record.attendance_id} className="mobile-record-card">
+                  <div className="mobile-record-head">
+                    <div>
+                      <span className="mobile-record-title">{record.course_label}</span>
+                      <span className="mobile-record-meta">{record.session_type}</span>
+                    </div>
+                    <span className={`status-pill ${record.fraud_flag ? 'amber' : 'green'}`}>
+                      <i className={`ti ti-${record.fraud_flag ? 'alert-triangle' : 'circle-check'}`} />
+                      {record.fraud_flag ? 'Flagged' : record.verification_status}
+                    </span>
+                  </div>
+
+                  <div className="detail-list">
+                    <div className="detail-row">
+                      <div className="detail-label">Checked In</div>
+                      <div className="detail-value">{formatDateTime(record.checked_in_at)}</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </div>
     </div>
@@ -148,18 +175,18 @@ function LecturerDashboard() {
   const summary = data?.lecturer;
 
   if (isLoading) return <div className="p-4"><LoadingSkeleton rows={10} /></div>;
-  if (!summary) return <EmptyState icon="ti-mood-empty" title="Lecturer Workspace Unavailable" message="Could not load session data." />;
+  if (!summary) return <EmptyState icon="ti-mood-empty" title="Lecturer Workspace Unavailable" message="Could not load class data." />;
 
   return (
     <div className="stack gap-4">
       <PageHeader
-        title="Session Control"
-        subtitle="Manage live attendance windows and review pending compliance exceptions."
+        title="Class Control"
+        subtitle="Manage live classes and review pending attendance exceptions."
         icon="broadcast"
         tone="teal"
         breadcrumbs={[{ label: 'Home' }, { label: 'Dashboard' }]}
       >
-        <Link to="/sessions/new"><Button variant="primary"><i className="ti ti-plus" />Start Session</Button></Link>
+        <Link to="/sessions/new"><Button variant="primary"><i className="ti ti-plus" />Start Class</Button></Link>
       </PageHeader>
 
       <div className="row g-4">
@@ -173,14 +200,14 @@ function LecturerDashboard() {
           <StatCard tone="amber" icon="shield-exclamation" label="Queue" value={summary.open_review_items} subtitle="High-risk scans pending" />
         </div>
         <div className="col-md-3">
-          <StatCard tone="royal" icon="calendar-event" label="Scheduled" value={summary.upcoming_sessions.length} subtitle="Upcoming teaching sessions" />
+          <StatCard tone="royal" icon="calendar-event" label="Scheduled" value={summary.upcoming_sessions.length} subtitle="Upcoming classes" />
         </div>
       </div>
 
       <div className="row g-4">
         <div className="col-md-7">
           <div className="surface-card h-100">
-            <h3 className="h6 mb-4 fw-bold uppercase tracking-wider text-secondary border-bottom pb-2">Active Broadcasts</h3>
+            <h3 className="h6 mb-4 fw-bold uppercase tracking-wider text-secondary border-bottom pb-2">Active Classes</h3>
             {summary.live_session ? (
               <div className="bg-teal-lt p-4 rounded-3 border border-teal-subtle">
                 <div className="d-flex justify-content-between align-items-center mb-3">
@@ -189,7 +216,7 @@ function LecturerDashboard() {
                     <span className="badge bg-teal">{summary.live_session.session_type}</span>
                   </div>
                   <Link to={`/sessions/${summary.live_session.session_id}`}>
-                    <Button variant="teal" size="sm">Enter Monitor</Button>
+                    <Button variant="teal" size="sm">Open Class</Button>
                   </Link>
                 </div>
                 <div className="row g-2">
@@ -204,28 +231,33 @@ function LecturerDashboard() {
                 </div>
               </div>
             ) : (
-              <EmptyState title="No Live Sessions" message="No attendance windows are currently active." />
+              <EmptyState title="No Live Classes" message="No attendance windows are currently active." />
             )}
           </div>
         </div>
         <div className="col-md-5">
           <div className="surface-card h-100">
             <div className="d-flex justify-content-between align-items-center mb-4 border-bottom pb-2">
-              <h3 className="h6 mb-0 fw-bold uppercase tracking-wider text-secondary">Upcoming Sessions</h3>
+              <h3 className="h6 mb-0 fw-bold uppercase tracking-wider text-secondary">Upcoming Classes</h3>
               <Link to="/sessions" className="smaller text-royal fw-bold">View Full</Link>
             </div>
             {summary.upcoming_sessions.length === 0 ? (
-              <div className="text-center py-4 text-muted small">No scheduled sessions found.</div>
+              <div className="text-center py-4 text-muted small">No scheduled classes found.</div>
             ) : (
               <div className="d-flex flex-column gap-3">
                 {summary.upcoming_sessions.map((session) => (
-                  <div key={session.session_id} className="d-flex align-items-center gap-3 border-bottom pb-2">
+                  <Link
+                    key={session.session_id}
+                    to={`/sessions/${session.session_id}`}
+                    className="d-flex align-items-center gap-3 border-bottom pb-2 text-decoration-none"
+                  >
                     <div className="sb-avatar sm bg-light text-secondary"><i className="ti ti-calendar-event" /></div>
-                    <div>
+                    <div className="flex-grow-1">
                       <strong className="small text-navy d-block">{session.course_label}</strong>
                       <span className="smaller text-muted">{formatDateTime(session.session_start)}</span>
                     </div>
-                  </div>
+                    <i className="ti ti-chevron-right text-secondary smaller" />
+                  </Link>
                 ))}
               </div>
             )}

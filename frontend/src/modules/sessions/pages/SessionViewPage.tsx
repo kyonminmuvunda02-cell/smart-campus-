@@ -87,7 +87,7 @@ export default function SessionViewPage() {
       const qrData = await start.mutateAsync({ path: { session_id: sessionId! } });
       setQrImage(qrData.qr_image_base64);
       setQrExpiry(qrData.qr_code_expiry.toString());
-      showToast('success', 'Attendance started', 'Session is now live.');
+      showToast('success', 'Check-in opened', 'The class is now live for attendance.');
     } catch (err) {
       showToast('danger', 'Error', getErrorMessage(err));
     }
@@ -96,7 +96,7 @@ export default function SessionViewPage() {
   async function handleClose() {
     try {
       await close.mutateAsync({ path: { session_id: sessionId! } });
-      showToast('success', 'Session closed', 'Attendance stopped.');
+      showToast('success', 'Class finished', 'Attendance has been closed for this class.');
       navigate('/sessions');
     } catch (err) {
       showToast('danger', 'Error', getErrorMessage(err));
@@ -115,32 +115,40 @@ export default function SessionViewPage() {
   }
 
   if (isLoading) return <div className="p-4"><LoadingSkeleton rows={10} /></div>;
-  if (!sessionRecord) return <EmptyState title="Session Not Found" message="The teaching session you are looking for does not exist." />;
+  if (!sessionRecord) return <EmptyState title="Class Not Found" message="The class you are looking for does not exist." />;
 
   return (
     <div>
       <PageHeader
-        title={`Session Monitor #${sessionId}`}
+        title={`Class Monitor #${sessionId}`}
         subtitle={`${courseLabel} | ${String(sessionRecord.session_type ?? 'Lecture')}`}
         icon="presentation"
         tone="teal"
         breadcrumbs={[
           { label: 'Teaching Ops', path: '/sessions' },
-          { label: 'Sessions', path: '/sessions' },
+          { label: 'Classes', path: '/sessions' },
           { label: `Monitor #${sessionId}` },
         ]}
       >
         <Link to="/sessions"><Button variant="outline-secondary"><i className="ti ti-arrow-left" />Back</Button></Link>
         {isScheduled ? (
+          <Link to={`/sessions/${sessionId}/edit`}>
+            <Button variant="outline-secondary">
+              <i className="ti ti-edit" />
+              Edit Class
+            </Button>
+          </Link>
+        ) : null}
+        {isScheduled ? (
           <Button variant="primary" onClick={() => void handleStart()} disabled={start.isPending}>
             <i className="ti ti-player-play" />
-            Start Attendance
+            Open Check-in
           </Button>
         ) : null}
         {isLive ? (
           <Button variant="danger" onClick={() => void handleClose()} disabled={close.isPending}>
             <i className="ti ti-player-stop" />
-            Close Session
+            Finish Class
           </Button>
         ) : null}
       </PageHeader>
@@ -174,9 +182,17 @@ export default function SessionViewPage() {
 
               <div className="bg-light-subtle border-top p-3 d-flex gap-2 justify-content-center flex-wrap">
                 {isScheduled ? (
+                  <Link to={`/sessions/${sessionId}/edit`}>
+                    <Button variant="outline-secondary" size="sm">
+                      <i className="ti ti-edit me-1" />
+                      Edit Class
+                    </Button>
+                  </Link>
+                ) : null}
+                {isScheduled ? (
                   <Button variant="primary" size="sm" onClick={() => void handleStart()} disabled={start.isPending}>
                     <i className="ti ti-player-play me-1" />
-                    Start to Generate QR
+                    Open Check-in
                   </Button>
                 ) : null}
                 {isLive ? (
@@ -186,12 +202,12 @@ export default function SessionViewPage() {
                       {showQrImage ? 'Regenerate QR Code' : 'Generate QR Code'}
                     </Button>
                     <Button variant="danger" size="sm" onClick={() => void handleClose()} disabled={close.isPending}>
-                      <i className="ti ti-player-stop me-1" /> Close Session
+                      <i className="ti ti-player-stop me-1" /> Finish Class
                     </Button>
                   </>
                 ) : null}
                 {!isScheduled && !isLive ? (
-                  <span className="small text-secondary fw-medium">This session is closed. QR broadcast controls are no longer available.</span>
+                  <span className="small text-secondary fw-medium">This class is closed. QR broadcast controls are no longer available.</span>
                 ) : null}
               </div>
             </div>
@@ -212,14 +228,14 @@ export default function SessionViewPage() {
                     <i className="ti ti-qrcode fs-1" />
                   </div>
                   <h5 className="mb-2 text-white opacity-75">
-                    {isScheduled ? 'Start to generate QR' : isLive ? 'Generate the current QR' : 'Session Inactive'}
+                    {isScheduled ? 'Open check-in to generate QR' : isLive ? 'Generate the current QR' : 'Class Inactive'}
                   </h5>
                   <div className="small text-white opacity-50">
                     {isScheduled
-                      ? 'Attendance broadcast has not started yet.'
+                      ? 'Attendance broadcast has not started yet for this class.'
                       : isLive
-                        ? 'This live session can issue a fresh QR code on demand.'
-                        : 'Closed sessions do not expose QR broadcast controls.'}
+                        ? 'This live class can issue a fresh QR code on demand.'
+                        : 'Closed classes do not expose QR broadcast controls.'}
                   </div>
                 </>
               )}
@@ -238,11 +254,12 @@ export default function SessionViewPage() {
               <EmptyState
                 icon="ti-users-minus"
                 title="No activity recorded"
-                message={isLive ? 'The broadcast is active but no students have checked in yet.' : 'This session record has no attendance data.'}
+                message={isLive ? 'The broadcast is active but no students have checked in yet.' : 'This class record has no attendance data.'}
               />
             </div>
           ) : (
-            <div className="table-responsive">
+            <>
+            <div className="d-none d-md-block table-responsive">
               <Table hover className="mb-0 border-0">
                 <thead className="bg-light-subtle">
                   <tr>
@@ -285,6 +302,37 @@ export default function SessionViewPage() {
                 </tbody>
               </Table>
             </div>
+            <div className="d-md-none mobile-record-list">
+              {records.map((record) => (
+                <div key={String(record.attendance_id)} className="mobile-record-card">
+                  <div className="mobile-record-head">
+                    <div className="d-flex align-items-center gap-3">
+                      <div className="sb-avatar bg-accent-lt text-accent small">
+                        {studentLookup.get(record.student_id as number)?.slice(0, 2).toUpperCase() || 'ST'}
+                      </div>
+                      <div>
+                        <span className="mobile-record-title">{studentLookup.get(record.student_id as number) || `Student #${record.student_id}`}</span>
+                        <span className="mobile-record-meta">Device: {String(record.device_id ?? 'Unknown').slice(0, 8)}...</span>
+                      </div>
+                    </div>
+                    <span className={`status-pill ${record.fraud_flag ? 'amber' : 'green'}`}>
+                      <i className={`ti ti-${record.fraud_flag ? 'alert-triangle' : 'circle-check'}`} />
+                      {record.fraud_flag ? 'Risk Flagged' : 'Verified'}
+                    </span>
+                  </div>
+
+                  <div className="detail-list">
+                    <div className="detail-row">
+                      <div className="detail-label">Check-in Time</div>
+                      <div className="detail-value mono">
+                        {record.checked_in_at ? new Date(record.checked_in_at as string).toLocaleTimeString() : '-'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            </>
           )}
         </div>
 
@@ -311,7 +359,7 @@ export default function SessionViewPage() {
                   <i className="ti ti-calendar-time" />
                 </div>
                 <div>
-                  <div className="fw-bold text-navy">{String(sessionRecord.session_type ?? 'Lecture')} session</div>
+                  <div className="fw-bold text-navy">{String(sessionRecord.session_type ?? 'Lecture')} class</div>
                   <div className="small text-muted">{String(sessionRecord.semester ?? 'Current Semester')} | {String(sessionRecord.academic_year ?? 'Current Year')}</div>
                 </div>
               </div>

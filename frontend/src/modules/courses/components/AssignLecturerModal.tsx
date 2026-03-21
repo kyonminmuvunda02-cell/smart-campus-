@@ -41,7 +41,7 @@ export default function AssignLecturerModal({ show, onHide, courseId }: AssignLe
           lecturer_id: Number(selectedLecturerId),
         },
       });
-      showToast('success', 'Lecturer Assigned', 'The lecturer can now manage sessions for this course.');
+      showToast('success', 'Lecturer Assigned', 'The lecturer can now manage classes for this course.');
       setSelectedLecturerId('');
       onHide();
     } catch (err) {
@@ -63,7 +63,7 @@ export default function AssignLecturerModal({ show, onHide, courseId }: AssignLe
               <label className="field-label mb-0">Select Lecturer</label>
               <OverlayTrigger
                 placement="right"
-                overlay={<Tooltip>Assigning a lecturer grants them access to create sessions and manage attendance.</Tooltip>}
+                overlay={<Tooltip>Assigning a lecturer grants them access to create classes and manage attendance.</Tooltip>}
               >
                 <i className="ti ti-info-circle text-secondary cursor-help" />
               </OverlayTrigger>

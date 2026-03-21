@@ -762,6 +762,40 @@ export const AttendanceSessionResponseSchema = {
 
 export const AttendanceSessionUpdateSchema = {
     properties: {
+        course_id: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Course Id'
+        },
+        venue_id: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Venue Id'
+        },
+        session_start: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Session Start'
+        },
         session_end: {
             anyOf: [
                 {
@@ -807,6 +841,28 @@ export const AttendanceSessionUpdateSchema = {
                 }
             ],
             title: 'Timetable Slot'
+        },
+        semester: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Semester'
+        },
+        academic_year: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Academic Year'
         }
     },
     type: 'object',

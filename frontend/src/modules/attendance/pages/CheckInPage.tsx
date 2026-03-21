@@ -125,12 +125,22 @@ export default function CheckInPage() {
                   <i className="ti ti-qrcode fs-1 opacity-25 mb-3" />
                   <h4 className="h5 fw-bold mb-3">Secure Scanner</h4>
                   <div className="d-flex flex-column gap-2">
-                    <Button variant="teal" onClick={() => void startScanner()} disabled={scannerState === 'starting'}>
+                    <Button
+                      variant="light"
+                      className="scanner-launch-btn"
+                      onClick={() => void startScanner()}
+                      disabled={scannerState === 'starting'}
+                    >
                       {scannerState === 'starting' ? <Spinner size="sm" /> : <i className="ti ti-camera me-2" />}
                       Start Live Camera
                     </Button>
                     <span className="smaller opacity-50">OR</span>
-                    <Button variant="outline-light" size="sm" onClick={() => fileInputRef.current?.click()}>
+                    <Button
+                      variant="outline-light"
+                      size="sm"
+                      className="scanner-upload-btn"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
                       <i className="ti ti-photo-up me-2" />Upload QR Image
                     </Button>
                   </div>
@@ -158,8 +168,8 @@ export default function CheckInPage() {
                     <i className={`ti ti-${state === 'success' ? 'check' : 'scan'}`} />
                   </div>
                   <div className="flex-grow-1">
-                    <strong className="small d-block">{state === 'success' ? 'Session Recognized' : 'Awaiting Scan'}</strong>
-                    <span className="smaller opacity-75">{qrPayload ? 'Payload Decoded' : 'Point camera at classroom QR'}</span>
+                    <strong className="small d-block">{state === 'success' ? 'Class Recognized' : 'Awaiting Scan'}</strong>
+                    <span className="smaller opacity-75">{qrPayload ? 'Payload Decoded' : 'Point camera at class QR'}</span>
                   </div>
                 </div>
 
@@ -192,7 +202,7 @@ export default function CheckInPage() {
                    <div className="p-4 text-center bg-green text-white rounded-3 shadow-sm border-0">
                     <i className="ti ti-circle-check fs-1 mb-2" />
                     <h4 className="h5 fw-bold mb-1">Attendance Secured</h4>
-                    <p className="smaller mb-0 opacity-75">Your identity, device, and location have been bound to this session.</p>
+                    <p className="smaller mb-0 opacity-75">Your identity, device, and location have been bound to this class.</p>
                   </div>
                 )}
               </div>

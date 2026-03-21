@@ -54,10 +54,15 @@ class AttendanceSessionCreate(AttendanceSessionBase):
 
 
 class AttendanceSessionUpdate(BaseModel):
+    course_id: int | None = None
+    venue_id: int | None = None
+    session_start: datetime | None = None
     session_end: datetime | None = None
     is_active: bool | None = None
     session_type: str | None = None
     timetable_slot: str | None = Field(None, max_length=100)
+    semester: str | None = None
+    academic_year: str | None = None
 
     @field_validator("session_type")
     @classmethod
@@ -67,6 +72,27 @@ class AttendanceSessionUpdate(BaseModel):
         allowed = {"Lecture", "Tutorial", "Lab", "Seminar", "Exam", "Other"}
         if v not in allowed:
             raise ValueError(f"session_type must be one of: {allowed}")
+        return v
+
+    @field_validator("semester")
+    @classmethod
+    def validate_semester(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        if v not in {"Semester 1", "Semester 2"}:
+            raise ValueError("semester must be 'Semester 1' or 'Semester 2'")
+        return v
+
+    @field_validator("academic_year")
+    @classmethod
+    def validate_academic_year(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        if not re.match(r"^\d{4}/\d{4}$", v):
+            raise ValueError("academic_year must be in format YYYY/YYYY")
+        first, second = int(v[:4]), int(v[5:])
+        if second != first + 1:
+            raise ValueError("academic_year years must be consecutive e.g. 2025/2026")
         return v
 
 
@@ -127,6 +153,12 @@ class AttendanceRecordResponse(BaseModel):
     reviewed_by: int | None = None
     reviewed_at: datetime | None = None
     review_note: str | None = None
+    course_id: int | None = None
+    course_label: str | None = None
+    session_type: str | None = None
+    session_start: datetime | None = None
+    semester: str | None = None
+    academic_year: str | None = None
 
 
 class AttendanceRecordList(BaseModel):

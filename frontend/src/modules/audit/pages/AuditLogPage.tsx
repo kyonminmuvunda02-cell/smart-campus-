@@ -124,7 +124,8 @@ export default function AuditLogPage() {
         {filteredLogs.length === 0 ? (
           <div className="p-5"><EmptyState title="No Evidence" message="No audit logs match the current filters." /></div>
         ) : (
-          <div className="table-responsive">
+          <>
+          <div className="d-none d-md-block table-responsive">
             <Table hover className="mb-0 border-0">
                <thead className="bg-light-subtle text-secondary small fw-bold uppercase tracking-wider">
                 <tr>
@@ -178,6 +179,56 @@ export default function AuditLogPage() {
               </tbody>
             </Table>
           </div>
+          <div className="d-md-none p-3">
+            <div className="mobile-record-list">
+              {filteredLogs.map((l) => {
+                const s = classifyAuditAction(String(l.action));
+                const dest = getAuditDestination(String(l.table_name), Number(l.record_id));
+
+                return (
+                  <div key={String(l.log_id)} className="mobile-record-card">
+                    <div className="mobile-record-head">
+                      <div>
+                        <span className="mobile-record-title">{String(l.action)}</span>
+                        <span className="mobile-record-meta">{new Date(String(l.created_at)).toLocaleString()}</span>
+                      </div>
+                      <span className={`status-pill ${getAuditTone(s)}`}>
+                        <i className={`ti ti-${s === 'Auth' ? 'key' : s === 'Mutation' ? 'edit' : s === 'Attendance' ? 'user-check' : 'circle'}`} />
+                        {s}
+                      </span>
+                    </div>
+
+                    <div className="detail-list">
+                      <div className="detail-row">
+                        <div className="detail-label">Actor</div>
+                        <div className="detail-value">{l.user_id ? (userLookup.get(Number(l.user_id)) ?? `User #${String(l.user_id)}`) : 'System Account'}</div>
+                      </div>
+                      <div className="detail-row">
+                        <div className="detail-label">Entity</div>
+                        <div className="detail-value">{String(l.table_name ?? 'Global')}</div>
+                      </div>
+                      <div className="detail-row">
+                        <div className="detail-label">Detail</div>
+                        <div className="detail-value">{String(l.detail ?? 'No detail')}</div>
+                      </div>
+                    </div>
+
+                    {dest ? (
+                      <div className="mobile-record-actions">
+                        <Link to={dest}>
+                          <Button variant="outline-secondary" size="sm">
+                            <i className="ti ti-external-link" />
+                            Open Record
+                          </Button>
+                        </Link>
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          </>
         )}
       </div>
     </div>

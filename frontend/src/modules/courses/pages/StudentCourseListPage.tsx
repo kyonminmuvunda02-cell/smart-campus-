@@ -62,11 +62,11 @@ export default function StudentCourseListPage() {
   return (
     <div className="stack gap-4">
       <PageHeader
-        title="My Courses"
+        title="Courses"
         subtitle="Courses you are currently or historically enrolled in, grouped by academic period."
         icon="books"
         tone="royal"
-        breadcrumbs={[{ label: 'Home', path: '/' }, { label: 'My Courses' }]}
+        breadcrumbs={[{ label: 'Home', path: '/' }, { label: 'Courses' }]}
       />
 
       <div className="row g-4">
@@ -143,7 +143,8 @@ export default function StudentCourseListPage() {
             />
           </div>
         ) : (
-          <div className="table-responsive">
+          <>
+          <div className="d-none d-md-block table-responsive">
             <Table hover className="mb-0 border-0">
               <thead className="bg-light-subtle">
                 <tr>
@@ -194,6 +195,45 @@ export default function StudentCourseListPage() {
               </tbody>
             </Table>
           </div>
+          <div className="d-md-none p-3">
+            <div className="mobile-record-list">
+              {paginatedCourses.map(({ enrollment, course }) => {
+                const department = String(course?.department ?? 'General Studies');
+                const departmentTone = getDepartmentTone(department);
+                const status = String(enrollment.enrollment_status ?? 'Enrolled');
+                const statusTone = status === 'Completed' ? 'teal' : status === 'Dropped' ? 'amber' : 'green';
+
+                return (
+                  <div key={`${enrollment.student_id}-${enrollment.course_id}-${enrollment.semester}-${enrollment.academic_year}`} className="mobile-record-card">
+                    <div className="mobile-record-head">
+                      <div>
+                        <span className="mobile-record-title">{String(course?.course_name ?? `Course #${enrollment.course_id}`)}</span>
+                        <span className="mobile-record-meta mono">{String(course?.course_code ?? enrollment.course_id)}</span>
+                      </div>
+                      <span className={`status-pill ${statusTone}`}>
+                        <i className={`ti ti-${status === 'Completed' ? 'award' : status === 'Dropped' ? 'player-pause' : 'circle-check'}`} />
+                        {status}
+                      </span>
+                    </div>
+
+                    <div className="detail-list">
+                      <div className="detail-row">
+                        <div className="detail-label">Department</div>
+                        <div className="detail-value">
+                          <span className={`status-pill ${departmentTone}`}>{department}</span>
+                        </div>
+                      </div>
+                      <div className="detail-row">
+                        <div className="detail-label">Academic Period</div>
+                        <div className="detail-value">{String(enrollment.semester)} | {String(enrollment.academic_year)}</div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          </>
         )}
 
         {filteredCourses.length > PAGE_SIZE ? (

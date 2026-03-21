@@ -47,16 +47,16 @@ export default function SessionListPage() {
   return (
     <div>
       <PageHeader
-        title="Attendance Sessions"
-        subtitle="Manage live teaching windows and historical attendance data for all academic units."
+        title="Classes"
+        subtitle="Manage live classes and the attendance records attached to them."
         icon="calendar-event"
         tone="teal"
-        breadcrumbs={[{ label: 'Teaching Ops' }, { label: 'Sessions' }]}
+        breadcrumbs={[{ label: 'Teaching Ops' }, { label: 'Classes' }]}
       >
         <Link to="/sessions/new">
           <Button variant="primary">
             <i className="ti ti-plus" />
-            Schedule Session
+            Start Class
           </Button>
         </Link>
       </PageHeader>
@@ -90,7 +90,7 @@ export default function SessionListPage() {
             <div className="surface-card p-3 shadow-sm border-0 bg-teal text-white d-flex align-items-center justify-content-between">
               <div>
                 <span className="small fw-bold uppercase opacity-75">Operational Integrity</span>
-                <p className="mb-0 small">Attendance data is cryptographically bound to the session QR and your venue's geofence.</p>
+                <p className="mb-0 small">Attendance data is cryptographically bound to the class QR and your venue's geofence.</p>
               </div>
               <i className="ti ti-shield-check fs-1 opacity-25" />
             </div>
@@ -99,9 +99,9 @@ export default function SessionListPage() {
 
         <div className="surface-card p-0 overflow-hidden shadow-sm border-0 mb-4">
           <div className="px-4 py-3 border-bottom d-flex align-items-center justify-content-between bg-light-subtle">
-            <h3 className="h6 mb-0 fw-bold uppercase tracking-wider text-secondary">Session Registry</h3>
+            <h3 className="h6 mb-0 fw-bold uppercase tracking-wider text-secondary">Class Register</h3>
             <div className="text-secondary small fw-medium">
-              {sessions.length} Total Sessions
+              {sessions.length} Total Classes
             </div>
           </div>
 
@@ -109,16 +109,17 @@ export default function SessionListPage() {
             <div className="p-4"><LoadingSkeleton rows={10} columns={6} /></div>
           ) : sessions.length === 0 ? (
             <div className="p-5">
-              <EmptyState icon="ti-calendar-off" title="No Sessions Found" message="Schedule your first session to begin tracking attendance.">
-                <Link to="/sessions/new"><Button variant="primary">Schedule Session</Button></Link>
+              <EmptyState icon="ti-calendar-off" title="No Classes Found" message="Create your first class to begin tracking attendance.">
+                <Link to="/sessions/new"><Button variant="primary">Start Class</Button></Link>
               </EmptyState>
             </div>
           ) : (
-            <div className="table-responsive">
+            <>
+            <div className="d-none d-md-block table-responsive">
               <Table hover className="mb-0 border-0">
                 <thead className="bg-light-subtle">
                   <tr>
-                    <th className="ps-4 border-0 py-3 small fw-bold text-secondary uppercase tracking-wider">Session</th>
+                    <th className="ps-4 border-0 py-3 small fw-bold text-secondary uppercase tracking-wider">Class</th>
                     <th className="border-0 py-3 small fw-bold text-secondary uppercase tracking-wider">Course & Venue</th>
                     <th className="border-0 py-3 small fw-bold text-secondary uppercase tracking-wider">Academic Period</th>
                     <th className="border-0 py-3 small fw-bold text-secondary uppercase tracking-wider">Status</th>
@@ -167,11 +168,20 @@ export default function SessionListPage() {
                           {s.session_start ? new Date(s.session_start as string).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : '-'}
                         </td>
                         <td className="text-end pe-4 py-3">
-                          <Link to={`/sessions/${s.session_id}`}>
-                            <Button variant="outline-secondary" size="sm" className="border-0 shadow-none">
-                              <i className="ti ti-eye fs-5" />
-                            </Button>
-                          </Link>
+                          <div className="d-flex gap-1 justify-content-end">
+                            <Link to={`/sessions/${s.session_id}`}>
+                              <Button variant="outline-secondary" size="sm" className="border-0 shadow-none">
+                                <i className="ti ti-eye fs-5" />
+                              </Button>
+                            </Link>
+                            {state.label === 'Scheduled' ? (
+                              <Link to={`/sessions/${s.session_id}/edit`}>
+                                <Button variant="outline-secondary" size="sm" className="border-0 shadow-none">
+                                  <i className="ti ti-edit fs-5" />
+                                </Button>
+                              </Link>
+                            ) : null}
+                          </div>
                         </td>
                       </tr>
                     );
@@ -179,6 +189,68 @@ export default function SessionListPage() {
                 </tbody>
               </Table>
             </div>
+
+            <div className="d-md-none p-3">
+              <div className="mobile-record-list">
+                {paginatedSessions.map((s) => {
+                  const state = getSessionState(s);
+                  const courseName = String(courseLookup.get(s.course_id as number) ?? `Course #${String(s.course_id)}`);
+                  const venueName = String(venueLookup.get(s.venue_id as number) ?? `Venue #${String(s.venue_id)}`);
+
+                  return (
+                    <div key={s.session_id as number} className="mobile-record-card">
+                      <div className="mobile-record-head">
+                        <div>
+                          <span className="mobile-record-title">{courseName}</span>
+                          <span className="mobile-record-meta">
+                            Class #{String(s.session_id)} • {String(s.session_type ?? 'Lecture')}
+                          </span>
+                        </div>
+                        <span className={`status-pill ${state.tone}`}>
+                          <i className={`ti ti-${state.icon}`} />
+                          {state.label}
+                        </span>
+                      </div>
+
+                      <div className="detail-list">
+                        <div className="detail-row">
+                          <div className="detail-label">Venue</div>
+                          <div className="detail-value">{venueName}</div>
+                        </div>
+                        <div className="detail-row">
+                          <div className="detail-label">Academic Period</div>
+                          <div className="detail-value">{String(s.semester ?? 'Current Semester')} | {String(s.academic_year ?? 'Current Year')}</div>
+                        </div>
+                        <div className="detail-row">
+                          <div className="detail-label">Start Time</div>
+                          <div className="detail-value">
+                            {s.session_start ? new Date(s.session_start as string).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : '-'}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mobile-record-actions">
+                        <Link to={`/sessions/${s.session_id}`}>
+                          <Button variant="outline-secondary" size="sm">
+                            <i className="ti ti-eye" />
+                            Open
+                          </Button>
+                        </Link>
+                        {state.label === 'Scheduled' ? (
+                          <Link to={`/sessions/${s.session_id}/edit`}>
+                            <Button variant="outline-secondary" size="sm">
+                              <i className="ti ti-edit" />
+                              Edit
+                            </Button>
+                          </Link>
+                        ) : null}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            </>
           )}
 
           {sessions.length > pageSize && (

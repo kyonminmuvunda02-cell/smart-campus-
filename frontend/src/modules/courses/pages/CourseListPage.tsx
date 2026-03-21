@@ -50,7 +50,7 @@ export default function CourseListPage() {
     <div>
       <PageHeader
         title="Course Catalog"
-        subtitle="Academic records governing teaching assignments and session history."
+        subtitle="Academic records governing teaching assignments and class history."
         icon="books"
         tone="green"
         breadcrumbs={[{ label: 'Administration', path: '/courses' }, { label: 'Courses' }]}
@@ -90,7 +90,7 @@ export default function CourseListPage() {
             <div className="surface-card p-3 shadow-sm border-0 bg-green text-white d-flex align-items-center justify-content-between">
               <div>
                 <span className="small fw-bold uppercase opacity-75">Catalog Integrity</span>
-                <p className="mb-0 small">Course records are immutable once sessions are attached to ensure reporting accuracy.</p>
+                <p className="mb-0 small">Course records are immutable once classes are attached to ensure reporting accuracy.</p>
               </div>
               <i className="ti ti-shield-check fs-1 opacity-25" />
             </div>
@@ -129,7 +129,8 @@ export default function CourseListPage() {
               <EmptyState icon="ti-filter-off" title="No Results Found" message="Try searching for a different course code or department." />
             </div>
           ) : (
-            <div className="table-responsive">
+            <>
+            <div className="d-none d-md-block table-responsive">
               <Table hover className="mb-0 border-0">
                 <thead className="bg-light-subtle">
                   <tr>
@@ -184,6 +185,57 @@ export default function CourseListPage() {
                 </tbody>
               </Table>
             </div>
+
+            <div className="d-md-none p-3">
+              <div className="mobile-record-list">
+                {paginatedCourses.map((c) => {
+                  const department = String(c.department ?? 'N/A');
+                  const departmentTone = getDepartmentTone(department);
+
+                  return (
+                    <div key={c.course_id} className="mobile-record-card">
+                      <div className="mobile-record-head">
+                        <div className="d-flex align-items-center gap-3">
+                          <div className="sb-avatar bg-green-lt text-green mono small fw-bold">
+                            {String(c.course_code ?? '??').slice(0, 2)}
+                          </div>
+                          <div>
+                            <span className="mobile-record-title">{String(c.course_name ?? 'Unnamed Course')}</span>
+                            <span className="mobile-record-meta mono">{String(c.course_code ?? '-')}</span>
+                          </div>
+                        </div>
+                        <span className={`status-pill ${departmentTone}`}>{department}</span>
+                      </div>
+
+                      <div className="detail-list">
+                        <div className="detail-row">
+                          <div className="detail-label">Credits</div>
+                          <div className="detail-value mono">{Number(c.credits ?? 0)} UNIT</div>
+                        </div>
+                      </div>
+
+                      <div className="mobile-record-actions">
+                        <Link to={`/courses/${c.course_id}`}>
+                          <Button variant="outline-secondary" size="sm">
+                            <i className="ti ti-eye" />
+                            Open
+                          </Button>
+                        </Link>
+                        <Button
+                          variant="outline-secondary"
+                          size="sm"
+                          onClick={() => handleEdit(Number(c.course_id))}
+                        >
+                          <i className="ti ti-edit" />
+                          Edit
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            </>
           )}
 
           {filteredCourses.length > pageSize && (

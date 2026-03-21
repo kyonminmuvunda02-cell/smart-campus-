@@ -226,21 +226,39 @@ class AttendanceSessionService:
     def update_session(
         db: Session, session_id: int, data: AttendanceSessionUpdate
     ) -> AttendanceSession:
-        """Update mutable session fields (session_end, is_active).
+        """Update a scheduled class before attendance goes live."""
+        from app.modules.courses.services.course_service import CourseService
+        from app.modules.venues.services.venue_service import VenueService
 
-        Identity fields are immutable after creation.
-        """
         session = AttendanceSessionService.get_session(db, session_id)
+
+        now = datetime.now(timezone.utc)
+        if session.is_active or session.session_start <= now:
+            raise ForbiddenException("Only scheduled classes can be edited")
+        if data.is_active is not None:
+            raise ForbiddenException("Use the start or close actions to change class activity")
+
+        next_course_id = data.course_id if data.course_id is not None else session.course_id
+        next_venue_id = data.venue_id if data.venue_id is not None else session.venue_id
+        next_start = data.session_start if data.session_start is not None else session.session_start
         next_end = data.session_end if data.session_end is not None else session.session_end
-        # Even a simple end-time extension can create overlaps, so re-run the shared schedule guard.
+
+        if next_end <= next_start:
+            raise ConflictException("Class end time must be after the start time")
+
+        CourseService.assert_lecturer_assigned(db, session.lecturer_id, next_course_id)
+        venue = VenueService.get_venue(db, next_venue_id)
+        VenueService.require_geofence(venue)
+
         AttendanceSessionService._assert_no_schedule_conflict(
             db,
             lecturer_id=session.lecturer_id,
-            venue_id=session.venue_id,
-            session_start=session.session_start,
+            venue_id=next_venue_id,
+            session_start=next_start,
             session_end=next_end,
             exclude_session_id=session.session_id,
         )
+
         for field, value in data.model_dump(exclude_unset=True).items():
             setattr(session, field, value)
         db.flush()

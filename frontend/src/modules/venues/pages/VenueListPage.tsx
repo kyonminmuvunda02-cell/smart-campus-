@@ -134,12 +134,13 @@ export default function VenueListPage() {
             <div className="p-4"><LoadingSkeleton rows={10} columns={5} /></div>
           ) : venues.length === 0 ? (
             <div className="p-5">
-              <EmptyState icon="ti-building-off" title="No Venues Yet" message="Add campus buildings and classrooms to enable session scheduling.">
+              <EmptyState icon="ti-building-off" title="No Venues Yet" message="Add campus buildings and classrooms to enable class scheduling.">
                 <Link to="/venues/new"><Button variant="primary">Add Venue</Button></Link>
               </EmptyState>
             </div>
           ) : (
-            <div className="table-responsive">
+            <>
+            <div className="d-none d-md-block table-responsive">
               <Table hover className="mb-0 border-0">
                 <thead className="bg-light-subtle">
                   <tr>
@@ -201,6 +202,67 @@ export default function VenueListPage() {
                 </tbody>
               </Table>
             </div>
+
+            <div className="d-md-none p-3">
+              <div className="mobile-record-list">
+                {paginatedVenues.map((v) => {
+                  const capacity = Number(v.capacity ?? 0);
+                  const band = getCapacityBand(capacity);
+                  const isGeofenced = [v.latitude, v.longitude, v.radius_meters].every((val) => val !== null && val !== undefined);
+
+                  return (
+                    <div key={v.venue_id as number} className="mobile-record-card">
+                      <div className="mobile-record-head">
+                        <div className="d-flex align-items-center gap-3">
+                          <div className={`sb-avatar ${band === 'Large' ? 'bg-amber-lt text-amber' : band === 'Medium' ? 'bg-teal-lt text-teal' : 'bg-royal-lt text-royal'} small fw-bold`}>
+                            {String(v.venue_name ?? '??').slice(0, 2).toUpperCase()}
+                          </div>
+                          <div>
+                            <span className="mobile-record-title">{String(v.venue_name ?? 'Unnamed')}</span>
+                            <span className="mobile-record-meta">Venue ID: {String(v.venue_id ?? '-')}</span>
+                          </div>
+                        </div>
+                        <span className={`status-pill ${isGeofenced ? 'green' : 'amber'}`}>
+                          <i className={`ti ti-${isGeofenced ? 'map-pin-check' : 'map-pin-question'}`} />
+                          {isGeofenced ? 'Verified' : 'Incomplete'}
+                        </span>
+                      </div>
+
+                      <div className="detail-list">
+                        <div className="detail-row">
+                          <div className="detail-label">Building</div>
+                          <div className="detail-value">{String(v.building ?? 'Main Campus')}</div>
+                        </div>
+                        <div className="detail-row">
+                          <div className="detail-label">Capacity</div>
+                          <div className="detail-value mono">{capacity}</div>
+                        </div>
+                        <div className="detail-row">
+                          <div className="detail-label">Scale</div>
+                          <div className="detail-value">{band}</div>
+                        </div>
+                      </div>
+
+                      <div className="mobile-record-actions">
+                        <Link to={`/venues/${v.venue_id}`}>
+                          <Button variant="outline-secondary" size="sm">
+                            <i className="ti ti-eye" />
+                            Open
+                          </Button>
+                        </Link>
+                        <Link to={`/venues/${v.venue_id}/edit`}>
+                          <Button variant="outline-secondary" size="sm">
+                            <i className="ti ti-edit" />
+                            Edit
+                          </Button>
+                        </Link>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            </>
           )}
 
           {filteredVenues.length > pageSize && (
