@@ -55,56 +55,22 @@ export default function CourseFormPage() {
   return (
     <div>
       <PageHeader
-        eyebrow="Administration"
         title={isEditing ? 'Edit course' : 'Create course'}
         subtitle={isEditing ? `Refining ${String(currentCourse?.course_code ?? '')}` : 'Add a new course to the academic catalog.'}
         icon="books"
         tone="green"
+        breadcrumbs={[
+          { label: 'Administration', path: '/courses' },
+          { label: 'Courses', path: '/courses' },
+          { label: isEditing ? 'Edit' : 'Create' }
+        ]}
       >
         <Link to="/courses">
           <Button variant="outline-secondary"><i className="ti ti-arrow-left" />Back to catalog</Button>
         </Link>
       </PageHeader>
 
-      <div className="ops-grid">
-        <div className="stack">
-          <div className="surface-card section-card">
-            <div className="section-title">
-              <div>
-                <h3>Catalog guidance</h3>
-                <div className="section-subtle">Create records that are clear enough to survive scheduling, enrollment, and reporting.</div>
-              </div>
-              <span className="status-pill green"><i className="ti ti-book" />Catalog entry</span>
-            </div>
-
-            <div className="detail-list">
-              <div className="detail-row">
-                <span className="detail-label">Code format</span>
-                <span className="detail-value mono">CS301 style</span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-label">Department</span>
-                <span className="detail-value">Owning academic unit</span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-label">Credits</span>
-                <span className="detail-value">Use the approved load</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="callout-panel green">
-            <i className="ti ti-sitemap" style={{ color: 'var(--green)' }} />
-            <div>
-              <div className="callout-title">Bad catalog data spreads fast</div>
-              <div className="callout-copy">
-                If this record is vague or inconsistent, lecturers, enrollments, and attendance dashboards inherit the confusion immediately.
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="surface-card section-card">
+      <div className="surface-card p-4 shadow-sm border-0">
           <div className="section-title">
             <div>
               <h3>{isEditing ? 'Update course record' : 'New course record'}</h3>
@@ -168,7 +134,6 @@ export default function CourseFormPage() {
             </div>
           </Form>
         </div>
-      </div>
     </div>
   );
 }

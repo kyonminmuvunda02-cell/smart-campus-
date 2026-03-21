@@ -6,7 +6,7 @@ import { useAuth } from '@/modules/auth/context/AuthProvider';
 
 function getBottomNav(role: 'Student' | 'Lecturer' | 'Admin' | null) {
   const items = getVisibleNavItems(role);
-  if (role === 'Student') return items.filter((item) => ['/', '/checkin', '/my-attendance', '/my-digital-id'].includes(item.to));
+  if (role === 'Student') return items.filter((item) => ['/', '/checkin', '/my-courses', '/my-attendance', '/my-digital-id'].includes(item.to));
   if (role === 'Lecturer') return items.filter((item) => ['/', '/sessions', '/sessions/new'].includes(item.to));
   if (role === 'Admin') return items.filter((item) => ['/', '/users', '/courses', '/audit'].includes(item.to));
   return items.filter((item) => item.to === '/');

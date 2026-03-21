@@ -101,7 +101,6 @@ from app.modules.enrollment.api.v1.enrollment_router import router as enrollment
 from app.modules.digital_id.api.v1.digital_id_router import router as digital_id_router
 from app.modules.attendance.api.v1.session_router import router as session_router
 from app.modules.attendance.api.v1.record_router import router as record_router
-from app.modules.attendance.api.v1.timetable_router import router as timetable_router
 from app.modules.audit.api.v1.audit_router import router as audit_router
 from app.modules.reporting.api.v1.reporting_router import router as reporting_router
 
@@ -115,7 +114,6 @@ app.include_router(enrollment_router,  prefix=PREFIX)
 app.include_router(digital_id_router,  prefix=PREFIX)
 app.include_router(session_router,     prefix=PREFIX)
 app.include_router(record_router,      prefix=PREFIX)
-app.include_router(timetable_router,   prefix=PREFIX)
 app.include_router(audit_router,       prefix=PREFIX)
 app.include_router(reporting_router,   prefix=PREFIX)
 

@@ -15,6 +15,7 @@ import type {
   GetCourseData,
   ListCourseAssignmentsData,
 } from '@/client';
+import { invalidateQueryId, invalidateQueryIds } from '@/utils/queryInvalidation';
 
 export function useCourse() {
   const queryClient = useQueryClient();
@@ -36,33 +37,27 @@ export function useCourse() {
 
   const create = useMutation({
     ...createCourseMutation(),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['listCourses'] }),
+    onSuccess: () => invalidateQueryId(queryClient, 'listCourses'),
   });
 
   const update = useMutation({
     ...updateCourseMutation(),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['listCourses'] }),
+    onSuccess: () => invalidateQueryId(queryClient, 'listCourses'),
   });
 
   const remove = useMutation({
     ...deleteCourseMutation(),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['listCourses'] }),
+    onSuccess: () => invalidateQueryId(queryClient, 'listCourses'),
   });
 
   const assignLecturer = useMutation({
     ...assignLecturerToCourseMutation(),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['listCourses'] });
-      queryClient.invalidateQueries({ queryKey: ['listCourseAssignments'] });
-    },
+    onSuccess: () => invalidateQueryIds(queryClient, ['listCourses', 'listCourseAssignments']),
   });
 
   const removeLecturer = useMutation({
     ...removeLecturerFromCourseMutation(),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['listCourses'] });
-      queryClient.invalidateQueries({ queryKey: ['listCourseAssignments'] });
-    },
+    onSuccess: () => invalidateQueryIds(queryClient, ['listCourses', 'listCourseAssignments']),
   });
 
   return { useList, useDetail, useAssignments, create, update, remove, assignLecturer, removeLecturer };

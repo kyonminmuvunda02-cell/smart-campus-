@@ -102,11 +102,9 @@ export default function UserFormPage() {
         </Link>
       </PageHeader>
 
-      <Row className="justify-content-center">
-        <Col md={8} lg={6}>
-          <Card className="border-0 shadow-sm">
-            <Card.Body className="p-4">
-              <ErrorAlert error={state.error} dismissible />
+      <Card className="border-0 shadow-sm">
+        <Card.Body className="p-4">
+          <ErrorAlert error={state.error} dismissible />
 
               <Form action={formAction}>
                 <Row className="g-3 mb-3">
@@ -241,10 +239,8 @@ export default function UserFormPage() {
                   </Button>
                 </div>
               </Form>
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
+        </Card.Body>
+      </Card>
     </div>
   );
 }

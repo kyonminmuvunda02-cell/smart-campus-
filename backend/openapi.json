@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Smart Campus Attendance API",
-    "description": "Digital ID and Attendance Tracking System — Cavendish University Zambia.\n\n**Authentication:** All protected endpoints require a `Bearer` JWT token obtained from `POST /api/v1/auth/login`.\n\n**RBAC:** Three roles — `Student`, `Lecturer`, `Admin`. The role is embedded in the JWT at login; no extra DB query per request.",
+    "description": "Digital ID and Attendance Tracking System \u2014 Cavendish University Zambia.\n\n**Authentication:** All protected endpoints require a `Bearer` JWT token obtained from `POST /api/v1/auth/login`.\n\n**RBAC:** Three roles \u2014 `Student`, `Lecturer`, `Admin`. The role is embedded in the JWT at login; no extra DB query per request.",
     "version": "1.0.0"
   },
   "paths": {
@@ -12,7 +12,7 @@
           "health"
         ],
         "summary": "Health Check",
-        "description": "Liveness probe — reports DB connectivity and module status.",
+        "description": "Liveness probe \u2014 reports DB connectivity and module status.",
         "operationId": "health_check_health_get",
         "responses": {
           "200": {
@@ -23,7 +23,8 @@
               }
             }
           }
-        }
+        },
+        "security": []
       }
     },
     "/api/v1/auth/login": {
@@ -49,7 +50,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/Token"
+                }
               }
             }
           },
@@ -63,7 +66,8 @@
               }
             }
           }
-        }
+        },
+        "security": []
       }
     },
     "/api/v1/auth/me": {
@@ -193,7 +197,7 @@
           "users"
         ],
         "summary": "List Users",
-        "description": "Admin: list all users with pagination.",
+        "description": "Admin/Lecturer: list all users with pagination.",
         "operationId": "listUsers",
         "security": [
           {
@@ -252,7 +256,7 @@
           "users"
         ],
         "summary": "Get User",
-        "description": "Admin: get a single user by ID.",
+        "description": "Admin/Lecturer: get a single user by ID.",
         "operationId": "getUser",
         "security": [
           {
@@ -930,6 +934,54 @@
         ]
       }
     },
+    "/api/v1/courses/{course_id}/assignments": {
+      "get": {
+        "tags": [
+          "courses"
+        ],
+        "summary": "List Course Assignments",
+        "description": "Admin: list active lecturer assignments for a course.",
+        "operationId": "listCourseAssignments",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "course_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Course Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourseLecturerList"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/courses/assignments/{lecturer_id}/{course_id}": {
       "delete": {
         "tags": [
@@ -981,6 +1033,143 @@
       }
     },
     "/api/v1/enrollments/": {
+      "get": {
+        "tags": [
+          "enrollments"
+        ],
+        "summary": "List Enrollments",
+        "description": "Admin: browse enrollments across students, courses, and academic periods.",
+        "operationId": "listEnrollments",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "student_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Student Id"
+            }
+          },
+          {
+            "name": "course_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Course Id"
+            }
+          },
+          {
+            "name": "semester",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Semester"
+            }
+          },
+          {
+            "name": "academic_year",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Academic Year"
+            }
+          },
+          {
+            "name": "enrollment_status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Enrollment Status"
+            }
+          },
+          {
+            "name": "skip",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "title": "Skip"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnrollmentList"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
       "post": {
         "tags": [
           "enrollments"
@@ -988,15 +1177,20 @@
         "summary": "Create Enrollment",
         "description": "Admin: enroll a student in a course.",
         "operationId": "createEnrollment",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/EnrollmentCreate"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "201": {
@@ -1019,12 +1213,7 @@
               }
             }
           }
-        },
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ]
+        }
       }
     },
     "/api/v1/enrollments/students/{student_id}": {
@@ -1695,13 +1884,61 @@
         }
       }
     },
+    "/api/v1/attendance/sessions/{session_id}/start": {
+      "post": {
+        "tags": [
+          "attendance-sessions"
+        ],
+        "summary": "Start Attendance Session",
+        "description": "Lecturer: activate a scheduled session and issue its first live QR code.",
+        "operationId": "startAttendanceSession",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QRCodeResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/attendance/sessions/{session_id}/close": {
       "post": {
         "tags": [
           "attendance-sessions"
         ],
         "summary": "Close Attendance Session",
-        "description": "Lecturer: close their own session — sets is_active=False.",
+        "description": "Lecturer: close their own session \u2014 sets is_active=False.",
         "operationId": "closeAttendanceSession",
         "security": [
           {
@@ -1797,7 +2034,7 @@
           "attendance-records"
         ],
         "summary": "Student Checkin",
-        "description": "Student: scan QR code and record attendance.\n\nValidates: active session → enrollment → valid DigitalID → no duplicate.\nSets fraud_flag if GPS accuracy is unavailable.",
+        "description": "Student: scan QR code and record attendance.\n\nValidates: active session \u2192 enrollment \u2192 valid DigitalID \u2192 no duplicate.\nSets fraud_flag if GPS accuracy is unavailable.",
         "operationId": "studentCheckin",
         "requestBody": {
           "content": {
@@ -1974,6 +2211,153 @@
         }
       }
     },
+    "/api/v1/attendance/records/review-queue": {
+      "get": {
+        "tags": [
+          "attendance-records"
+        ],
+        "summary": "List Attendance Review Queue",
+        "operationId": "listAttendanceReviewQueue",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "verification_status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Verification Status"
+            }
+          },
+          {
+            "name": "session_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Session Id"
+            }
+          },
+          {
+            "name": "skip",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "title": "Skip"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttendanceReviewRecordList"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/attendance/records/{attendance_id}/review": {
+      "patch": {
+        "tags": [
+          "attendance-records"
+        ],
+        "summary": "Review Attendance Record",
+        "operationId": "reviewAttendanceRecord",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "attendance_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Attendance Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AttendanceRecordReviewUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttendanceRecordResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/audit/logs": {
       "get": {
         "tags": [
@@ -2064,10 +2448,77 @@
           }
         }
       }
+    },
+    "/api/v1/reporting/dashboard-summary": {
+      "get": {
+        "tags": [
+          "reporting"
+        ],
+        "summary": "Get Dashboard Summary",
+        "operationId": "getDashboardSummary",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardSummaryResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
     }
   },
   "components": {
     "schemas": {
+      "AdminDashboardSummary": {
+        "properties": {
+          "active_identities": {
+            "type": "integer",
+            "title": "Active Identities"
+          },
+          "geofenced_venues": {
+            "type": "integer",
+            "title": "Geofenced Venues"
+          },
+          "total_venues": {
+            "type": "integer",
+            "title": "Total Venues"
+          },
+          "open_exceptions": {
+            "type": "integer",
+            "title": "Open Exceptions"
+          },
+          "live_sessions": {
+            "type": "integer",
+            "title": "Live Sessions"
+          },
+          "latest_audit": {
+            "items": {
+              "$ref": "#/components/schemas/AuditActivityItem"
+            },
+            "type": "array",
+            "title": "Latest Audit"
+          }
+        },
+        "type": "object",
+        "required": [
+          "active_identities",
+          "geofenced_venues",
+          "total_venues",
+          "open_exceptions",
+          "live_sessions",
+          "latest_audit"
+        ],
+        "title": "AdminDashboardSummary"
+      },
       "AppUserList": {
         "properties": {
           "items": {
@@ -2193,6 +2644,17 @@
             "type": "integer",
             "title": "Session Id"
           },
+          "qr_code": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Qr Code"
+          },
+          "device_id": {
+            "type": "string",
+            "maxLength": 255,
+            "title": "Device Id",
+            "description": "Browser or device fingerprint payload"
+          },
           "gps_latitude": {
             "type": "number",
             "maximum": 90.0,
@@ -2221,6 +2683,8 @@
         "type": "object",
         "required": [
           "session_id",
+          "qr_code",
+          "device_id",
           "gps_latitude",
           "gps_longitude"
         ],
@@ -2272,6 +2736,10 @@
             "type": "integer",
             "title": "Student Id"
           },
+          "device_id": {
+            "type": "string",
+            "title": "Device Id"
+          },
           "gps_latitude": {
             "anyOf": [
               {
@@ -2317,6 +2785,40 @@
             "type": "string",
             "format": "date-time",
             "title": "Checked In At"
+          },
+          "reviewed_by": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewed By"
+          },
+          "reviewed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewed At"
+          },
+          "review_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Note"
           }
         },
         "type": "object",
@@ -2324,6 +2826,7 @@
           "attendance_id",
           "session_id",
           "student_id",
+          "device_id",
           "gps_latitude",
           "gps_longitude",
           "gps_accuracy",
@@ -2332,6 +2835,209 @@
           "checked_in_at"
         ],
         "title": "AttendanceRecordResponse"
+      },
+      "AttendanceRecordReviewUpdate": {
+        "properties": {
+          "verification_status": {
+            "type": "string",
+            "title": "Verification Status",
+            "example": "Verified"
+          },
+          "review_note": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 255
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "verification_status"
+        ],
+        "title": "AttendanceRecordReviewUpdate"
+      },
+      "AttendanceReviewRecordList": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AttendanceReviewRecordResponse"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "skip": {
+            "type": "integer",
+            "title": "Skip"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "skip",
+          "limit"
+        ],
+        "title": "AttendanceReviewRecordList"
+      },
+      "AttendanceReviewRecordResponse": {
+        "properties": {
+          "attendance_id": {
+            "type": "integer",
+            "title": "Attendance Id"
+          },
+          "session_id": {
+            "type": "integer",
+            "title": "Session Id"
+          },
+          "student_id": {
+            "type": "integer",
+            "title": "Student Id"
+          },
+          "device_id": {
+            "type": "string",
+            "title": "Device Id"
+          },
+          "gps_latitude": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gps Latitude"
+          },
+          "gps_longitude": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gps Longitude"
+          },
+          "gps_accuracy": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gps Accuracy"
+          },
+          "verification_status": {
+            "type": "string",
+            "title": "Verification Status"
+          },
+          "fraud_flag": {
+            "type": "boolean",
+            "title": "Fraud Flag"
+          },
+          "checked_in_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Checked In At"
+          },
+          "reviewed_by": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewed By"
+          },
+          "reviewed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewed At"
+          },
+          "review_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Note"
+          },
+          "course_id": {
+            "type": "integer",
+            "title": "Course Id"
+          },
+          "venue_id": {
+            "type": "integer",
+            "title": "Venue Id"
+          },
+          "lecturer_id": {
+            "type": "integer",
+            "title": "Lecturer Id"
+          },
+          "session_start": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Session Start"
+          },
+          "session_end": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Session End"
+          },
+          "session_type": {
+            "type": "string",
+            "title": "Session Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "attendance_id",
+          "session_id",
+          "student_id",
+          "device_id",
+          "gps_latitude",
+          "gps_longitude",
+          "gps_accuracy",
+          "verification_status",
+          "fraud_flag",
+          "checked_in_at",
+          "course_id",
+          "venue_id",
+          "lecturer_id",
+          "session_start",
+          "session_end",
+          "session_type"
+        ],
+        "title": "AttendanceReviewRecordResponse"
       },
       "AttendanceSessionCreate": {
         "properties": {
@@ -2342,6 +3048,25 @@
           "venue_id": {
             "type": "integer",
             "title": "Venue Id"
+          },
+          "session_type": {
+            "type": "string",
+            "title": "Session Type",
+            "default": "Lecture",
+            "example": "Lecture"
+          },
+          "timetable_slot": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 100
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timetable Slot",
+            "example": "Mon 08:00-10:00"
           },
           "semester": {
             "type": "string",
@@ -2415,6 +3140,25 @@
           "venue_id": {
             "type": "integer",
             "title": "Venue Id"
+          },
+          "session_type": {
+            "type": "string",
+            "title": "Session Type",
+            "default": "Lecture",
+            "example": "Lecture"
+          },
+          "timetable_slot": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 100
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timetable Slot",
+            "example": "Mon 08:00-10:00"
           },
           "semester": {
             "type": "string",
@@ -2505,10 +3249,101 @@
               }
             ],
             "title": "Is Active"
+          },
+          "session_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Type"
+          },
+          "timetable_slot": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 100
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timetable Slot"
           }
         },
         "type": "object",
         "title": "AttendanceSessionUpdate"
+      },
+      "AuditActivityItem": {
+        "properties": {
+          "log_id": {
+            "type": "integer",
+            "title": "Log Id"
+          },
+          "action": {
+            "type": "string",
+            "title": "Action"
+          },
+          "actor_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor Name"
+          },
+          "table_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Table Name"
+          },
+          "record_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Record Id"
+          },
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "log_id",
+          "action",
+          "created_at"
+        ],
+        "title": "AuditActivityItem"
       },
       "AuditLogList": {
         "properties": {
@@ -2721,6 +3556,27 @@
         ],
         "title": "CourseLecturerCreate"
       },
+      "CourseLecturerList": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CourseLecturerResponse"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total"
+        ],
+        "title": "CourseLecturerList"
+      },
       "CourseLecturerResponse": {
         "properties": {
           "lecturer_id": {
@@ -2864,6 +3720,49 @@
         },
         "type": "object",
         "title": "CourseUpdate"
+      },
+      "DashboardSummaryResponse": {
+        "properties": {
+          "role": {
+            "type": "string",
+            "title": "Role"
+          },
+          "student": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/StudentDashboardSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lecturer": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LecturerDashboardSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "admin": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdminDashboardSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "role"
+        ],
+        "title": "DashboardSummaryResponse"
       },
       "DigitalIDCreate": {
         "properties": {
@@ -3211,7 +4110,169 @@
           "password"
         ],
         "title": "LecturerCreate",
-        "description": "Create a Lecturer — AppUser fields + lecturer profile fields."
+        "description": "Create a Lecturer \u2014 AppUser fields + lecturer profile fields."
+      },
+      "LecturerDashboardSummary": {
+        "properties": {
+          "active_session_count": {
+            "type": "integer",
+            "title": "Active Session Count"
+          },
+          "current_verified_rate": {
+            "type": "integer",
+            "title": "Current Verified Rate"
+          },
+          "open_review_items": {
+            "type": "integer",
+            "title": "Open Review Items"
+          },
+          "live_session": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LecturerLiveSessionSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "upcoming_sessions": {
+            "items": {
+              "$ref": "#/components/schemas/LecturerUpcomingSessionItem"
+            },
+            "type": "array",
+            "title": "Upcoming Sessions"
+          },
+          "review_queue": {
+            "items": {
+              "$ref": "#/components/schemas/LecturerReviewItem"
+            },
+            "type": "array",
+            "title": "Review Queue"
+          }
+        },
+        "type": "object",
+        "required": [
+          "active_session_count",
+          "current_verified_rate",
+          "open_review_items",
+          "upcoming_sessions",
+          "review_queue"
+        ],
+        "title": "LecturerDashboardSummary"
+      },
+      "LecturerLiveSessionSummary": {
+        "properties": {
+          "session_id": {
+            "type": "integer",
+            "title": "Session Id"
+          },
+          "session_type": {
+            "type": "string",
+            "title": "Session Type"
+          },
+          "course_label": {
+            "type": "string",
+            "title": "Course Label"
+          },
+          "venue_label": {
+            "type": "string",
+            "title": "Venue Label"
+          },
+          "session_start": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Session Start"
+          },
+          "session_end": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Session End"
+          },
+          "live_records": {
+            "type": "integer",
+            "title": "Live Records"
+          },
+          "pending_reviews": {
+            "type": "integer",
+            "title": "Pending Reviews"
+          }
+        },
+        "type": "object",
+        "required": [
+          "session_id",
+          "session_type",
+          "course_label",
+          "venue_label",
+          "session_start",
+          "session_end",
+          "live_records",
+          "pending_reviews"
+        ],
+        "title": "LecturerLiveSessionSummary"
+      },
+      "LecturerReviewItem": {
+        "properties": {
+          "attendance_id": {
+            "type": "integer",
+            "title": "Attendance Id"
+          },
+          "student_name": {
+            "type": "string",
+            "title": "Student Name"
+          },
+          "course_label": {
+            "type": "string",
+            "title": "Course Label"
+          },
+          "gps_accuracy": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gps Accuracy"
+          },
+          "verification_status": {
+            "type": "string",
+            "title": "Verification Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "attendance_id",
+          "student_name",
+          "course_label",
+          "verification_status"
+        ],
+        "title": "LecturerReviewItem"
+      },
+      "LecturerUpcomingSessionItem": {
+        "properties": {
+          "session_id": {
+            "type": "integer",
+            "title": "Session Id"
+          },
+          "course_label": {
+            "type": "string",
+            "title": "Course Label"
+          },
+          "session_start": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Session Start"
+          }
+        },
+        "type": "object",
+        "required": [
+          "session_id",
+          "course_label",
+          "session_start"
+        ],
+        "title": "LecturerUpcomingSessionItem"
       },
       "QRCodeResponse": {
         "properties": {
@@ -3243,6 +4304,50 @@
         ],
         "title": "QRCodeResponse",
         "description": "Returned when lecturer requests a fresh QR code for an existing session."
+      },
+      "StudentAttendanceItem": {
+        "properties": {
+          "attendance_id": {
+            "type": "integer",
+            "title": "Attendance Id"
+          },
+          "session_id": {
+            "type": "integer",
+            "title": "Session Id"
+          },
+          "session_type": {
+            "type": "string",
+            "title": "Session Type"
+          },
+          "course_label": {
+            "type": "string",
+            "title": "Course Label"
+          },
+          "checked_in_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Checked In At"
+          },
+          "verification_status": {
+            "type": "string",
+            "title": "Verification Status"
+          },
+          "fraud_flag": {
+            "type": "boolean",
+            "title": "Fraud Flag"
+          }
+        },
+        "type": "object",
+        "required": [
+          "attendance_id",
+          "session_id",
+          "session_type",
+          "course_label",
+          "checked_in_at",
+          "verification_status",
+          "fraud_flag"
+        ],
+        "title": "StudentAttendanceItem"
       },
       "StudentCreate": {
         "properties": {
@@ -3301,7 +4406,114 @@
           "password"
         ],
         "title": "StudentCreate",
-        "description": "Create a Student — AppUser fields + student profile fields."
+        "description": "Create a Student \u2014 AppUser fields + student profile fields."
+      },
+      "StudentDashboardSummary": {
+        "properties": {
+          "records_count": {
+            "type": "integer",
+            "title": "Records Count"
+          },
+          "verified_count": {
+            "type": "integer",
+            "title": "Verified Count"
+          },
+          "flagged_count": {
+            "type": "integer",
+            "title": "Flagged Count"
+          },
+          "active_enrollments": {
+            "type": "integer",
+            "title": "Active Enrollments"
+          },
+          "digital_id_active": {
+            "type": "boolean",
+            "title": "Digital Id Active"
+          },
+          "digital_id_expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Digital Id Expires At"
+          },
+          "recent_attendance": {
+            "items": {
+              "$ref": "#/components/schemas/StudentAttendanceItem"
+            },
+            "type": "array",
+            "title": "Recent Attendance"
+          },
+          "enrollments": {
+            "items": {
+              "$ref": "#/components/schemas/StudentEnrollmentItem"
+            },
+            "type": "array",
+            "title": "Enrollments"
+          }
+        },
+        "type": "object",
+        "required": [
+          "records_count",
+          "verified_count",
+          "flagged_count",
+          "active_enrollments",
+          "digital_id_active",
+          "recent_attendance",
+          "enrollments"
+        ],
+        "title": "StudentDashboardSummary"
+      },
+      "StudentEnrollmentItem": {
+        "properties": {
+          "course_id": {
+            "type": "integer",
+            "title": "Course Id"
+          },
+          "course_label": {
+            "type": "string",
+            "title": "Course Label"
+          },
+          "semester": {
+            "type": "string",
+            "title": "Semester"
+          },
+          "academic_year": {
+            "type": "string",
+            "title": "Academic Year"
+          }
+        },
+        "type": "object",
+        "required": [
+          "course_id",
+          "course_label",
+          "semester",
+          "academic_year"
+        ],
+        "title": "StudentEnrollmentItem"
+      },
+      "Token": {
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "title": "Access Token"
+          },
+          "token_type": {
+            "type": "string",
+            "title": "Token Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "access_token",
+          "token_type"
+        ],
+        "title": "Token"
       },
       "ValidationError": {
         "properties": {
@@ -3367,6 +4579,47 @@
             ],
             "title": "Building",
             "example": "Main Block"
+          },
+          "latitude": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 90.0,
+                "minimum": -90.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latitude",
+            "example": -15.385
+          },
+          "longitude": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 180.0,
+                "minimum": -180.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Longitude",
+            "example": 28.322
+          },
+          "radius_meters": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Radius Meters",
+            "example": 45
           }
         },
         "type": "object",
@@ -3438,6 +4691,47 @@
             "title": "Building",
             "example": "Main Block"
           },
+          "latitude": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 90.0,
+                "minimum": -90.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latitude",
+            "example": -15.385
+          },
+          "longitude": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 180.0,
+                "minimum": -180.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Longitude",
+            "example": 28.322
+          },
+          "radius_meters": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Radius Meters",
+            "example": 45
+          },
           "venue_id": {
             "type": "integer",
             "title": "Venue Id"
@@ -3491,6 +4785,44 @@
               }
             ],
             "title": "Building"
+          },
+          "latitude": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 90.0,
+                "minimum": -90.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latitude"
+          },
+          "longitude": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 180.0,
+                "minimum": -180.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Longitude"
+          },
+          "radius_meters": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Radius Meters"
           }
         },
         "type": "object",
@@ -3525,7 +4857,7 @@
     },
     {
       "name": "enrollments",
-      "description": "Student ↔ Course enrollment per semester"
+      "description": "Student \u2194 Course enrollment per semester"
     },
     {
       "name": "digital-ids",
@@ -3542,6 +4874,10 @@
     {
       "name": "audit",
       "description": "Immutable audit log (Admin only)"
+    },
+    {
+      "name": "reporting",
+      "description": "Role-based operational summaries"
     },
     {
       "name": "health",

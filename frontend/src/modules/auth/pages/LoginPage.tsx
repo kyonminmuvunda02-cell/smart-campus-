@@ -43,7 +43,7 @@ export default function LoginPage() {
       }
 
       login(token, user.user_id, user.role);
-      navigate('/');
+      navigate('/', { replace: true });
       return { error: null };
     } catch (err: unknown) {
       return { error: getErrorMessage(err) };
@@ -55,19 +55,21 @@ export default function LoginPage() {
   return (
     <div className="login-shell simple">
       <section className="login-panel simple">
-        <div className="login-brand compact">
-          <div className="login-brand-mark">
-            <i className="ti ti-school" />
+        <div className="login-panel-head">
+          <div className="login-brand compact">
+            <div className="login-brand-mark">
+              <i className="ti ti-school" />
+            </div>
+            <div>
+              <div className="login-eyebrow">Cavendish University Zambia</div>
+              <div className="login-brand-name">Smart Campus</div>
+            </div>
           </div>
-          <div>
-            <div className="login-eyebrow">Cavendish University Zambia</div>
-            <div className="login-brand-name">Smart Campus</div>
-          </div>
-        </div>
 
-        <div className="login-intro">
-          <h1 className="login-title">Sign in</h1>
-          <p className="login-copy">Use your campus account to access attendance and academic services.</p>
+          <div className="login-intro">
+            <h1 className="login-title">Sign in</h1>
+            <p className="login-copy">Use your campus account to access attendance, digital identity, and teaching operations.</p>
+          </div>
         </div>
 
         {state.error && (
@@ -106,10 +108,12 @@ export default function LoginPage() {
                 required
               />
             </div>
+            <div className="login-helper">Use the password assigned to your campus account.</div>
           </div>
 
           <div className="login-hint compact">
-            Your device identity is created automatically on first sign-in.
+            <i className="ti ti-device-mobile" />
+            <span>Your device identity is created automatically on first sign-in.</span>
           </div>
 
           <Button type="submit" variant="primary" className="w-100" disabled={isPending}>

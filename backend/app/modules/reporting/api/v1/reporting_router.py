@@ -21,6 +21,7 @@ def get_dashboard_summary(
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
+    # Keep role branching in the service so the route stays a thin auth + transport wrapper.
     return DashboardReportingService.get_dashboard_summary(
         db,
         user_id=current_user["user_id"],

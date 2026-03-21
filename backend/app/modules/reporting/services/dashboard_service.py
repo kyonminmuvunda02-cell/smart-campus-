@@ -5,7 +5,6 @@ from sqlalchemy.orm import Session
 
 from app.modules.attendance.models.record import AttendanceRecord
 from app.modules.attendance.models.session import AttendanceSession
-from app.modules.attendance.models.timetable import TimetableEntry
 from app.modules.audit.models.audit_log import AuditLog
 from app.modules.courses.models.course import Course
 from app.modules.digital_id.models.digital_id import DigitalID
@@ -34,6 +33,7 @@ def _full_name(first_name: str | None, last_name: str | None, fallback: str) -> 
 class DashboardReportingService:
     @staticmethod
     def get_dashboard_summary(db: Session, *, user_id: int, role: str) -> DashboardSummaryResponse:
+        # The frontend reads a single role-shaped payload, so keep the branching here instead of in the UI.
         if role == "Student":
             return DashboardSummaryResponse(role=role, student=DashboardReportingService._student_summary(db, user_id))
         if role == "Lecturer":
@@ -144,6 +144,7 @@ class DashboardReportingService:
         live_records = 0
         live_pending = 0
         if live_row:
+            # Derive the "live room" card from the freshest active session, then compute counts against that one session.
             session, course, venue = live_row
             live_records = db.scalar(
                 select(func.count()).select_from(AttendanceRecord).where(AttendanceRecord.session_id == session.session_id)
@@ -159,7 +160,6 @@ class DashboardReportingService:
                 session_type=session.session_type,
                 course_label=f"{course.course_code} - {course.course_name}",
                 venue_label=venue.venue_name,
-                timetable_slot=session.timetable_slot,
                 session_start=session.session_start,
                 session_end=session.session_end,
                 live_records=live_records,
@@ -170,7 +170,6 @@ class DashboardReportingService:
             LecturerUpcomingSessionItem(
                 session_id=session.session_id,
                 course_label=f"{course.course_code} - {course.course_name}",
-                timetable_slot=session.timetable_slot,
                 session_start=session.session_start,
             )
             for session, course, _venue in sessions
@@ -214,21 +213,15 @@ class DashboardReportingService:
                 AttendanceRecord.verification_status == "Pending",
             )
         ) or 0
-        timetable_slots = db.scalar(
-            select(func.count()).select_from(TimetableEntry).where(
-                TimetableEntry.lecturer_id == user_id,
-                TimetableEntry.is_active == True,
-            )
-        ) or 0
         current_verified_rate = 0
         if live_records:
+            # Pending reviews are treated as untrusted until a lecturer/admin explicitly resolves them.
             current_verified_rate = round(((live_records - live_pending) / live_records) * 100)
 
         return LecturerDashboardSummary(
             active_session_count=active_session_count,
             current_verified_rate=current_verified_rate,
             open_review_items=open_review_items,
-            timetable_slots=timetable_slots,
             live_session=live_session,
             upcoming_sessions=upcoming_sessions,
             review_queue=review_queue,

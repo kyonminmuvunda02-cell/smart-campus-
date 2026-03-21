@@ -7,6 +7,7 @@ import {
   deleteVenueMutation,
 } from '@/client/@tanstack/react-query.gen';
 import type { Options, ListVenuesData, GetVenueData } from '@/client';
+import { invalidateQueryId } from '@/utils/queryInvalidation';
 
 export function useVenue() {
   const queryClient = useQueryClient();
@@ -22,17 +23,17 @@ export function useVenue() {
 
   const create = useMutation({
     ...createVenueMutation(),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['listVenues'] }),
+    onSuccess: () => invalidateQueryId(queryClient, 'listVenues'),
   });
 
   const update = useMutation({
     ...updateVenueMutation(),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['listVenues'] }),
+    onSuccess: () => invalidateQueryId(queryClient, 'listVenues'),
   });
 
   const remove = useMutation({
     ...deleteVenueMutation(),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['listVenues'] }),
+    onSuccess: () => invalidateQueryId(queryClient, 'listVenues'),
   });
 
   return { useList, useDetail, create, update, remove };

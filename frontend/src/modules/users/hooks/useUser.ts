@@ -8,12 +8,13 @@ import {
   deleteUserMutation,
 } from '@/client/@tanstack/react-query.gen';
 import type { Options, ListUsersData, GetUserData } from '@/client';
+import { invalidateQueryId } from '@/utils/queryInvalidation';
 
 export function useUser() {
   const queryClient = useQueryClient();
 
-  const useList = (opts?: Options<ListUsersData>) =>
-    useQuery({ ...listUsersOptions(opts) });
+  const useList = (opts?: Options<ListUsersData>, enabled = true) =>
+    useQuery({ ...listUsersOptions(opts), enabled });
 
   const useDetail = (userId?: number) =>
     useQuery({
@@ -23,22 +24,22 @@ export function useUser() {
 
   const createStudent = useMutation({
     ...createStudentMutation(),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['listUsers'] }),
+    onSuccess: () => invalidateQueryId(queryClient, 'listUsers'),
   });
 
   const createLecturer = useMutation({
     ...createLecturerMutation(),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['listUsers'] }),
+    onSuccess: () => invalidateQueryId(queryClient, 'listUsers'),
   });
 
   const update = useMutation({
     ...updateUserMutation(),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['listUsers'] }),
+    onSuccess: () => invalidateQueryId(queryClient, 'listUsers'),
   });
 
   const remove = useMutation({
     ...deleteUserMutation(),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['listUsers'] }),
+    onSuccess: () => invalidateQueryId(queryClient, 'listUsers'),
   });
 
   return { useList, useDetail, createStudent, createLecturer, update, remove };

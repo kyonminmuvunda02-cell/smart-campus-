@@ -49,10 +49,10 @@ def create_lecturer(data: LecturerCreate, db: Session = Depends(get_db)):
     response_model=AppUserList,
     name="list_users",
     operation_id="listUsers",
-    dependencies=[Depends(require_role("Admin"))],
+    dependencies=[Depends(require_role("Admin", "Lecturer"))],
 )
 def list_users(skip: int = 0, limit: int = 20, db: Session = Depends(get_db)):
-    """Admin: list all users with pagination."""
+    """Admin/Lecturer: list all users with pagination."""
     return UserService.list_users(db, skip, limit)
 
 
@@ -61,10 +61,10 @@ def list_users(skip: int = 0, limit: int = 20, db: Session = Depends(get_db)):
     response_model=AppUserResponse,
     name="get_user",
     operation_id="getUser",
-    dependencies=[Depends(require_role("Admin"))],
+    dependencies=[Depends(require_role("Admin", "Lecturer"))],
 )
 def get_user(user_id: int, db: Session = Depends(get_db)):
-    """Admin: get a single user by ID."""
+    """Admin/Lecturer: get a single user by ID."""
     return UserService.get_user_by_id(db, user_id)
 
 

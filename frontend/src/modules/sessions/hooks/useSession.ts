@@ -10,6 +10,7 @@ import {
   listSessionRecordsOptions,
 } from '@/client/@tanstack/react-query.gen';
 import type { Options, ListAttendanceSessionsData, GetAttendanceSessionData, ListSessionRecordsData } from '@/client';
+import { invalidateQueryId, invalidateQueryIds } from '@/utils/queryInvalidation';
 
 export function useSession() {
   const queryClient = useQueryClient();
@@ -27,41 +28,33 @@ export function useSession() {
     useQuery({
       ...listSessionRecordsOptions({ path: { session_id: sessionId! } } as Options<ListSessionRecordsData>),
       enabled: !!sessionId,
+      // Keep the lecturer roster fresh during live attendance without manual refresh clicks.
       refetchInterval: 10_000,
     });
 
   const create = useMutation({
     ...createAttendanceSessionMutation(),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['listAttendanceSessions'] }),
+    onSuccess: () => invalidateQueryId(queryClient, 'listAttendanceSessions'),
   });
 
   const start = useMutation({
     ...startAttendanceSessionMutation(),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['listAttendanceSessions'] });
-      queryClient.invalidateQueries({ queryKey: ['getAttendanceSession'] });
-    },
+    onSuccess: () => invalidateQueryIds(queryClient, ['listAttendanceSessions', 'getAttendanceSession']),
   });
 
   const update = useMutation({
     ...updateAttendanceSessionMutation(),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['listAttendanceSessions'] });
-      queryClient.invalidateQueries({ queryKey: ['getAttendanceSession'] });
-      queryClient.invalidateQueries({ queryKey: ['listSessionRecords'] });
-    },
+    onSuccess: () => invalidateQueryIds(queryClient, ['listAttendanceSessions', 'getAttendanceSession', 'listSessionRecords']),
   });
 
   const close = useMutation({
     ...closeAttendanceSessionMutation(),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['listAttendanceSessions'] });
-      queryClient.invalidateQueries({ queryKey: ['getAttendanceSession'] });
-    },
+    onSuccess: () => invalidateQueryIds(queryClient, ['listAttendanceSessions', 'getAttendanceSession']),
   });
 
   const refreshQr = useMutation({
     ...refreshQrCodeMutation(),
+    onSuccess: () => invalidateQueryIds(queryClient, ['listAttendanceSessions', 'getAttendanceSession']),
   });
 
   return { useList, useDetail, useSessionRecords, create, update, start, close, refreshQr };

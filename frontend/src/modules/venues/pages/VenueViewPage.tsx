@@ -8,108 +8,137 @@ export default function VenueViewPage() {
   const { useDetail } = useVenue();
   const { data: venue, isLoading } = useDetail(id ? Number(id) : undefined);
 
-  if (isLoading) return <div className="empty-panel"><i className="ti ti-loader" /><div>Loading venue...</div></div>;
-  if (!venue) return <div className="empty-panel"><i className="ti ti-mood-empty" /><div>Venue not found.</div></div>;
+  if (isLoading) return <div className="p-4">Loading venue...</div>;
+  if (!venue) return <div className="p-5">Venue not found.</div>;
 
-  const currentVenue = venue as Record<string, unknown>;
-  const capacity = Number(currentVenue.capacity ?? 0);
-  const hasGeofence = [currentVenue.latitude, currentVenue.longitude, currentVenue.radius_meters].every((value) => value !== null && value !== undefined);
-  const mapHref = hasGeofence
-    ? `https://www.openstreetmap.org/?mlat=${encodeURIComponent(String(currentVenue.latitude))}&mlon=${encodeURIComponent(String(currentVenue.longitude))}#map=19/${encodeURIComponent(String(currentVenue.latitude))}/${encodeURIComponent(String(currentVenue.longitude))}`
-    : null;
+  const v = venue as Record<string, any>;
+  const hasGeofence = [v.latitude, v.longitude, v.radius_meters].every(val => val !== null && val !== undefined);
+  
+  const mapEmbedHref = hasGeofence ? buildMapEmbedHref(Number(v.latitude), Number(v.longitude)) : null;
 
   return (
     <div>
       <PageHeader
-        eyebrow="Administration"
-        title={String(currentVenue.venue_name ?? 'Venue')}
-        subtitle="Physical attendance zone metadata"
+        title={String(v.venue_name ?? 'Physical Space')}
+        subtitle={`${v.building ?? 'Main Campus'} • Capacity: ${v.capacity ?? 'Unknown'}`}
         icon="building"
         tone="teal"
+        breadcrumbs={[
+          { label: 'Administration', path: '/venues' },
+          { label: 'Venues', path: '/venues' },
+          { label: String(v.venue_name ?? 'Detail') }
+        ]}
       >
         <Link to="/venues"><Button variant="outline-secondary"><i className="ti ti-arrow-left" />Back</Button></Link>
-        {mapHref ? (
-          <a href={mapHref} target="_blank" rel="noreferrer">
-            <Button variant="outline-primary"><i className="ti ti-map-2" />Open map</Button>
-          </a>
-        ) : null}
-        <Link to={`/venues/${id}/edit`}><Button variant="primary"><i className="ti ti-edit" />Edit</Button></Link>
+        <Link to={`/venues/${id}/edit`}><Button variant="primary"><i className="ti ti-edit" />Edit Space</Button></Link>
       </PageHeader>
 
-      <div className="ops-grid">
-        <div className="stack">
-          <div className="surface-card section-card">
-            <div className="section-title">
+      <div className="stack gap-4">
+        {/* Stat Cards Section */}
+        <div className="row g-4">
+          <div className="col-md-3">
+            <div className="surface-card p-3 d-flex align-items-center gap-3 shadow-sm border-0">
+              <div className="sb-avatar bg-teal-lt text-teal p-2 fs-3 rounded-3">
+                <i className="ti ti-users" />
+              </div>
+              <div className="entity-copy">
+                <span className="text-secondary small fw-bold uppercase">Max Occupancy</span>
+                <strong className="h4 mb-0 d-block">{v.capacity || '???'}</strong>
+              </div>
+            </div>
+          </div>
+          <div className="col-md-3">
+            <div className="surface-card p-3 d-flex align-items-center gap-3 shadow-sm border-0">
+              <div className="sb-avatar bg-royal-lt text-royal p-2 fs-3 rounded-3">
+                <i className="ti ti-map-pin" />
+              </div>
+              <div className="entity-copy">
+                <span className="text-secondary small fw-bold uppercase">Geofence</span>
+                <strong className="h4 mb-0 d-block">{hasGeofence ? `${v.radius_meters}m` : 'Unset'}</strong>
+              </div>
+            </div>
+          </div>
+          <div className="col-md-6">
+            <div className="surface-card p-3 shadow-sm border-0 bg-navy text-white d-flex align-items-center justify-content-between">
               <div>
-                <h3>Venue snapshot</h3>
-                <div className="section-subtle">Operational details for the approved teaching space</div>
+                <span className="small fw-bold uppercase opacity-75">Spatial Trust</span>
+                <p className="mb-0 small">This venue is an approved teaching space with {hasGeofence ? 'active geofence protection.' : 'pending location data.'}</p>
               </div>
-            </div>
-            <div className="session-stat-row">
-              <div className="session-stat">
-                <label>Venue ID</label>
-                <strong>{String(currentVenue.venue_id ?? '-')}</strong>
-              </div>
-              <div className="session-stat">
-                <label>Capacity</label>
-                <strong>{capacity || '-'}</strong>
-              </div>
-              <div className="session-stat">
-                <label>Status</label>
-                <strong>{hasGeofence ? 'Geofenced' : 'Needs geofence'}</strong>
-              </div>
-            </div>
-          </div>
-
-          <div className="callout-panel teal">
-            <i className="ti ti-map-pin" style={{ color: 'var(--teal)' }} />
-            <div>
-              <div className="callout-title">Space quality affects scan confidence</div>
-              <div className="callout-copy">
-                Accurate building, geofence, and map positioning data helps lecturers and administrators trust attendance events tied to this room.
-              </div>
+              <i className="ti ti-shield-check fs-1 opacity-25" />
             </div>
           </div>
         </div>
 
-        <div className="surface-card section-card">
-          <div className="section-title">
-            <div>
-              <h3>Venue details</h3>
-              <div className="section-subtle">Physical context stored for this attendance-enabled space</div>
+        <div className="row g-4 mb-4">
+          <div className="col-md-7">
+            <div className="surface-card pb-1">
+              <h3 className="h6 mb-4 fw-bold uppercase tracking-wider text-secondary border-bottom pb-2">Space Configuration</h3>
+              
+              <div className="d-flex flex-column gap-3">
+                <div className="d-flex justify-content-between border-bottom pb-2">
+                  <span className="text-secondary small fw-bold">Venue Name</span>
+                  <span className="text-navy fw-bold">{v.venue_name}</span>
+                </div>
+                <div className="d-flex justify-content-between border-bottom pb-2">
+                  <span className="text-secondary small fw-bold">Building / Block</span>
+                  <span className="text-navy fw-bold">{v.building || 'N/A'}</span>
+                </div>
+                <div className="d-flex justify-content-between border-bottom pb-2">
+                  <span className="text-secondary small fw-bold">System ID</span>
+                  <span className="mono small text-secondary">VEN-{String(v.venue_id).padStart(4, '0')}</span>
+                </div>
+                <div className="d-flex justify-content-between border-bottom pb-2">
+                  <span className="text-secondary small fw-bold">Latitude</span>
+                  <span className="mono small text-secondary">{v.latitude || '-'}</span>
+                </div>
+                <div className="d-flex justify-content-between border-bottom pb-2">
+                  <span className="text-secondary small fw-bold">Longitude</span>
+                  <span className="mono small text-secondary">{v.longitude || '-'}</span>
+                </div>
+              </div>
+
+              <div className="callout-panel teal mt-4">
+                <i className="ti ti-info-circle fs-4" />
+                <div className="small">
+                  Attendance records are automatically flagged if student location falls outside the {v.radius_meters || 45}m radius of this center point.
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="detail-list">
-            <div className="detail-row">
-              <span className="detail-label">Venue name</span>
-              <span className="detail-value">{String(currentVenue.venue_name ?? '-')}</span>
-            </div>
-            <div className="detail-row">
-              <span className="detail-label">Building</span>
-              <span className="detail-value">{String(currentVenue.building ?? '-')}</span>
-            </div>
-              <div className="detail-row">
-                <span className="detail-label">Capacity</span>
-                <span className="detail-value mono">{capacity || '-'}</span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-label">Latitude</span>
-                <span className="detail-value mono">{currentVenue.latitude !== undefined && currentVenue.latitude !== null ? String(currentVenue.latitude) : '-'}</span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-label">Longitude</span>
-                <span className="detail-value mono">{currentVenue.longitude !== undefined && currentVenue.longitude !== null ? String(currentVenue.longitude) : '-'}</span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-label">Geofence radius</span>
-                <span className="detail-value mono">
-                  {currentVenue.radius_meters !== undefined && currentVenue.radius_meters !== null ? `${String(currentVenue.radius_meters)} m` : '-'}
-                </span>
-              </div>
+          <div className="col-md-5">
+            <div className="surface-card h-100 p-0 overflow-hidden shadow-sm border-0 bg-light">
+              {mapEmbedHref ? (
+                <iframe
+                  src={mapEmbedHref}
+                  title="Venue location map"
+                  width="100%"
+                  height="100%"
+                  style={{ border: 0, minHeight: '300px' }}
+                  loading="lazy"
+                />
+              ) : (
+                <div className="d-flex flex-column align-items-center justify-content-center h-100 p-5 text-center opacity-50">
+                  <i className="ti ti-map-off fs-1 mb-3" />
+                  <p className="mb-0 small fw-bold">No Geofence Data</p>
+                  <p className="smaller text-secondary">Add coordinates to enable map view</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
+      </div>
     </div>
   );
+}
+
+function buildMapEmbedHref(latitude: number, longitude: number) {
+  const delta = 0.0015;
+  const bbox = [
+    longitude - delta,
+    latitude - delta,
+    longitude + delta,
+    latitude + delta,
+  ].join('%2C');
+  return `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${encodeURIComponent(`${latitude},${longitude}`)}`;
 }

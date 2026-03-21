@@ -1,15 +1,14 @@
 import { useState } from 'react';
-import { Alert, Button, Form, Spinner } from 'react-bootstrap';
+import { Button, Table } from 'react-bootstrap';
 import EmptyState from '@/components/common/EmptyState';
-import ErrorAlert from '@/components/common/ErrorAlert';
 import LoadingSkeleton from '@/components/common/LoadingSkeleton';
 import PageHeader from '@/components/common/PageHeader';
 import SearchableSelect from '@/components/common/SearchableSelect';
 import { useCourse } from '@/modules/courses/hooks/useCourse';
 import { useUser } from '@/modules/users/hooks/useUser';
-import { useToast } from '@/components/common/ToastManager';
-import { getErrorMessage } from '@/utils/errors';
 import { useEnrollment } from '../hooks/useEnrollment';
+import EnrollmentFormModal from '../components/EnrollmentFormModal';
+import Pagination from '@/components/common/Pagination';
 
 function currentAcademicYear() {
   const now = new Date();
@@ -17,13 +16,7 @@ function currentAcademicYear() {
 }
 
 export default function EnrollmentListPage() {
-  const [createError, setCreateError] = useState<string | null>(null);
-  const [newEnrollment, setNewEnrollment] = useState({
-    student_id: '',
-    course_id: '',
-    semester: 'Semester 1',
-    academic_year: currentAcademicYear(),
-  });
+  const [showModal, setShowModal] = useState(false);
   const [filters, setFilters] = useState({
     student_id: '',
     course_id: '',
@@ -31,372 +24,166 @@ export default function EnrollmentListPage() {
     academic_year: currentAcademicYear(),
     enrollment_status: 'Enrolled',
   });
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
 
-  const { showToast } = useToast();
-  const { useList, create } = useEnrollment();
+  const { useList } = useEnrollment();
   const { useList: useCourses } = useCourse();
   const { useList: useUsers } = useUser();
+  
   const { data, isLoading } = useList({
     student_id: Number(filters.student_id) || undefined,
     course_id: Number(filters.course_id) || undefined,
     semester: filters.semester || undefined,
     academic_year: filters.academic_year || undefined,
     enrollment_status: filters.enrollment_status || undefined,
-    skip: 0,
-    limit: 200,
+    limit: 1000,
   });
-  const { data: coursesData } = useCourses({ query: { skip: 0, limit: 200 } });
-  const { data: usersData } = useUsers({ query: { skip: 0, limit: 200 } });
+  
+  const { data: coursesData } = useCourses({ query: { limit: 500 } });
+  const { data: usersData } = useUsers({ query: { limit: 500 } });
 
-  const enrollments = (data as { items?: Array<Record<string, unknown>> })?.items ?? [];
-  const courses = (coursesData as { items?: Array<Record<string, unknown>> } | undefined)?.items ?? [];
-  const users = (usersData as { items?: Array<Record<string, unknown>> } | undefined)?.items ?? [];
-  const students = users.filter((user) => user.role === 'Student');
+  const enrollments = ((data as any)?.items ?? []) as any[];
+  const courses = ((coursesData as any)?.items ?? []) as any[];
+  const users = ((usersData as any)?.items ?? []) as any[];
+  const students = users.filter((u: any) => u.role === 'Student');
 
-  const enrollmentCounts = {
-    enrolled: enrollments.filter((item) => item.enrollment_status === 'Enrolled').length,
-    completed: enrollments.filter((item) => item.enrollment_status === 'Completed').length,
-    dropped: enrollments.filter((item) => item.enrollment_status === 'Dropped').length,
+  const counts = {
+    enrolled: enrollments.filter((e: any) => e.enrollment_status === 'Enrolled').length,
+    completed: enrollments.filter((e: any) => e.enrollment_status === 'Completed').length,
   };
 
-  async function handleCreateEnrollment(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  const totalPages = Math.ceil(enrollments.length / pageSize);
+  const pageStart = (currentPage - 1) * pageSize;
+  const paginatedEnrollments = enrollments.slice(pageStart, pageStart + pageSize);
 
-    try {
-      setCreateError(null);
-      await create.mutateAsync({
-        body: {
-          student_id: Number(newEnrollment.student_id),
-          course_id: Number(newEnrollment.course_id),
-          semester: newEnrollment.semester,
-          academic_year: newEnrollment.academic_year,
-        },
-      });
-      showToast('success', 'Enrollment created', 'The student can now be validated against this course during attendance.');
-      setFilters((prev) => ({
-        ...prev,
-        student_id: newEnrollment.student_id,
-        course_id: '',
-      }));
-    } catch (error) {
-      setCreateError(getErrorMessage(error));
-    }
-  }
-
-  function resetFilters() {
-    setFilters({
-      student_id: '',
-      course_id: '',
-      semester: '',
-      academic_year: currentAcademicYear(),
-      enrollment_status: 'Enrolled',
-    });
-  }
-
-  function getStudentLabel(studentId: number) {
-    const student = students.find((user) => Number(user.user_id ?? 0) === studentId);
-    if (!student) return `Student #${studentId}`;
-    return `${String(student.first_name ?? '')} ${String(student.last_name ?? '')}`.trim() || `Student #${studentId}`;
-  }
-
-  function getCourseLabel(courseId: number) {
-    const course = courses.find((item) => Number(item.course_id ?? 0) === courseId);
-    if (!course) return `Course #${courseId}`;
-    return `${String(course.course_code ?? '')} - ${String(course.course_name ?? '')}`;
-  }
+  if (isLoading) return <div className="p-4"><LoadingSkeleton rows={10} /></div>;
 
   return (
-    <div>
+    <div className="stack gap-4">
       <PageHeader
-        eyebrow="Administration"
-        title="Enrollment management"
-        subtitle="Control which students may legitimately attend which courses in each teaching period."
+        title="Academic Enrollment"
+        subtitle="Govern period-specific student registrations and course access control."
         icon="list-check"
         tone="purple"
+        breadcrumbs={[{ label: 'Administration' }, { label: 'Enrollment Registry' }]}
       >
-        <Button variant="outline-secondary" onClick={resetFilters}>
-          <i className="ti ti-rotate-2" />
-          Reset filters
+        <Button variant="primary" onClick={() => setShowModal(true)}>
+          <i className="ti ti-plus" />
+          Register Enrollment
         </Button>
       </PageHeader>
 
-      <div className="checkin-grid">
-        <div className="stack">
-          <div className="surface-card section-card">
-            <div className="section-title">
-              <div>
-                <h3>Create enrollment</h3>
-                <div className="section-subtle">Students must be explicitly enrolled before their attendance can be accepted.</div>
-              </div>
-              <span className="status-pill purple"><i className="ti ti-user-plus" />Admin control</span>
+      <div className="row g-4">
+        <div className="col-md-3">
+          <div className="surface-card p-3 d-flex align-items-center gap-3 shadow-sm border-0 h-100">
+            <div className="sb-avatar bg-purple-lt text-purple p-2 fs-3 rounded-3">
+              <i className="ti ti-users" />
             </div>
-
-            <ErrorAlert error={createError} dismissible />
-
-            <form onSubmit={handleCreateEnrollment}>
-              <div className="field-shell">
-                <label htmlFor="new_student_id" className="field-label">Student</label>
-                <SearchableSelect
-                  id="new_student_id"
-                  name="new_student_id"
-                  value={newEnrollment.student_id}
-                  onValueChange={(value) => setNewEnrollment((prev) => ({ ...prev, student_id: value }))}
-                  required
-                  placeholder="Select a student..."
-                  searchPlaceholder="Search student name or email..."
-                  options={students.map((student) => ({
-                    value: String(student.user_id),
-                    label: `${String(student.first_name ?? '')} ${String(student.last_name ?? '')}`.trim() || `Student #${String(student.user_id)}`,
-                    meta: String(student.email ?? ''),
-                    keywords: `${String(student.first_name ?? '')} ${String(student.last_name ?? '')} ${String(student.email ?? '')}`,
-                  }))}
-                />
-              </div>
-
-              <div className="field-shell">
-                <label htmlFor="new_course_id" className="field-label">Course</label>
-                <SearchableSelect
-                  id="new_course_id"
-                  name="new_course_id"
-                  value={newEnrollment.course_id}
-                  onValueChange={(value) => setNewEnrollment((prev) => ({ ...prev, course_id: value }))}
-                  required
-                  placeholder="Select a course..."
-                  searchPlaceholder="Search course code or title..."
-                  options={courses.map((course) => ({
-                    value: String(course.course_id),
-                    label: `${String(course.course_code ?? '')} - ${String(course.course_name ?? '')}`,
-                    meta: String(course.department ?? ''),
-                    keywords: `${String(course.course_code ?? '')} ${String(course.course_name ?? '')} ${String(course.department ?? '')}`,
-                  }))}
-                />
-              </div>
-
-              <div className="session-stat-row">
-                <div className="field-shell">
-                  <label htmlFor="semester" className="field-label">Semester</label>
-                  <Form.Select
-                    id="semester"
-                    value={newEnrollment.semester}
-                    onChange={(event) => setNewEnrollment((prev) => ({ ...prev, semester: event.target.value }))}
-                  >
-                    <option value="Semester 1">Semester 1</option>
-                    <option value="Semester 2">Semester 2</option>
-                  </Form.Select>
-                </div>
-                <div className="field-shell">
-                  <label htmlFor="academic_year" className="field-label">Academic year</label>
-                  <Form.Control
-                    id="academic_year"
-                    value={newEnrollment.academic_year}
-                    onChange={(event) => setNewEnrollment((prev) => ({ ...prev, academic_year: event.target.value }))}
-                    placeholder="2026/2027"
-                  />
-                </div>
-              </div>
-
-              <div className="ph-actions">
-                <Button
-                  variant="primary"
-                  type="submit"
-                  disabled={create.isPending || !newEnrollment.student_id || !newEnrollment.course_id}
-                >
-                  {create.isPending ? <Spinner animation="border" size="sm" /> : <i className="ti ti-plus" />}
-                  Enroll student
-                </Button>
-              </div>
-            </form>
-          </div>
-
-          <div className="surface-card section-card">
-            <div className="section-title">
-              <div>
-                <h3>Enrollment filters</h3>
-                <div className="section-subtle">Browse the academic register by student, course, term, or status.</div>
-              </div>
-              <span className="status-pill purple"><i className="ti ti-filter" />Live browser</span>
-            </div>
-
-            <div className="field-shell">
-              <label htmlFor="filter_student_id" className="field-label">Student</label>
-              <SearchableSelect
-                id="filter_student_id"
-                name="filter_student_id"
-                value={filters.student_id}
-                onValueChange={(value) => setFilters((prev) => ({ ...prev, student_id: value }))}
-                placeholder="All students"
-                searchPlaceholder="Search student..."
-                options={students.map((student) => ({
-                  value: String(student.user_id),
-                  label: `${String(student.first_name ?? '')} ${String(student.last_name ?? '')}`.trim() || `Student #${String(student.user_id)}`,
-                  meta: String(student.email ?? ''),
-                  keywords: `${String(student.first_name ?? '')} ${String(student.last_name ?? '')} ${String(student.email ?? '')}`,
-                }))}
-              />
-            </div>
-
-            <div className="field-shell">
-              <label htmlFor="filter_course_id" className="field-label">Course</label>
-              <SearchableSelect
-                id="filter_course_id"
-                name="filter_course_id"
-                value={filters.course_id}
-                onValueChange={(value) => setFilters((prev) => ({ ...prev, course_id: value }))}
-                placeholder="All courses"
-                searchPlaceholder="Search course..."
-                options={courses.map((course) => ({
-                  value: String(course.course_id),
-                  label: `${String(course.course_code ?? '')} - ${String(course.course_name ?? '')}`,
-                  meta: String(course.department ?? ''),
-                  keywords: `${String(course.course_code ?? '')} ${String(course.course_name ?? '')} ${String(course.department ?? '')}`,
-                }))}
-              />
-            </div>
-
-            <div className="session-stat-row">
-              <div className="field-shell">
-                <label htmlFor="filter_semester" className="field-label">Semester</label>
-                <Form.Select
-                  id="filter_semester"
-                  value={filters.semester}
-                  onChange={(event) => setFilters((prev) => ({ ...prev, semester: event.target.value }))}
-                >
-                  <option value="">All semesters</option>
-                  <option value="Semester 1">Semester 1</option>
-                  <option value="Semester 2">Semester 2</option>
-                </Form.Select>
-              </div>
-              <div className="field-shell">
-                <label htmlFor="filter_status" className="field-label">Status</label>
-                <Form.Select
-                  id="filter_status"
-                  value={filters.enrollment_status}
-                  onChange={(event) => setFilters((prev) => ({ ...prev, enrollment_status: event.target.value }))}
-                >
-                  <option value="">All statuses</option>
-                  <option value="Enrolled">Enrolled</option>
-                  <option value="Completed">Completed</option>
-                  <option value="Dropped">Dropped</option>
-                </Form.Select>
-              </div>
-            </div>
-
-            <div className="field-shell">
-              <label htmlFor="filter_year" className="field-label">Academic year</label>
-              <Form.Control
-                id="filter_year"
-                value={filters.academic_year}
-                onChange={(event) => setFilters((prev) => ({ ...prev, academic_year: event.target.value }))}
-                placeholder="2026/2027"
-              />
-            </div>
-          </div>
-
-          <div className="callout-panel purple">
-            <i className="ti ti-info-circle" style={{ color: 'var(--purple)' }} />
-            <div>
-              <div className="callout-title">Enrollment is a trust boundary</div>
-              <div className="callout-copy">
-                Attendance should only succeed for students with an explicit, term-specific course registration. This screen is the operational browser for that rule.
-              </div>
+            <div className="entity-copy">
+              <span className="text-secondary small fw-bold uppercase">Active Enrolled</span>
+              <strong className="h4 mb-0 d-block">{counts.enrolled}</strong>
             </div>
           </div>
         </div>
-
-        <div className="stack">
-          <div className="surface-card section-card">
-            <div className="section-title">
-              <div>
-                <h3>Enrollment summary</h3>
-                <div className="section-subtle">Result set size and status distribution for the current scope</div>
-              </div>
+        <div className="col-md-3">
+          <div className="surface-card p-3 d-flex align-items-center gap-3 shadow-sm border-0 h-100">
+            <div className="sb-avatar bg-teal-lt text-teal p-2 fs-3 rounded-3">
+              <i className="ti ti-award" />
             </div>
-
-            <div className="session-stat-row">
-              <div className="session-stat">
-                <label>Visible rows</label>
-                <strong>{enrollments.length}</strong>
-              </div>
-              <div className="session-stat">
-                <label>Enrolled</label>
-                <strong>{enrollmentCounts.enrolled}</strong>
-              </div>
-              <div className="session-stat">
-                <label>Completed</label>
-                <strong>{enrollmentCounts.completed}</strong>
-              </div>
-              <div className="session-stat">
-                <label>Dropped</label>
-                <strong>{enrollmentCounts.dropped}</strong>
-              </div>
+            <div className="entity-copy">
+              <span className="text-secondary small fw-bold uppercase">Alumni Completed</span>
+              <strong className="h4 mb-0 d-block">{counts.completed}</strong>
             </div>
           </div>
-
-          {isLoading ? (
-            <LoadingSkeleton rows={6} columns={5} />
-          ) : enrollments.length === 0 ? (
-            <div className="surface-card section-card">
-              <EmptyState
-                icon="ti-list-check"
-                title="No enrollments in this scope"
-                message="Adjust the filters or create a new enrollment to begin populating the academic register."
-              />
-            </div>
-          ) : (
-            <div className="surface-card section-card">
-              <div className="section-title">
-                <div>
-                  <h3>Enrollment records</h3>
-                  <div className="section-subtle">Academic registrations currently visible under the selected filters</div>
-                </div>
-                <span className="status-pill green"><i className="ti ti-check" />{enrollments.length} tracked rows</span>
-              </div>
-
-              <Alert variant="light" className="mb-3 border">
-                <i className="ti ti-shield-check me-2" />
-                These records directly affect whether attendance check-in is accepted for the selected academic scope.
-              </Alert>
-
-              <div className="table-shell">
-                <table className="table table-hover align-middle mb-0">
-                  <thead>
-                    <tr>
-                      <th>Course</th>
-                      <th>Student</th>
-                      <th>Term</th>
-                      <th>Status</th>
-                      <th>Enrolled date</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {enrollments.map((enrollment: Record<string, unknown>) => {
-                      const status = String(enrollment.enrollment_status ?? 'Enrolled');
-                      return (
-                        <tr key={`${enrollment.student_id as number}-${enrollment.course_id as number}-${enrollment.academic_year as string}-${enrollment.semester as string}`}>
-                          <td className="fw-semibold">{getCourseLabel(Number(enrollment.course_id ?? 0))}</td>
-                          <td className="text-secondary">{getStudentLabel(Number(enrollment.student_id ?? 0))}</td>
-                          <td className="text-secondary">
-                            {(enrollment.semester as string) || '-'} / {(enrollment.academic_year as string) || '-'}
-                          </td>
-                          <td>
-                            <span className={`status-pill ${status === 'Enrolled' ? 'green' : status === 'Completed' ? 'teal' : 'purple'}`}>
-                              <i className={`ti ti-${status === 'Enrolled' ? 'circle-check' : status === 'Completed' ? 'rosette-discount-check' : 'clock-pause'}`} />
-                              {status}
-                            </span>
-                          </td>
-                          <td className="text-secondary small">
-                            {enrollment.created_at ? new Date(enrollment.created_at as string).toLocaleDateString() : '-'}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
+        </div>
+        <div className="col-md-6">
+           <div className="surface-card p-3 shadow-sm border-0 bg-light-subtle d-flex align-items-center gap-3 h-100">
+             <div className="flex-grow-1">
+               <SearchableSelect
+                 name="filter_student"
+                 placeholder="Filter student..."
+                 value={filters.student_id}
+                 onValueChange={v => setFilters(p => ({ ...p, student_id: v }))}
+                 options={students.map(s => ({ value: String(s.user_id), label: `${s.first_name} ${s.last_name}` }))}
+               />
+             </div>
+             <div className="flex-grow-1">
+               <SearchableSelect
+                 name="filter_course"
+                 placeholder="Filter course..."
+                 value={filters.course_id}
+                 onValueChange={v => setFilters(p => ({ ...p, course_id: v }))}
+                 options={courses.map(c => ({ value: String(c.course_id), label: `${c.course_code}` }))}
+               />
+             </div>
+           </div>
         </div>
       </div>
+
+      <div className="surface-card p-0 overflow-hidden shadow-sm border-0 mb-4">
+        {enrollments.length === 0 ? (
+          <div className="p-5"><EmptyState title="No Evidence" message="No enrollment records matching current criteria." /></div>
+        ) : (
+          <div className="table-responsive">
+            <Table hover className="mb-0 border-0">
+               <thead className="bg-light-subtle text-secondary small fw-bold uppercase tracking-wider">
+                <tr>
+                  <th className="ps-4 border-0 py-3">Academic Course</th>
+                  <th className="border-0 py-3">Student Identity</th>
+                  <th className="border-0 py-3">Term Period</th>
+                  <th className="text-end pe-4 border-0 py-3">Registration Status</th>
+                </tr>
+              </thead>
+              <tbody className="border-top-0">
+                {paginatedEnrollments.map((e: any) => {
+                  const course = courses.find((c: any) => Number(c.course_id) === Number(e.course_id));
+                  const user = users.find((u: any) => Number(u.user_id) === Number(e.student_id));
+                  return (
+                    <tr key={`${e.student_id}-${e.course_id}`}>
+                      <td className="ps-4 py-3">
+                        <strong className="text-navy d-block">{course?.course_code || `CID-${e.course_id}`}</strong>
+                        <span className="smaller text-muted">{course?.course_name}</span>
+                      </td>
+                      <td className="py-3">
+                        <div className="d-flex align-items-center gap-2">
+                          <div className="sb-avatar sm bg-purple text-white small fw-bold">
+                            {user?.first_name?.[0] || 'S'}
+                          </div>
+                          <span className="small text-navy fw-medium">
+                            {user?.first_name} {user?.last_name}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-3 text-secondary small">{e.semester} • {e.academic_year}</td>
+                      <td className="text-end pe-4 py-3">
+                        <span className={`status-pill ${e.enrollment_status === 'Enrolled' ? 'green' : 'teal'}`}>
+                          <i className={`ti ti-${e.enrollment_status === 'Enrolled' ? 'circle-check' : 'award'}`} />
+                          {e.enrollment_status}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </Table>
+            {enrollments.length > pageSize && (
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+                totalItems={enrollments.length}
+                pageSize={pageSize}
+              />
+            )}
+          </div>
+        )}
+      </div>
+
+      <EnrollmentFormModal
+        show={showModal}
+        onHide={() => setShowModal(false)}
+      />
     </div>
   );
 }

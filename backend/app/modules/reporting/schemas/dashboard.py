@@ -36,7 +36,6 @@ class LecturerLiveSessionSummary(BaseModel):
     session_type: str
     course_label: str
     venue_label: str
-    timetable_slot: str | None = None
     session_start: datetime
     session_end: datetime
     live_records: int
@@ -46,7 +45,6 @@ class LecturerLiveSessionSummary(BaseModel):
 class LecturerUpcomingSessionItem(BaseModel):
     session_id: int
     course_label: str
-    timetable_slot: str | None = None
     session_start: datetime
 
 
@@ -62,7 +60,6 @@ class LecturerDashboardSummary(BaseModel):
     active_session_count: int
     current_verified_rate: int
     open_review_items: int
-    timetable_slots: int
     live_session: LecturerLiveSessionSummary | None = None
     upcoming_sessions: list[LecturerUpcomingSessionItem]
     review_queue: list[LecturerReviewItem]

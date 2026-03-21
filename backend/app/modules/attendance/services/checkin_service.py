@@ -61,6 +61,7 @@ class CheckInService:
             to_latitude=venue.latitude,
             to_longitude=venue.longitude,
         )
+        # Allow modest GPS drift, but cap the tolerance so weak readings cannot bypass the venue boundary entirely.
         tolerated_radius = venue.radius_meters + min(
             data.gps_accuracy or 0,
             settings.GPS_MAX_TRUSTED_ACCURACY_METERS,
@@ -222,6 +223,7 @@ class CheckInService:
         skip: int = 0,
         limit: int = 50,
     ) -> dict:
+        # Include explicit pending records and GPS/device anomalies that were auto-flagged for manual review.
         filters = [or_(AttendanceRecord.fraud_flag == True, AttendanceRecord.verification_status == "Pending")]
 
         if verification_status is not None:

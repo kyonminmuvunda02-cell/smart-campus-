@@ -1,7 +1,8 @@
 import { useActionState, useEffect, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router';
-import { Alert, Button, Form, Spinner } from 'react-bootstrap';
+import { Button, Form, Spinner, OverlayTrigger, Tooltip } from 'react-bootstrap';
 import PageHeader from '@/components/common/PageHeader';
+import LoadingSkeleton from '@/components/common/LoadingSkeleton';
 import ErrorAlert from '@/components/common/ErrorAlert';
 import { useVenue } from '@/modules/venues/hooks/useVenue';
 import { useToast } from '@/components/common/ToastManager';
@@ -10,6 +11,17 @@ import VenueLocationPicker from '@/modules/venues/components/VenueLocationPicker
 
 interface ActionState {
   error: string | null;
+}
+
+function LabelWithTooltip({ label, tooltip }: { label: string; tooltip: string }) {
+  return (
+    <div className="field-label mb-1 d-flex align-items-center gap-1">
+      <span>{label}</span>
+      <OverlayTrigger placement="top" overlay={<Tooltip>{tooltip}</Tooltip>}>
+        <i className="ti ti-info-circle text-royal small" style={{ cursor: 'pointer' }} />
+      </OverlayTrigger>
+    </div>
+  );
 }
 
 export default function VenueFormPage() {
@@ -27,9 +39,11 @@ export default function VenueFormPage() {
   const [isLocating, setIsLocating] = useState(false);
 
   useEffect(() => {
-    setLatitude(currentNumber(currentVenueValue(venue, 'latitude')));
-    setLongitude(currentNumber(currentVenueValue(venue, 'longitude')));
-    setRadiusMeters(currentNumber(currentVenueValue(venue, 'radius_meters')));
+    if (venue) {
+      setLatitude(String((venue as any).latitude ?? ''));
+      setLongitude(String((venue as any).longitude ?? ''));
+      setRadiusMeters(String((venue as any).radius_meters ?? ''));
+    }
   }, [venue]);
 
   async function handleSubmit(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -45,10 +59,10 @@ export default function VenueFormPage() {
 
       if (isEditing) {
         await update.mutateAsync({ path: { venue_id: Number(id) }, body: payload });
-        showToast('success', 'Venue updated', 'Changes saved successfully.');
+        showToast('success', 'Venue Updated', 'Physical footprint record has been updated.');
       } else {
         await create.mutateAsync({ body: payload });
-        showToast('success', 'Venue created', 'New venue has been added.');
+        showToast('success', 'Venue Created', 'A new teaching space has been registered.');
       }
 
       navigate('/venues');
@@ -60,294 +74,136 @@ export default function VenueFormPage() {
 
   const [state, formAction, isPending] = useActionState(handleSubmit, { error: null });
 
-  if (loadingVenue) {
-    return <div className="empty-panel"><i className="ti ti-loader" /><div>Loading venue...</div></div>;
-  }
+  if (loadingVenue) return <div className="p-4"><LoadingSkeleton rows={10} /></div>;
 
-  const currentVenue = venue as Record<string, unknown> | undefined;
-  const hasCoordinates = latitude.trim() !== '' && longitude.trim() !== '';
-  const mapHref = hasCoordinates
-    ? `https://www.openstreetmap.org/?mlat=${encodeURIComponent(latitude)}&mlon=${encodeURIComponent(longitude)}#map=19/${encodeURIComponent(latitude)}/${encodeURIComponent(longitude)}`
-    : null;
-  const mapEmbedHref = hasCoordinates ? buildMapEmbedHref(Number(latitude), Number(longitude)) : null;
+  const currentVenue = venue as Record<string, any> | undefined;
 
   async function handleUseCurrentLocation() {
     if (!navigator.geolocation) {
-      setGeoMessage('This browser cannot capture the current location for venue setup.');
+      setGeoMessage('Geolocation not supported.');
       return;
     }
-
     setIsLocating(true);
     setGeoMessage(null);
     navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setLatitude(position.coords.latitude.toFixed(6));
-        setLongitude(position.coords.longitude.toFixed(6));
-        if (!radiusMeters.trim()) {
-          setRadiusMeters('45');
-        }
-        setGeoMessage('Current device coordinates captured. Validate the pin and save the venue.');
+      (pos) => {
+        setLatitude(pos.coords.latitude.toFixed(6));
+        setLongitude(pos.coords.longitude.toFixed(6));
+        if (!radiusMeters) setRadiusMeters('45');
+        setGeoMessage('Coordinates captured from your device.');
         setIsLocating(false);
       },
-      (error) => {
-        setGeoMessage(error.message || 'Location access was denied for this browser.');
+      (err) => {
+        setGeoMessage(err.message);
         setIsLocating(false);
       },
-      { enableHighAccuracy: true, timeout: 10000 },
+      { enableHighAccuracy: true }
     );
   }
 
-  function handleMapSelection(nextLatitude: number, nextLongitude: number) {
-    setLatitude(nextLatitude.toFixed(6));
-    setLongitude(nextLongitude.toFixed(6));
-    if (!radiusMeters.trim()) {
-      setRadiusMeters('45');
-    }
-    setGeoMessage('Map location updated. Confirm the attendance radius and save the venue.');
-  }
-
   return (
-    <div>
+    <div className="stack gap-4">
       <PageHeader
-        eyebrow="Administration"
-        title={isEditing ? 'Edit venue' : 'Create venue'}
-        subtitle={isEditing ? `Refining ${String(currentVenue?.venue_name ?? '')}` : 'Register a physical space for trusted attendance capture.'}
+        title={isEditing ? 'Edit Venue Record' : 'Register New Venue'}
+        subtitle="Establish physical campus coordinates to anchor trusted attendance scan events."
         icon="building"
         tone="teal"
+        breadcrumbs={[
+          { label: 'Administration', path: '/venues' },
+          { label: 'Venues', path: '/venues' },
+          { label: isEditing ? 'Edit' : 'Create' }
+        ]}
       >
-        <Link to="/venues">
-          <Button variant="outline-secondary"><i className="ti ti-arrow-left" />Back to venues</Button>
-        </Link>
+        <Link to="/venues"><Button variant="outline-secondary"><i className="ti ti-arrow-left" />Back</Button></Link>
       </PageHeader>
 
-      <div className="ops-grid">
-        <div className="stack">
-          <div className="surface-card section-card">
-            <div className="section-title">
-              <div>
-                <h3>Venue guidance</h3>
-                <div className="section-subtle">Physical spaces must be explicit enough to support geofenced trust and reporting.</div>
+      <div className="surface-card p-4 shadow-sm border-0">
+            <ErrorAlert error={state.error} dismissible />
+            
+            <Form action={formAction}>
+              <div className="row g-4 mb-4">
+                <div className="col-md-6">
+                  <div className="field-shell">
+                    <LabelWithTooltip label="Venue Name" tooltip="Room identifier recognized by staff/students." />
+                    <Form.Control name="venue_name" defaultValue={currentVenue?.venue_name} required placeholder="e.g. LT-1" className="py-2" />
+                  </div>
+                </div>
+                <div className="col-md-6">
+                  <div className="field-shell">
+                    <LabelWithTooltip label="Building Context" tooltip="Campus building or block name." />
+                    <Form.Control name="building" defaultValue={currentVenue?.building} placeholder="e.g. Science Block" className="py-2" />
+                  </div>
+                </div>
+                <div className="col-md-6">
+                  <div className="field-shell">
+                    <LabelWithTooltip label="Venue Capacity" tooltip="Max occupancy for room scale reporting." />
+                    <Form.Control type="number" name="capacity" defaultValue={currentVenue?.capacity || 100} required className="py-2" />
+                  </div>
+                </div>
+                <div className="col-md-6">
+                  <div className="field-shell h-100 d-flex align-items-end">
+                    <Button variant="outline-teal" className="w-100 py-2 border-dashed" onClick={() => void handleUseCurrentLocation()} disabled={isLocating}>
+                      {isLocating ? <Spinner size="sm" /> : <i className="ti ti-current-location me-2" />}
+                      Capture Device Coordinates
+                    </Button>
+                  </div>
+                </div>
               </div>
-              <span className="status-pill teal"><i className="ti ti-map-pin" />Approved space</span>
-            </div>
 
-            <div className="detail-list">
-              <div className="detail-row">
-                <span className="detail-label">Venue name</span>
-                <span className="detail-value">Classroom or hall identifier</span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-label">Building</span>
-                <span className="detail-value">Campus location anchor</span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-label">Capacity</span>
-                <span className="detail-value">Expected attendance limit</span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-label">Geofence</span>
-                <span className="detail-value">Latitude, longitude, and radius required for attendance trust</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="callout-panel teal">
-            <i className="ti ti-shield-check" style={{ color: 'var(--teal)' }} />
-            <div>
-              <div className="callout-title">Wrong venue data breaks attendance trust</div>
-              <div className="callout-copy">
-                Sessions depend on these spaces for physical validation. A bad record can block legitimate scans or certify the wrong room.
-              </div>
-            </div>
-          </div>
-
-          <div className="surface-card section-card">
-            <div className="section-title">
-              <div>
-                <h3>Geofence capture</h3>
-                <div className="section-subtle">Capture coordinates from the current device, then preview the location before saving the attendance zone.</div>
-              </div>
-            </div>
-
-            <div className="coordinate-tools">
-              <Button variant="outline-secondary" onClick={() => void handleUseCurrentLocation()} disabled={isLocating}>
-                {isLocating ? <Spinner animation="border" size="sm" /> : <i className="ti ti-current-location" />}
-                Use current location
-              </Button>
-              {mapHref ? (
-                <a href={mapHref} target="_blank" rel="noreferrer" className="btn btn-outline-primary">
-                  <i className="ti ti-map-2" />Open map preview
-                </a>
-              ) : null}
-            </div>
-
-            <VenueLocationPicker
-              latitude={latitude.trim() ? Number(latitude) : null}
-              longitude={longitude.trim() ? Number(longitude) : null}
-              radiusMeters={radiusMeters.trim() ? Number(radiusMeters) : null}
-              onChange={handleMapSelection}
-            />
-
-            <div className="coordinate-preview">
-              <div className="coordinate-cell">
-                <span className="detail-label">Latitude</span>
-                <strong>{latitude || '--'}</strong>
-              </div>
-              <div className="coordinate-cell">
-                <span className="detail-label">Longitude</span>
-                <strong>{longitude || '--'}</strong>
-              </div>
-              <div className="coordinate-cell">
-                <span className="detail-label">Radius</span>
-                <strong>{radiusMeters ? `${radiusMeters} m` : '--'}</strong>
-              </div>
-            </div>
-
-            {mapEmbedHref ? (
-              <div className="map-embed-shell">
-                <iframe
-                  src={mapEmbedHref}
-                  title="Venue map preview"
-                  loading="lazy"
-                  referrerPolicy="no-referrer-when-downgrade"
+              <div className="bg-light-subtle rounded-3 p-3 border mb-4">
+                <h4 className="h6 fw-bold uppercase tracking-wider text-secondary mb-3"><i className="ti ti-map-pin me-2 text-teal" />Geofence Definition</h4>
+                
+                <VenueLocationPicker
+                  latitude={latitude ? Number(latitude) : null}
+                  longitude={longitude ? Number(longitude) : null}
+                  radiusMeters={radiusMeters ? Number(radiusMeters) : null}
+                  onChange={(lat, lng) => {
+                    setLatitude(lat.toFixed(6));
+                    setLongitude(lng.toFixed(6));
+                    if (!radiusMeters) setRadiusMeters('45');
+                  }}
                 />
+
+                <div className="row g-3 mt-3">
+                  <div className="col-md-4">
+                    <div className="field-shell">
+                      <label className="small fw-bold text-secondary">Latitude</label>
+                      <Form.Control value={latitude} onChange={e => setLatitude(e.target.value)} step="any" type="number" className="mono small h-auto py-2" />
+                    </div>
+                  </div>
+                  <div className="col-md-4">
+                    <div className="field-shell">
+                      <label className="small fw-bold text-secondary">Longitude</label>
+                      <Form.Control value={longitude} onChange={e => setLongitude(e.target.value)} step="any" type="number" className="mono small h-auto py-2" />
+                    </div>
+                  </div>
+                  <div className="col-md-4">
+                    <div className="field-shell">
+                      <label className="small fw-bold text-secondary">Radius (m)</label>
+                      <Form.Control value={radiusMeters} onChange={e => setRadiusMeters(e.target.value)} step="any" type="number" className="mono small h-auto py-2" />
+                    </div>
+                  </div>
+                </div>
+
+                {geoMessage && <div className="mt-3 small text-amber fw-bold"><i className="ti ti-alert-circle me-1" />{geoMessage}</div>}
               </div>
-            ) : null}
 
-            {geoMessage ? (
-              <Alert variant={mapHref ? 'info' : 'warning'} className="mb-0">
-                <i className={`ti ti-${mapHref ? 'info-circle' : 'alert-triangle'} me-2`} />
-                {geoMessage}
-              </Alert>
-            ) : null}
-          </div>
-        </div>
-
-        <div className="surface-card section-card">
-          <div className="section-title">
-            <div>
-              <h3>{isEditing ? 'Update venue record' : 'New venue record'}</h3>
-              <div className="section-subtle">Capture the essential physical details before publishing the space.</div>
-            </div>
-          </div>
-
-          <ErrorAlert error={state.error} dismissible />
-
-          <Form action={formAction}>
-            <div className="field-shell">
-              <Form.Label className="field-label">Venue name</Form.Label>
-              <Form.Control
-                name="venue_name"
-                defaultValue={currentVenue?.venue_name as string | undefined}
-                required
-                placeholder="e.g. Lecture Theatre 1"
-              />
-            </div>
-
-            <div className="field-shell">
-              <Form.Label className="field-label">Building</Form.Label>
-              <Form.Control
-                name="building"
-                defaultValue={currentVenue?.building as string | undefined}
-                placeholder="e.g. Science Block A"
-              />
-            </div>
-
-            <div className="field-shell">
-              <Form.Label className="field-label">Capacity</Form.Label>
-              <Form.Control
-                type="number"
-                name="capacity"
-                defaultValue={(currentVenue?.capacity as number | undefined) ?? 100}
-                required
-                min={1}
-              />
-            </div>
-
-            <div className="session-stat-row">
-              <div className="field-shell">
-                <Form.Label className="field-label">Latitude</Form.Label>
-                <Form.Control
-                  type="number"
-                  step="any"
-                  name="latitude"
-                  value={latitude}
-                  onChange={(event) => setLatitude(event.target.value)}
-                  placeholder="-15.385"
-                />
+              <div className="callout-panel teal mb-4">
+               <i className="ti ti-shield-check fs-4" />
+                <div className="small">
+                  Ensure the map pin is centered on the actual teaching space. Geofence radius affects attendance trust thresholds.
+                </div>
               </div>
-              <div className="field-shell">
-                <Form.Label className="field-label">Longitude</Form.Label>
-                <Form.Control
-                  type="number"
-                  step="any"
-                  name="longitude"
-                  value={longitude}
-                  onChange={(event) => setLongitude(event.target.value)}
-                  placeholder="28.322"
-                />
+
+              <div className="d-flex gap-2">
+                <Button type="submit" variant="primary" disabled={isPending} className="px-4 fw-bold">
+                  {isPending ? <Spinner size="sm" /> : <i className={`ti ti-${isEditing ? 'device-floppy' : 'plus'} me-2`} />}
+                  {isEditing ? 'Save Configuration' : 'Establish Venue'}
+                </Button>
+                <Link to="/venues"><Button variant="outline-secondary">Discard</Button></Link>
               </div>
-            </div>
-
-            <div className="field-shell">
-              <Form.Label className="field-label">Geofence radius (meters)</Form.Label>
-              <Form.Control
-                type="number"
-                step="any"
-                min={1}
-                name="radius_meters"
-                value={radiusMeters}
-                onChange={(event) => setRadiusMeters(event.target.value)}
-                placeholder="45"
-              />
-              <Form.Range
-                min={10}
-                max={150}
-                step={5}
-                value={radiusMeters.trim() ? Number(radiusMeters) : 45}
-                onChange={(event) => setRadiusMeters(event.target.value)}
-                className="mt-3"
-              />
-            </div>
-
-            <Alert variant="info" className="mb-0">
-              <i className="ti ti-map-pin-share me-2" />
-              Attendance sessions can only be scheduled against venues with a complete geofence.
-            </Alert>
-
-            <div className="ph-actions" style={{ marginTop: '1rem' }}>
-              <Button type="submit" variant="primary" disabled={isPending}>
-                {isPending ? <Spinner animation="border" size="sm" /> : <i className={`ti ti-${isEditing ? 'device-floppy' : 'plus'}`} />}
-                {isEditing ? 'Save changes' : 'Create venue'}
-              </Button>
-              <Link to="/venues">
-                <Button variant="outline-secondary">Cancel</Button>
-              </Link>
-            </div>
-          </Form>
-        </div>
+            </Form>
       </div>
     </div>
   );
-}
-
-function currentVenueValue(venue: unknown, key: string) {
-  return (venue as Record<string, unknown> | undefined)?.[key];
-}
-
-function currentNumber(value: unknown) {
-  if (value === undefined || value === null || value === '') return '';
-  return String(value);
-}
-
-function buildMapEmbedHref(latitude: number, longitude: number) {
-  const latDelta = 0.0018;
-  const lngDelta = 0.0018;
-  const bbox = [
-    longitude - lngDelta,
-    latitude - latDelta,
-    longitude + lngDelta,
-    latitude + latDelta,
-  ].join('%2C');
-  return `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${encodeURIComponent(`${latitude},${longitude}`)}`;
 }

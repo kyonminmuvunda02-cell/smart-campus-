@@ -1,6 +1,6 @@
 import { useActionState } from 'react';
 import { useNavigate, Link } from 'react-router';
-import { Button, Card, Form, Row, Col, Spinner } from 'react-bootstrap';
+import { Button, Form, Spinner } from 'react-bootstrap';
 import PageHeader from '@/components/common/PageHeader';
 import ErrorAlert from '@/components/common/ErrorAlert';
 import SearchableSelect from '@/components/common/SearchableSelect';
@@ -28,15 +28,14 @@ export default function SessionFormPage() {
   const { useList: useCourses } = useCourse();
   const { useList: useVenues } = useVenue();
 
-  const { data: coursesData, isLoading: loadingCourses } = useCourses();
-  const { data: venuesData, isLoading: loadingVenues } = useVenues();
+  const { data: coursesData } = useCourses({ query: { limit: 500 } });
+  const { data: venuesData } = useVenues({ query: { limit: 500 } });
 
   async function handleSubmit(_prev: ActionState, formData: FormData): Promise<ActionState> {
     try {
       const courseId = Number(formData.get('course_id'));
       const venueId = Number(formData.get('venue_id'));
       const sessionType = String(formData.get('session_type') || 'Lecture');
-      const timetableSlot = String(formData.get('timetable_slot') || '').trim() || null;
       const semester = String(formData.get('semester'));
       const academicYear = String(formData.get('academic_year'));
       const sessionStart = new Date(String(formData.get('session_start')));
@@ -47,7 +46,6 @@ export default function SessionFormPage() {
           course_id: courseId,
           venue_id: venueId,
           session_type: sessionType,
-          timetable_slot: timetableSlot,
           semester,
           academic_year: academicYear,
           session_start: sessionStart,
@@ -55,7 +53,7 @@ export default function SessionFormPage() {
         },
       });
 
-      showToast('success', 'Session scheduled', 'The class is now on the lecturer schedule and can be started when it is time to take attendance.');
+      showToast('success', 'Session scheduled', 'Ready for attendance capture.');
       navigate(`/sessions/${result.session_id}`);
       return { error: null };
     } catch (err) {
@@ -71,168 +69,118 @@ export default function SessionFormPage() {
   const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
 
   return (
-    <div>
+    <div className="stack gap-4">
       <PageHeader
-        title="Schedule Session"
-        subtitle="Create the class window in advance, then start attendance when the lecturer is ready."
+        title="Schedule Teaching Session"
+        subtitle="Select the course, choose an approved venue, and define when students can check in."
+        icon="calendar-plus"
+        tone="teal"
+        breadcrumbs={[{ label: 'Teaching Ops', path: '/sessions' }, { label: 'Schedule' }]}
       >
-        <Link to="/sessions">
-          <Button variant="outline-secondary">
-            <i className="ti ti-arrow-left me-2" />Back to Sessions
-          </Button>
-        </Link>
+        <Link to="/sessions"><Button variant="outline-secondary"><i className="ti ti-arrow-left" />Back</Button></Link>
       </PageHeader>
 
-      <Row className="justify-content-center">
-        <Col md={7}>
-          <Card className="border-0 shadow-sm">
-            <Card.Body className="p-4">
-              <ErrorAlert error={state.error} dismissible />
-
-              <Form action={formAction}>
-                <Form.Group className="mb-3">
-                  <Form.Label className="small fw-semibold">Course</Form.Label>
-                  {loadingCourses ? (
-                    <div className="py-2"><Spinner animation="border" size="sm" variant="primary" /></div>
-                  ) : (
+      <div className="surface-card p-4 shadow-sm border-0">
+        <ErrorAlert error={state.error} dismissible />
+        <Form action={formAction}>
+          <div className="row g-4">
+                <div className="col-md-12">
+                  <div className="field-shell">
+                    <label className="field-label">Target Unit / Course</label>
                     <SearchableSelect
                       name="course_id"
                       required
-                      placeholder="Select a course..."
-                      searchPlaceholder="Search course code or title..."
-                      options={courses.map((course) => ({
-                        value: String(course.course_id as number),
-                        label: `${course.course_code as string} - ${course.course_name as string}`,
-                        meta: `Course #${String(course.course_id as number)}`,
-                        keywords: `${String(course.course_code ?? '')} ${String(course.course_name ?? '')}`,
+                      placeholder="Select course..."
+                      searchPlaceholder="Search by code or course name..."
+                      options={courses.map(c => ({
+                        value: String(c.course_id),
+                        label: `${c.course_code} - ${c.course_name}`,
+                        meta: String(c.department ?? ''),
+                        keywords: `${String(c.course_code ?? '')} ${String(c.course_name ?? '')} ${String(c.department ?? '')}`
                       }))}
                     />
-                  )}
-                </Form.Group>
+                  </div>
+                </div>
 
-                <Form.Group className="mb-3">
-                  <Form.Label className="small fw-semibold">Venue</Form.Label>
-                  {loadingVenues ? (
-                    <div className="py-2"><Spinner animation="border" size="sm" variant="primary" /></div>
-                  ) : (
+                <div className="col-md-12">
+                  <div className="field-shell">
+                    <label className="field-label">Assigned Venue</label>
                     <SearchableSelect
                       name="venue_id"
                       required
-                      placeholder="Select a venue..."
-                      searchPlaceholder="Search venue or building..."
-                      options={venues.map((venue) => ({
-                        value: String(venue.venue_id as number),
-                        label: `${venue.venue_name as string}${(venue.building as string) ? ` (${venue.building as string})` : ''}`,
-                        meta: [venue.latitude, venue.longitude, venue.radius_meters].every((item) => item !== null && item !== undefined)
-                          ? 'Geofence ready'
-                          : 'Needs geofence',
-                        keywords: `${String(venue.venue_name ?? '')} ${String(venue.building ?? '')}`,
+                      placeholder="Select venue..."
+                      searchPlaceholder="Search by venue or building..."
+                      options={venues.map(v => ({
+                        value: String(v.venue_id),
+                        label: `${v.venue_name} (${v.building || 'Main Campus'})`,
+                        meta: [v.latitude, v.longitude, v.radius_meters].every(i => i !== null) ? 'Geofence Ready' : 'Needs Setup',
+                        keywords: `${String(v.venue_name ?? '')} ${String(v.building ?? '')} ${String(v.venue_code ?? '')}`
                       }))}
                     />
-                  )}
-                </Form.Group>
-
-                <Row className="g-3 mb-3">
-                  <Col sm={6}>
-                    <Form.Group>
-                      <Form.Label className="small fw-semibold">Session type</Form.Label>
-                      <Form.Select name="session_type" defaultValue="Lecture" required className="py-2">
-                        <option value="Lecture">Lecture</option>
-                        <option value="Tutorial">Tutorial</option>
-                        <option value="Lab">Lab</option>
-                        <option value="Seminar">Seminar</option>
-                        <option value="Exam">Exam</option>
-                        <option value="Other">Other</option>
-                      </Form.Select>
-                    </Form.Group>
-                  </Col>
-                  <Col sm={6}>
-                    <Form.Group>
-                      <Form.Label className="small fw-semibold">Semester</Form.Label>
-                      <Form.Select name="semester" defaultValue="Semester 1" required className="py-2">
-                        <option value="Semester 1">Semester 1</option>
-                        <option value="Semester 2">Semester 2</option>
-                      </Form.Select>
-                    </Form.Group>
-                  </Col>
-                  <Col sm={6}>
-                    <Form.Group>
-                      <Form.Label className="small fw-semibold">Academic Year</Form.Label>
-                      <Form.Control
-                        name="academic_year"
-                        defaultValue={`${now.getFullYear()}/${now.getFullYear() + 1}`}
-                        required
-                        className="py-2"
-                      />
-                    </Form.Group>
-                  </Col>
-                </Row>
-
-                <Form.Group className="mb-3">
-                  <Form.Label className="small fw-semibold">Timetable slot</Form.Label>
-                  <Form.Control
-                    name="timetable_slot"
-                    placeholder="e.g. Mon 08:00-10:00"
-                    className="py-2"
-                  />
-                </Form.Group>
-
-                <Row className="g-3 mb-4">
-                  <Col sm={6}>
-                    <Form.Group>
-                      <Form.Label className="small fw-semibold">Scheduled Start</Form.Label>
-                      <Form.Control
-                        type="datetime-local"
-                        name="session_start"
-                        defaultValue={toLocalDateTimeInputValue(now)}
-                        required
-                        className="py-2"
-                      />
-                    </Form.Group>
-                  </Col>
-                  <Col sm={6}>
-                    <Form.Group>
-                      <Form.Label className="small fw-semibold">Scheduled End</Form.Label>
-                      <Form.Control
-                        type="datetime-local"
-                        name="session_end"
-                        defaultValue={toLocalDateTimeInputValue(oneHourFromNow)}
-                        required
-                        className="py-2"
-                      />
-                    </Form.Group>
-                  </Col>
-                </Row>
-
-                <div className="login-hint mb-4">
-                  Scheduling a session does not open attendance immediately. The lecturer still starts the live check-in window when the class actually begins, and only geofenced venues can be scheduled.
+                  </div>
                 </div>
 
-                <div className="d-grid">
-                  <Button
-                    type="submit"
-                    variant="primary"
-                    size="lg"
-                    className="py-2 fw-bold"
-                    disabled={isPending || loadingCourses || loadingVenues}
-                  >
-                    {isPending ? (
-                      <>
-                        <Spinner animation="border" size="sm" className="me-2" />
-                        Scheduling...
-                      </>
-                    ) : (
-                      <>
-                        <i className="ti ti-calendar-event me-2" />Schedule Session
-                      </>
-                    )}
-                  </Button>
+                <div className="col-md-4">
+                  <div className="field-shell">
+                    <label className="field-label">Session Type</label>
+                    <Form.Select name="session_type" defaultValue="Lecture" className="form-control-sm h-auto py-2">
+                      <option>Lecture</option>
+                      <option>Tutorial</option>
+                      <option>Lab</option>
+                      <option>Seminar</option>
+                      <option>Exam</option>
+                    </Form.Select>
+                  </div>
                 </div>
-              </Form>
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
+
+                <div className="col-md-4">
+                  <div className="field-shell">
+                    <label className="field-label">Semester</label>
+                    <Form.Select name="semester" className="form-control-sm h-auto py-2">
+                      <option>Semester 1</option>
+                      <option>Semester 2</option>
+                    </Form.Select>
+                  </div>
+                </div>
+
+                <div className="col-md-4">
+                  <div className="field-shell">
+                    <label className="field-label">Academic Year</label>
+                    <Form.Control name="academic_year" defaultValue="2025/2026" className="form-control-sm h-auto py-2" />
+                  </div>
+                </div>
+
+                <div className="col-md-6">
+                  <div className="field-shell">
+                    <label className="field-label">Window Start</label>
+                    <Form.Control type="datetime-local" name="session_start" defaultValue={toLocalDateTimeInputValue(now)} className="form-control-sm h-auto py-2" />
+                  </div>
+                </div>
+
+                <div className="col-md-6">
+                  <div className="field-shell">
+                    <label className="field-label">Window End</label>
+                    <Form.Control type="datetime-local" name="session_end" defaultValue={toLocalDateTimeInputValue(oneHourFromNow)} className="form-control-sm h-auto py-2" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="callout-panel teal mt-4 mb-4">
+                <i className="ti ti-info-circle fs-4" />
+                <div className="small">
+                  This session is created directly from the selected course and venue. Attendance stays dormant until the lecturer starts the live QR inside the session monitor.
+                </div>
+              </div>
+
+              <div className="d-flex gap-2">
+                <Button type="submit" variant="primary" disabled={isPending} className="px-4 fw-bold">
+                  {isPending ? <Spinner size="sm" className="me-2" /> : <i className="ti ti-calendar-check me-2" />}
+                  Create Session
+                </Button>
+                <Link to="/sessions"><Button variant="outline-secondary">Cancel</Button></Link>
+              </div>
+            </Form>
+      </div>
     </div>
   );
 }

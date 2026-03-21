@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { client } from '@/client/client.gen';
+import { invalidateQueryIds } from '@/utils/queryInvalidation';
 
 export interface AttendanceReviewItem {
   attendance_id: number;
@@ -69,10 +70,7 @@ export function useAttendanceReview() {
       });
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['attendanceReviewQueue'] });
-      queryClient.invalidateQueries({ queryKey: ['listAttendanceSessions'] });
-    },
+    onSuccess: () => invalidateQueryIds(queryClient, ['attendanceReviewQueue', 'listAttendanceSessions']),
   });
 
   return { useQueue, review };

@@ -11,35 +11,51 @@ function formatDateTime(value: string | null | undefined) {
   return new Date(value).toLocaleString();
 }
 
-function formatDate(value: string | null | undefined) {
-  if (!value) return 'Not set';
-  return new Date(value).toLocaleDateString();
+function StatCard({ tone, icon, value, label, subtitle }: { tone: string; icon: string; value: string | number; label: string; subtitle: string }) {
+  return (
+    <div className="surface-card p-3 d-flex align-items-center gap-3 shadow-sm border-0 h-100">
+      <div className={`sb-avatar bg-${tone}-lt text-${tone} p-2 fs-3 rounded-3`}>
+        <i className={`ti ti-${icon}`} />
+      </div>
+      <div className="entity-copy">
+        <span className="text-secondary small fw-bold uppercase">{label}</span>
+        <strong className="h4 mb-0 d-block text-navy">{value}</strong>
+        <span className="smaller text-muted d-block mt-1">{subtitle}</span>
+      </div>
+    </div>
+  );
 }
 
-function MetricCard({
-  tone,
-  icon,
-  pill,
-  value,
-  label,
-  meta,
-}: {
-  tone: 'royal' | 'green' | 'amber' | 'teal' | 'purple';
-  icon: string;
-  pill: string;
-  value: string | number;
-  label: string;
-  meta: string;
-}) {
+function StudentEnrolledCoursesPanel({ enrollments }: { enrollments: Array<{ course_id: number; course_label: string; semester: string; academic_year: string }> }) {
   return (
-    <div className={`metric-card ${tone}`}>
-      <div className="metric-head">
-        <div className={`metric-icon ${tone}`}><i className={`ti ti-${icon}`} /></div>
-        <span className={`status-pill ${tone}`}>{pill}</span>
+    <div className="surface-card">
+      <div className="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
+        <h3 className="h6 mb-0 fw-bold uppercase tracking-wider text-secondary">Enrolled Courses</h3>
+        <Link to="/my-courses" className="small text-royal fw-bold text-decoration-none">Open My Courses</Link>
       </div>
-      <div className="metric-value">{value}</div>
-      <div className="metric-label">{label}</div>
-      <div className="metric-meta">{meta}</div>
+      {enrollments.length === 0 ? (
+        <EmptyState title="No courses assigned" message="Your course enrollments will appear here once they are registered." />
+      ) : (
+        <div className="row g-3">
+          {enrollments.map((enrollment) => (
+            <div key={`${enrollment.course_id}-${enrollment.semester}-${enrollment.academic_year}`} className="col-md-6">
+              <div className="surface-card h-100 border-0 shadow-sm bg-light-subtle">
+                <div className="d-flex justify-content-between align-items-start gap-3">
+                  <div>
+                    <strong className="text-navy d-block mb-1">{enrollment.course_label}</strong>
+                    <span className="smaller text-muted">{enrollment.semester}</span>
+                  </div>
+                  <span className="status-pill green">
+                    <i className="ti ti-circle-check" />
+                    Enrolled
+                  </span>
+                </div>
+                <div className="smaller text-secondary mt-3">{enrollment.academic_year}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -49,134 +65,78 @@ function StudentDashboard() {
   const { data, isLoading } = useSummary();
   const summary = data?.student;
 
-  if (isLoading) return <LoadingSkeleton rows={8} columns={4} />;
-  if (!summary) return <EmptyState icon="ti-mood-empty" title="Student dashboard unavailable" message="Student summary data could not be loaded." />;
+  if (isLoading) return <div className="p-4"><LoadingSkeleton rows={10} /></div>;
+  if (!summary) return <EmptyState icon="ti-mood-empty" title="Student Dashboard Unavailable" message="We couldn't load your summary. Contact support if this persists." />;
 
-  const coverage = summary.records_count
-    ? `${Math.round((summary.verified_count / summary.records_count) * 100)}%`
-    : '0%';
+  const coverage = summary.records_count ? Math.round((summary.verified_count / summary.records_count) * 100) : 0;
 
   return (
-    <div>
+    <div className="stack gap-4">
       <PageHeader
-        eyebrow="Student workspace"
-        title="Attendance at a glance"
-        subtitle="Track verified check-ins, digital identity status, and active course registrations from one surface."
-        icon="layout-dashboard"
+        title="Student Workspace"
+        subtitle="Operational overview of your attendance compliance and academic records."
+        icon="device-desktop-analytics"
         tone="royal"
+        breadcrumbs={[{ label: 'Home' }, { label: 'Dashboard' }]}
       >
         <Link to="/checkin"><Button variant="primary"><i className="ti ti-qrcode" />Scan QR</Button></Link>
-        <Link to="/my-attendance"><Button variant="outline-secondary"><i className="ti ti-calendar-check" />History</Button></Link>
+        <Link to="/my-courses"><Button variant="outline-secondary"><i className="ti ti-books" />My Courses</Button></Link>
       </PageHeader>
 
-      <div className="stat-grid">
-        <MetricCard tone="royal" icon="clipboard-check" pill="Attendance" value={summary.records_count} label="Attendance records" meta="Every successful classroom submission stored against your identity." />
-        <MetricCard tone="green" icon="circle-check" pill={coverage} value={summary.verified_count} label="Verified check-ins" meta="Records that cleared geofence, QR, and device trust checks." />
-        <MetricCard tone="amber" icon="alert-triangle" pill={summary.flagged_count ? 'Needs review' : 'Clear'} value={summary.flagged_count} label="Flagged records" meta="Pending or low-confidence scans that still need a lecturer decision." />
-        <MetricCard tone="teal" icon="books" pill="Academic load" value={summary.active_enrollments} label="Active enrollments" meta="Courses where you are currently enrolled for attendance tracking." />
+      <div className="row g-4">
+        <div className="col-md-3">
+          <StatCard tone="royal" icon="clipboard-check" label="Total Scans" value={summary.records_count} subtitle="Historical records on file" />
+        </div>
+        <div className="col-md-3">
+          <StatCard tone="green" icon="circle-check" label="Verified Rate" value={`${coverage}%`} subtitle="Cleared all trust checks" />
+        </div>
+        <div className="col-md-3">
+          <StatCard tone="amber" icon="alert-triangle" label="Risk Flags" value={summary.flagged_count} subtitle="Scans requiring review" />
+        </div>
+        <div className="col-md-3">
+          <StatCard tone="teal" icon="books" label="Enrollments" value={summary.active_enrollments} subtitle="Active academic courses" />
+        </div>
       </div>
 
-      <div className="dashboard-grid">
-        <div className="stack">
-          <div className="surface-card section-card">
-            <div className="section-title">
-              <div>
-                <h3>Recent attendance evidence</h3>
-                <div className="section-subtle">Latest recorded check-ins tied to your student account</div>
-              </div>
-              <span className="status-pill green"><i className="ti ti-history" />Live history</span>
-            </div>
+      <StudentEnrolledCoursesPanel enrollments={summary.enrollments} />
 
-            {summary.recent_attendance.length === 0 ? (
-              <EmptyState icon="ti-calendar-off" title="No attendance records yet" message="Once you scan a live classroom QR, the result will appear here immediately." />
-            ) : (
-              <div className="table-shell">
-                <table className="table table-hover align-middle mb-0">
-                  <thead>
-                    <tr>
-                      <th>Session</th>
-                      <th>Checked in</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {summary.recent_attendance.map((record) => (
-                      <tr key={record.attendance_id}>
-                        <td className="fw-semibold">{record.session_type} - {record.course_label}</td>
-                        <td className="text-secondary small">{formatDateTime(record.checked_in_at)}</td>
-                        <td>
-                          <span className={`status-pill ${record.fraud_flag ? 'amber' : 'green'}`}>
-                            <i className={`ti ti-${record.fraud_flag ? 'alert-triangle' : 'circle-check'}`} />
-                            {record.fraud_flag ? 'Flagged' : record.verification_status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-
-          <div className="surface-card section-card">
-            <div className="section-title">
-              <div>
-                <h3>Current enrollments</h3>
-                <div className="section-subtle">Academic periods your attendance currently depends on</div>
-              </div>
-            </div>
-            {summary.enrollments.length === 0 ? (
-              <EmptyState icon="ti-book-off" title="No active enrollments" message="An administrator must enroll you in courses before attendance can be validated." />
-            ) : (
-              <div className="mini-timeline">
-                {summary.enrollments.map((enrollment) => (
-                  <div className="timeline-row" key={`${enrollment.course_id}-${enrollment.semester}-${enrollment.academic_year}`}>
-                    <div className="timeline-pin"><i className="ti ti-book" /></div>
-                    <div className="timeline-text">
-                      <strong>{enrollment.course_label}</strong>
-                      <span>{enrollment.semester} - {enrollment.academic_year}</span>
-                    </div>
-                  </div>
+      <div className="surface-card">
+        <div className="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
+          <h3 className="h6 mb-0 fw-bold uppercase tracking-wider text-secondary">Recent Attendance Activity</h3>
+          <Link to="/my-attendance" className="small text-royal fw-bold text-decoration-none">View Full History</Link>
+        </div>
+        {summary.recent_attendance.length === 0 ? (
+          <EmptyState title="No Records Found" message="Scans will appear here as soon as they are captured." />
+        ) : (
+          <div className="table-responsive">
+            <table className="table table-hover align-middle mb-0">
+              <thead className="bg-light-subtle">
+                <tr>
+                  <th className="ps-4 border-0 py-2 small fw-bold text-secondary uppercase">Session Details</th>
+                  <th className="border-0 py-2 small fw-bold text-secondary uppercase">Timestamp</th>
+                  <th className="text-end pe-4 border-0 py-2 small fw-bold text-secondary uppercase">Status</th>
+                </tr>
+              </thead>
+              <tbody className="border-top-0">
+                {summary.recent_attendance.map((record) => (
+                  <tr key={record.attendance_id}>
+                    <td className="ps-4 py-3">
+                      <strong className="text-navy d-block">{record.course_label}</strong>
+                      <span className="smaller text-muted">{record.session_type}</span>
+                    </td>
+                    <td className="py-3 text-secondary smaller">{formatDateTime(record.checked_in_at)}</td>
+                    <td className="text-end pe-4 py-3">
+                      <span className={`status-pill ${record.fraud_flag ? 'amber' : 'green'}`}>
+                        <i className={`ti ti-${record.fraud_flag ? 'alert-triangle' : 'circle-check'}`} />
+                        {record.fraud_flag ? 'Flagged' : record.verification_status}
+                      </span>
+                    </td>
+                  </tr>
                 ))}
-              </div>
-            )}
+              </tbody>
+            </table>
           </div>
-        </div>
-
-        <div className="stack">
-          <div className="surface-card section-card">
-            <div className="section-title">
-              <div>
-                <h3>Digital identity</h3>
-                <div className="section-subtle">Campus identity status used during every attendance check</div>
-              </div>
-              <span className={`status-pill ${summary.digital_id_active ? 'green' : 'amber'}`}>
-                <i className={`ti ti-${summary.digital_id_active ? 'id-badge-2' : 'id-off'}`} />
-                {summary.digital_id_active ? 'Issued' : 'Missing'}
-              </span>
-            </div>
-            <div className="detail-list">
-              <div className="detail-row">
-                <span className="detail-label">Card status</span>
-                <span className="detail-value">{summary.digital_id_active ? 'Active and available for attendance' : 'No active digital ID on file'}</span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-label">Card expiry</span>
-                <span className="detail-value">{formatDate(summary.digital_id_expires_at)}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="callout-panel teal">
-            <i className="ti ti-shield-check" style={{ color: 'var(--teal)' }} />
-            <div>
-              <div className="callout-title">Every scan still binds identity and location</div>
-              <div className="callout-copy">
-                Attendance is only accepted when your device fingerprint, QR code, enrollment, and classroom location align.
-              </div>
-            </div>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );
@@ -187,111 +147,88 @@ function LecturerDashboard() {
   const { data, isLoading } = useSummary();
   const summary = data?.lecturer;
 
-  if (isLoading) return <LoadingSkeleton rows={8} columns={4} />;
-  if (!summary) return <EmptyState icon="ti-mood-empty" title="Lecturer dashboard unavailable" message="Lecturer summary data could not be loaded." />;
+  if (isLoading) return <div className="p-4"><LoadingSkeleton rows={10} /></div>;
+  if (!summary) return <EmptyState icon="ti-mood-empty" title="Lecturer Workspace Unavailable" message="Could not load session data." />;
 
   return (
-    <div>
+    <div className="stack gap-4">
       <PageHeader
-        eyebrow="Lecturer workspace"
-        title="Live session control"
-        subtitle="Monitor active attendance windows, recurring timetable coverage, and scans that still need a decision."
-        icon="presentation"
+        title="Session Control"
+        subtitle="Manage live attendance windows and review pending compliance exceptions."
+        icon="broadcast"
         tone="teal"
+        breadcrumbs={[{ label: 'Home' }, { label: 'Dashboard' }]}
       >
         <Link to="/sessions/new"><Button variant="primary"><i className="ti ti-plus" />Start Session</Button></Link>
-        <Link to="/timetable"><Button variant="outline-secondary"><i className="ti ti-calendar-time" />Timetable</Button></Link>
       </PageHeader>
 
-      <div className="stat-grid">
-        <MetricCard tone="teal" icon="broadcast" pill={summary.active_session_count ? 'Live now' : 'Idle'} value={summary.active_session_count} label="Active sessions" meta="Attendance windows currently accepting student check-ins." />
-        <MetricCard tone="green" icon="users" pill="Capture" value={`${summary.current_verified_rate}%`} label="Current verified rate" meta="Live-session share of records that are already trusted or approved." />
-        <MetricCard tone="amber" icon="shield-exclamation" pill={summary.open_review_items ? 'Needs review' : 'Clear'} value={summary.open_review_items} label="Open review items" meta="Flagged or pending scans still waiting on a lecturer decision." />
-        <MetricCard tone="royal" icon="calendar-event" pill="Recurring" value={summary.timetable_slots} label="Timetable slots" meta="Recurring teaching slots you can use to generate scheduled attendance sessions." />
+      <div className="row g-4">
+        <div className="col-md-3">
+          <StatCard tone="teal" icon="broadcast" label="Active Now" value={summary.active_session_count} subtitle="Broadcasting live QR" />
+        </div>
+        <div className="col-md-3">
+          <StatCard tone="green" icon="users" label="Verification" value={`${summary.current_verified_rate}%`} subtitle="Trusted room check-ins" />
+        </div>
+        <div className="col-md-3">
+          <StatCard tone="amber" icon="shield-exclamation" label="Queue" value={summary.open_review_items} subtitle="High-risk scans pending" />
+        </div>
+        <div className="col-md-3">
+          <StatCard tone="royal" icon="calendar-event" label="Scheduled" value={summary.upcoming_sessions.length} subtitle="Upcoming teaching sessions" />
+        </div>
       </div>
 
-      <div className="dashboard-grid">
-        <div className="stack">
-          <div className="surface-card section-card">
-            <div className="section-title">
-              <div>
-                <h3>Session board</h3>
-                <div className="section-subtle">Current live window and the next scheduled classes you own</div>
-              </div>
-            </div>
-
+      <div className="row g-4">
+        <div className="col-md-7">
+          <div className="surface-card h-100">
+            <h3 className="h6 mb-4 fw-bold uppercase tracking-wider text-secondary border-bottom pb-2">Active Broadcasts</h3>
             {summary.live_session ? (
-              <div className="stack">
-                <div className="surface-card section-card">
-                  <div className="section-title">
-                    <div>
-                      <h3>{summary.live_session.session_type} - {summary.live_session.course_label}</h3>
-                      <div className="section-subtle">{summary.live_session.timetable_slot ?? 'Ad hoc slot'}</div>
-                    </div>
-                    <span className="status-pill green"><i className="ti ti-circle-filled" />Live</span>
+              <div className="bg-teal-lt p-4 rounded-3 border border-teal-subtle">
+                <div className="d-flex justify-content-between align-items-center mb-3">
+                  <div>
+                    <strong className="h5 text-navy d-block mb-1">{summary.live_session.course_label}</strong>
+                    <span className="badge bg-teal">{summary.live_session.session_type}</span>
                   </div>
-                  <div className="session-stat-row">
-                    <div className="session-stat"><label>Scanned</label><strong>{summary.live_session.live_records}</strong></div>
-                    <div className="session-stat"><label>Flagged</label><strong>{summary.live_session.pending_reviews}</strong></div>
-                    <div className="session-stat"><label>Venue</label><strong>{summary.live_session.venue_label}</strong></div>
+                  <Link to={`/sessions/${summary.live_session.session_id}`}>
+                    <Button variant="teal" size="sm">Enter Monitor</Button>
+                  </Link>
+                </div>
+                <div className="row g-2">
+                  <div className="col-6">
+                    <div className="small text-secondary fw-bold uppercase">Scanned</div>
+                    <div className="h4 text-navy mb-0">{summary.live_session.live_records}</div>
+                  </div>
+                  <div className="col-6">
+                    <div className="small text-secondary fw-bold uppercase">Flags</div>
+                    <div className="h4 text-amber mb-0">{summary.live_session.pending_reviews}</div>
                   </div>
                 </div>
-
-                {summary.upcoming_sessions.length > 0 ? (
-                  <div className="mini-timeline">
-                    {summary.upcoming_sessions.map((session) => (
-                      <div className="timeline-row" key={session.session_id}>
-                        <div className="timeline-pin"><i className="ti ti-calendar-event" /></div>
-                        <div className="timeline-text">
-                          <strong>{session.course_label}</strong>
-                          <span>{formatDateTime(session.session_start)} - {session.timetable_slot ?? 'No timetable slot'}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : null}
               </div>
             ) : (
-              <EmptyState icon="ti-calendar-off" title="No live attendance window" message="Start a scheduled session when class begins or generate sessions from the timetable first." />
+              <EmptyState title="No Live Sessions" message="No attendance windows are currently active." />
             )}
           </div>
         </div>
-
-        <div className="stack">
-          <div className="surface-card section-card">
-            <div className="section-title">
-              <div>
-                <h3>Review queue snapshot</h3>
-                <div className="section-subtle">Highest-risk attendance evidence still waiting on lecturer action</div>
-              </div>
-              <Link to="/attendance-review"><Button variant="outline-secondary"><i className="ti ti-shield-search" />Open queue</Button></Link>
+        <div className="col-md-5">
+          <div className="surface-card h-100">
+            <div className="d-flex justify-content-between align-items-center mb-4 border-bottom pb-2">
+              <h3 className="h6 mb-0 fw-bold uppercase tracking-wider text-secondary">Upcoming Sessions</h3>
+              <Link to="/sessions" className="smaller text-royal fw-bold">View Full</Link>
             </div>
-
-            {summary.review_queue.length === 0 ? (
-              <EmptyState icon="ti-shield-check" title="Queue clear" message="No current attendance records are waiting on a lecturer decision." />
+            {summary.upcoming_sessions.length === 0 ? (
+              <div className="text-center py-4 text-muted small">No scheduled sessions found.</div>
             ) : (
-              <div className="mini-timeline">
-                {summary.review_queue.map((item) => (
-                  <div className="timeline-row" key={item.attendance_id}>
-                    <div className="timeline-pin"><i className="ti ti-alert-circle" /></div>
-                    <div className="timeline-text">
-                      <strong>{item.student_name}</strong>
-                      <span>{item.course_label} - GPS {item.gps_accuracy ? `${Math.round(item.gps_accuracy)} m` : 'unavailable'}</span>
+              <div className="d-flex flex-column gap-3">
+                {summary.upcoming_sessions.map((session) => (
+                  <div key={session.session_id} className="d-flex align-items-center gap-3 border-bottom pb-2">
+                    <div className="sb-avatar sm bg-light text-secondary"><i className="ti ti-calendar-event" /></div>
+                    <div>
+                      <strong className="small text-navy d-block">{session.course_label}</strong>
+                      <span className="smaller text-muted">{formatDateTime(session.session_start)}</span>
                     </div>
                   </div>
                 ))}
               </div>
             )}
-          </div>
-
-          <div className="callout-panel amber">
-            <i className="ti ti-alert-circle" style={{ color: 'var(--amber)' }} />
-            <div>
-              <div className="callout-title">Live QR rotation should remain deliberate</div>
-              <div className="callout-copy">
-                Only rotate a QR after you are sure the room needs a fresh code, because every earlier image becomes invalid immediately.
-              </div>
-            </div>
           </div>
         </div>
       </div>
@@ -304,100 +241,96 @@ function AdminDashboard() {
   const { data, isLoading } = useSummary();
   const summary = data?.admin;
 
-  if (isLoading) return <LoadingSkeleton rows={8} columns={4} />;
-  if (!summary) return <EmptyState icon="ti-mood-empty" title="Admin dashboard unavailable" message="Admin summary data could not be loaded." />;
+  if (isLoading) return <div className="p-4"><LoadingSkeleton rows={10} /></div>;
+  if (!summary) return <EmptyState icon="ti-mood-empty" title="Admin Oversight Unavailable" message="System integrity data could not be retrieved." />;
 
   return (
-    <div>
+    <div className="stack gap-4">
       <PageHeader
-        eyebrow="Admin workspace"
-        title="System operations overview"
-        subtitle="Watch the real academic directory, venue compliance, and attendance exception load across the platform."
-        icon="shield"
+        title="Admin Command"
+        subtitle="Estate footprint, identity governance, and platform integrity status."
+        icon="shield-lock"
         tone="purple"
+        breadcrumbs={[{ label: 'Home' }, { label: 'Oversight' }]}
       >
-        <Link to="/users"><Button variant="primary"><i className="ti ti-users" />Manage users</Button></Link>
-        <Link to="/audit"><Button variant="outline-secondary"><i className="ti ti-file-text" />View audit log</Button></Link>
+        <Link to="/users"><Button variant="primary"><i className="ti ti-users" />Users</Button></Link>
+        <Link to="/audit"><Button variant="outline-secondary"><i className="ti ti-file-text" />Audit</Button></Link>
       </PageHeader>
 
-      <div className="stat-grid">
-        <MetricCard tone="royal" icon="users" pill="Directory" value={summary.active_identities} label="Active identities" meta="User accounts currently active across students, lecturers, and administrators." />
-        <MetricCard tone="green" icon="map-pin-check" pill={`${summary.geofenced_venues}/${summary.total_venues || 0}`} value={summary.geofenced_venues} label="Geofenced venues" meta="Approved spaces that are fully ready for trusted attendance capture." />
-        <MetricCard tone="amber" icon="alert-triangle" pill={summary.open_exceptions ? 'Needs attention' : 'Clear'} value={summary.open_exceptions} label="Open exceptions" meta="Attendance records still waiting on review before reporting can be trusted." />
-        <MetricCard tone="teal" icon="broadcast" pill="Live sessions" value={summary.live_sessions} label="Classes running now" meta="Attendance windows currently active and accepting check-ins." />
+      <div className="row g-4">
+        <div className="col-md-3">
+          <StatCard tone="purple" icon="users" label="Identities" value={summary.active_identities} subtitle="Across all campus roles" />
+        </div>
+        <div className="col-md-3">
+          <StatCard tone="teal" icon="map-pin-check" label="Venues" value={`${summary.geofenced_venues}/${summary.total_venues}`} subtitle="Fully geofenced spaces" />
+        </div>
+        <div className="col-md-3">
+          <StatCard tone="amber" icon="shield-search" label="Exceptions" value={summary.open_exceptions} subtitle="Pending compliance decisions" />
+        </div>
+        <div className="col-md-3">
+          <StatCard tone="royal" icon="broadcast" label="Live Load" value={summary.live_sessions} subtitle="Active classrooms now" />
+        </div>
       </div>
 
-      <div className="dashboard-grid">
-        <div className="stack">
-          <div className="surface-card section-card">
-            <div className="section-title">
-              <div>
-                <h3>Control surfaces</h3>
-                <div className="section-subtle">The areas administrators should touch first based on live platform state</div>
+      <div className="row g-4">
+        <div className="col-md-6">
+          <div className="surface-card">
+            <h3 className="h6 mb-4 fw-bold uppercase tracking-wider text-secondary border-bottom pb-2">Platform Surfaces</h3>
+            <div className="row g-3">
+              <div className="col-6">
+                <Link to="/users" className="text-decoration-none">
+                  <div className="p-3 bg-purple-lt rounded-3 border border-purple-subtle h-100">
+                    <i className="ti ti-users text-purple mb-2 fs-4" />
+                    <strong className="d-block text-navy smaller">Identities</strong>
+                    <span className="smaller text-muted">Manage directory & access.</span>
+                  </div>
+                </Link>
               </div>
-            </div>
-            <div className="hero-grid">
-              <Link to="/users" className="text-decoration-none">
-                <div className="hero-feature" style={{ background: 'var(--royal-lt)', color: 'var(--tx1)' }}>
-                  <i className="ti ti-users" style={{ color: 'var(--royal)' }} />
-                  <strong style={{ color: 'var(--tx1)' }}>Identity management</strong>
-                  <span style={{ color: 'var(--tx3)' }}>{summary.active_identities} active identities currently under governance.</span>
-                </div>
-              </Link>
-              <Link to="/venues" className="text-decoration-none">
-                <div className="hero-feature" style={{ background: 'var(--teal-lt)', color: 'var(--tx1)' }}>
-                  <i className="ti ti-building" style={{ color: 'var(--teal)' }} />
-                  <strong style={{ color: 'var(--tx1)' }}>Venue control</strong>
-                  <span style={{ color: 'var(--tx3)' }}>{summary.total_venues - summary.geofenced_venues} venues still need geofence completion.</span>
-                </div>
-              </Link>
-              <Link to="/attendance-review" className="text-decoration-none">
-                <div className="hero-feature" style={{ background: 'var(--purple-lt)', color: 'var(--tx1)' }}>
-                  <i className="ti ti-shield-search" style={{ color: 'var(--purple)' }} />
-                  <strong style={{ color: 'var(--tx1)' }}>Attendance review</strong>
-                  <span style={{ color: 'var(--tx3)' }}>{summary.open_exceptions} records currently need a compliance decision.</span>
-                </div>
-              </Link>
-              <Link to="/audit" className="text-decoration-none">
-                <div className="hero-feature" style={{ background: 'var(--amber-lt)', color: 'var(--tx1)' }}>
-                  <i className="ti ti-file-text" style={{ color: 'var(--amber)' }} />
-                  <strong style={{ color: 'var(--tx1)' }}>Audit evidence</strong>
-                  <span style={{ color: 'var(--tx3)' }}>Review the latest operational and identity trace entries.</span>
-                </div>
-              </Link>
+              <div className="col-6">
+                <Link to="/venues" className="text-decoration-none">
+                  <div className="p-3 bg-teal-lt rounded-3 border border-teal-subtle h-100">
+                    <i className="ti ti-building text-teal mb-2 fs-4" />
+                    <strong className="d-block text-navy smaller">Infrastructure</strong>
+                    <span className="smaller text-muted">Geofence compliance & venues.</span>
+                  </div>
+                </Link>
+              </div>
+              <div className="col-6">
+                <Link to="/attendance-review" className="text-decoration-none">
+                  <div className="p-3 bg-amber-lt rounded-3 border border-amber-subtle h-100">
+                    <i className="ti ti-shield-search text-amber mb-2 fs-4" />
+                    <strong className="d-block text-navy smaller">Integrity Queue</strong>
+                    <span className="smaller text-muted">Review {summary.open_exceptions} risk items.</span>
+                  </div>
+                </Link>
+              </div>
+              <div className="col-6">
+                <Link to="/audit" className="text-decoration-none">
+                  <div className="p-3 bg-navy text-white rounded-3 h-100">
+                    <i className="ti ti-file-text opacity-75 mb-2 fs-4" />
+                    <strong className="d-block smaller">Audit Trail</strong>
+                    <span className="smaller opacity-75">View immutable trace logs.</span>
+                  </div>
+                </Link>
+              </div>
             </div>
           </div>
         </div>
-
-        <div className="stack">
-          <div className="callout-panel amber">
-            <i className="ti ti-shield-exclamation" style={{ color: 'var(--amber)' }} />
-            <div>
-              <div className="callout-title">Current operations focus</div>
-              <div className="callout-copy">
-                Keep venue geofences complete and review pending attendance evidence before it feeds downstream reporting.
-              </div>
-            </div>
-          </div>
-
-          <div className="surface-card section-card">
-            <div className="section-title">
-              <div>
-                <h3>Latest audit activity</h3>
-                <div className="section-subtle">Most recent platform events recorded in the immutable audit trail</div>
-              </div>
-            </div>
+        <div className="col-md-6">
+          <div className="surface-card">
+            <h3 className="h6 mb-4 fw-bold uppercase tracking-wider text-secondary border-bottom pb-2">Operational Pulse</h3>
             {summary.latest_audit.length === 0 ? (
-              <EmptyState icon="ti-file-off" title="No audit activity" message="Once the system records activity, the latest events will appear here." />
+              <div className="text-center py-5 text-muted small">No recent activity.</div>
             ) : (
-              <div className="mini-timeline">
+              <div className="d-flex flex-column gap-3">
                 {summary.latest_audit.map((log) => (
-                  <div className="timeline-row" key={log.log_id}>
-                    <div className="timeline-pin"><i className="ti ti-activity" /></div>
-                    <div className="timeline-text">
-                      <strong>{log.action}</strong>
-                      <span>{formatDateTime(log.created_at)}{log.actor_name ? ` - ${log.actor_name}` : ''}</span>
+                  <div key={log.log_id} className="d-flex align-items-center gap-3 border-bottom pb-2">
+                    <div className="sb-avatar sm bg-light text-secondary"><i className="ti ti-activity" /></div>
+                    <div className="flex-grow-1">
+                      <strong className="small text-navy d-block">{log.action}</strong>
+                      <span className="smaller text-muted">{log.actor_name || 'System'}</span>
                     </div>
+                    <span className="smaller text-muted mono">{new Date(log.created_at).toLocaleTimeString()}</span>
                   </div>
                 ))}
               </div>
@@ -411,11 +344,7 @@ function AdminDashboard() {
 
 export default function DashboardPage() {
   const { role } = useAuth();
-
-  if (!role) {
-    return <LoadingSkeleton rows={6} columns={4} />;
-  }
-
+  if (!role) return <div className="p-4"><LoadingSkeleton rows={10} /></div>;
   if (role === 'Student') return <StudentDashboard />;
   if (role === 'Lecturer') return <LecturerDashboard />;
   return <AdminDashboard />;

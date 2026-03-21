@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Button } from 'react-bootstrap';
+import { Button, Table } from 'react-bootstrap';
 import { Link, useNavigate, useParams } from 'react-router';
 import PageHeader from '@/components/common/PageHeader';
+import LoadingSkeleton from '@/components/common/LoadingSkeleton';
+import EmptyState from '@/components/common/EmptyState';
 import { useToast } from '@/components/common/ToastManager';
 import { getErrorMessage } from '@/utils/errors';
+import { useAuth } from '@/modules/auth/context/AuthProvider';
 import { useSession } from '../hooks/useSession';
 import { useCourse } from '@/modules/courses/hooks/useCourse';
 import { useVenue } from '@/modules/venues/hooks/useVenue';
@@ -27,10 +30,6 @@ function formatCountdown(seconds: number) {
   return `${String(minutes).padStart(2, '0')}:${String(remainder).padStart(2, '0')}`;
 }
 
-function formatDateTime(value: unknown) {
-  return value ? new Date(String(value)).toLocaleString() : '-';
-}
-
 function getSessionState(session: Record<string, unknown> | undefined) {
   if (!session) return 'unknown';
   if (Boolean(session.is_active)) return 'live';
@@ -41,8 +40,9 @@ function getSessionState(session: Record<string, unknown> | undefined) {
 export default function SessionViewPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { role } = useAuth();
   const { showToast } = useToast();
-  const { useDetail, useSessionRecords, start, update, close, refreshQr } = useSession();
+  const { useDetail, useSessionRecords, start, close, refreshQr } = useSession();
   const { useDetail: useCourseDetail } = useCourse();
   const { useDetail: useVenueDetail } = useVenue();
   const { useList: useUserList } = useUser();
@@ -59,28 +59,18 @@ export default function SessionViewPage() {
   const sessionState = getSessionState(sessionRecord);
   const isLive = sessionState === 'live';
   const isScheduled = sessionState === 'scheduled';
-  const flaggedCount = records.filter((record) => Boolean(record.fraud_flag)).length;
+  const showQrImage = Boolean(qrImage);
+
   const courseId = sessionRecord?.course_id as number | undefined;
   const venueId = sessionRecord?.venue_id as number | undefined;
   const { data: courseData } = useCourseDetail(courseId);
   const { data: venueData } = useVenueDetail(venueId);
-  const { data: usersData } = useUserList({ query: { limit: 500 } });
+  const { data: usersData } = useUserList({ query: { limit: 500 } }, role === 'Admin' || role === 'Lecturer');
+
   const userItems = (usersData as { items?: Array<Record<string, unknown>> } | undefined)?.items ?? [];
   const studentLookup = buildLookupMap(userItems, 'user_id', (user) => getStudentDisplayName(user, user.user_id as number));
   const courseLabel = getCourseDisplayName(courseData as Record<string, unknown> | undefined, courseId);
   const venueLabel = getVenueDisplayName(venueData as Record<string, unknown> | undefined, venueId);
-  const sessionMeta = {
-    sessionType: sessionRecord?.session_type as string | undefined,
-    timetableSlot: sessionRecord?.timetable_slot as string | undefined,
-    semester: sessionRecord?.semester as string | undefined,
-    academicYear: sessionRecord?.academic_year as string | undefined,
-  };
-  const venueRecord = venueData as Record<string, unknown> | undefined;
-  const geofenceReady = [venueRecord?.latitude, venueRecord?.longitude, venueRecord?.radius_meters].every(
-    (value) => value !== null && value !== undefined
-  );
-  const sessionEnd = sessionRecord?.session_end ? new Date(sessionRecord.session_end as string) : null;
-  const minutesRemaining = sessionEnd ? Math.max(0, Math.round((sessionEnd.getTime() - Date.now()) / 60000)) : 0;
 
   useEffect(() => {
     const expiryValue = qrExpiry ?? (isLive ? String(sessionRecord?.qr_code_expiry ?? '') : null);
@@ -97,7 +87,7 @@ export default function SessionViewPage() {
       const qrData = await start.mutateAsync({ path: { session_id: sessionId! } });
       setQrImage(qrData.qr_image_base64);
       setQrExpiry(qrData.qr_code_expiry.toString());
-      showToast('success', 'Attendance started', 'The scheduled session is now live and students can begin checking in.');
+      showToast('success', 'Attendance started', 'Session is now live.');
     } catch (err) {
       showToast('danger', 'Error', getErrorMessage(err));
     }
@@ -106,7 +96,7 @@ export default function SessionViewPage() {
   async function handleClose() {
     try {
       await close.mutateAsync({ path: { session_id: sessionId! } });
-      showToast('success', 'Session closed', 'Attendance collection has been stopped.');
+      showToast('success', 'Session closed', 'Attendance stopped.');
       navigate('/sessions');
     } catch (err) {
       showToast('danger', 'Error', getErrorMessage(err));
@@ -118,251 +108,212 @@ export default function SessionViewPage() {
       const qrData = await refreshQr.mutateAsync({ path: { session_id: sessionId! } });
       setQrImage(qrData.qr_image_base64);
       setQrExpiry(qrData.qr_code_expiry.toString());
-      showToast('success', 'QR rotated', 'A fresh attendance QR code is now active.');
+      showToast('success', 'QR rotated', 'Fresh QR code active.');
     } catch (err) {
       showToast('danger', 'Error', getErrorMessage(err));
     }
   }
 
-  async function handleExtendSession(minutes: number) {
-    if (!sessionRecord?.session_end) return;
-    try {
-      const nextEnd = new Date(sessionRecord.session_end as string);
-      nextEnd.setMinutes(nextEnd.getMinutes() + minutes);
-      await update.mutateAsync({
-        path: { session_id: sessionId! },
-        body: { session_end: nextEnd },
-      });
-      showToast('success', 'Session extended', `Attendance will now remain open until ${nextEnd.toLocaleTimeString()}.`);
-    } catch (err) {
-      showToast('danger', 'Extension failed', getErrorMessage(err));
-    }
-  }
-
-  if (isLoading) {
-    return <div className="empty-panel"><i className="ti ti-loader" /><div>Loading session...</div></div>;
-  }
-
-  if (!sessionRecord) {
-    return <div className="empty-panel"><i className="ti ti-mood-empty" /><div>Session not found.</div></div>;
-  }
+  if (isLoading) return <div className="p-4"><LoadingSkeleton rows={10} /></div>;
+  if (!sessionRecord) return <EmptyState title="Session Not Found" message="The teaching session you are looking for does not exist." />;
 
   return (
     <div>
       <PageHeader
-        eyebrow="Lecturer session monitor"
-        title={`Session #${sessionRecord.session_id}`}
-        subtitle={
-          isLive
-            ? 'Attendance window is live and collecting verified check-ins.'
-            : isScheduled
-              ? 'This session is scheduled and waiting for the lecturer to start attendance.'
-              : 'This session has been closed.'
-        }
+        title={`Session Monitor #${sessionId}`}
+        subtitle={`${courseLabel} | ${String(sessionRecord.session_type ?? 'Lecture')}`}
         icon="presentation"
         tone="teal"
+        breadcrumbs={[
+          { label: 'Teaching Ops', path: '/sessions' },
+          { label: 'Sessions', path: '/sessions' },
+          { label: `Monitor #${sessionId}` },
+        ]}
       >
         <Link to="/sessions"><Button variant="outline-secondary"><i className="ti ti-arrow-left" />Back</Button></Link>
         {isScheduled ? (
           <Button variant="primary" onClick={() => void handleStart()} disabled={start.isPending}>
             <i className="ti ti-player-play" />
-            Start attendance
+            Start Attendance
           </Button>
         ) : null}
         {isLive ? (
-          <>
-            <Button variant="outline-secondary" onClick={() => void handleExtendSession(10)} disabled={update.isPending}>
-              <i className="ti ti-clock-plus" />
-              Extend 10 min
-            </Button>
-            <Button variant="outline-secondary" onClick={() => void handleExtendSession(20)} disabled={update.isPending}>
-              <i className="ti ti-calendar-time" />
-              Extend 20 min
-            </Button>
-            <Button variant="outline-secondary" onClick={() => void handleRefreshQr()} disabled={refreshQr.isPending}>
-              <i className="ti ti-refresh" />
-              {qrImage ? 'Rotate QR' : 'Load QR'}
-            </Button>
-            <Button variant="danger" onClick={() => void handleClose()} disabled={close.isPending}>
-              <i className="ti ti-player-stop" />
-              Close session
-            </Button>
-          </>
+          <Button variant="danger" onClick={() => void handleClose()} disabled={close.isPending}>
+            <i className="ti ti-player-stop" />
+            Close Session
+          </Button>
         ) : null}
       </PageHeader>
 
-      <div className="session-stat-row" style={{ marginBottom: '1rem' }}>
-        <div className="session-stat"><label>Scanned in</label><strong>{records.length}</strong></div>
-        <div className="session-stat"><label>Flagged</label><strong>{flaggedCount}</strong></div>
-        <div className="session-stat">
-          <label>Session state</label>
-          <strong>{isLive ? 'Live' : isScheduled ? 'Scheduled' : 'Closed'}</strong>
-        </div>
-        <div className="session-stat"><label>QR countdown</label><strong>{isLive ? formatCountdown(secondsRemaining) : '--'}</strong></div>
-      </div>
+      <div className="stack gap-4">
+        <div className="row g-4">
+          <div className="col-md-8">
+            <div className="surface-card h-100 pb-0 overflow-hidden">
+              <div className="d-flex justify-content-between align-items-center mb-4">
+                <h3 className="h5 mb-0 fw-bold text-navy">Live Control Room</h3>
+                <span className={`status-pill ${isLive ? 'green' : isScheduled ? 'royal' : 'red'}`}>
+                  <i className={`ti ti-${isLive ? 'broadcast' : isScheduled ? 'calendar-event' : 'lock'}`} />
+                  {isLive ? 'Broadcasting' : isScheduled ? 'On Standby' : 'Closed'}
+                </span>
+              </div>
 
-      <div className="session-grid">
-        <div className="surface-card session-qr-card">
-          <div className="session-qr-board">
-            <div className="section-title">
-              <div>
-                <h3>Attendance QR</h3>
-                <div className="section-subtle">
-                  {isScheduled
-                    ? 'The QR is not available until the lecturer starts the attendance window.'
-                    : qrImage
-                      ? 'This image is the current active code. Rotating it will invalidate the previous QR immediately.'
-                      : 'Load or rotate the live QR once the attendance window is active.'}
+              <div className="row g-4 mb-4">
+                <div className="col-md-4 text-center border-end">
+                  <div className="text-secondary small fw-bold uppercase mb-1">Check-ins</div>
+                  <div className="h3 mb-0 fw-bold text-navy">{records.length}</div>
+                </div>
+                <div className="col-md-4 text-center border-end">
+                  <div className="text-secondary small fw-bold uppercase mb-1">Risk Flags</div>
+                  <div className="h3 mb-0 fw-bold text-amber">{records.filter((record) => record.fraud_flag).length}</div>
+                </div>
+                <div className="col-md-4 text-center">
+                  <div className="text-secondary small fw-bold uppercase mb-1">QR Expiry</div>
+                  <div className="h3 mb-0 fw-bold text-royal mono">{isLive ? formatCountdown(secondsRemaining) : '--:--'}</div>
                 </div>
               </div>
-              <span className={`status-pill ${isLive ? 'green' : isScheduled ? 'royal' : 'red'}`}>
-                <i className={`ti ti-${isLive ? 'broadcast' : isScheduled ? 'calendar-event' : 'lock'}`} />
-                {isLive ? 'Live' : isScheduled ? 'Scheduled' : 'Closed'}
-              </span>
-            </div>
 
-            <div className="session-qr-frame">
-              {isScheduled ? (
-                <div className="empty-panel">
-                  <i className="ti ti-calendar-time" />
-                  <div className="callout-title">Waiting to start</div>
-                  <div className="callout-copy">Start attendance when the class actually begins and the QR will be issued immediately.</div>
-                </div>
-              ) : qrImage ? (
+              <div className="bg-light-subtle border-top p-3 d-flex gap-2 justify-content-center flex-wrap">
+                {isScheduled ? (
+                  <Button variant="primary" size="sm" onClick={() => void handleStart()} disabled={start.isPending}>
+                    <i className="ti ti-player-play me-1" />
+                    Start to Generate QR
+                  </Button>
+                ) : null}
+                {isLive ? (
+                  <>
+                    <Button variant="outline-secondary" size="sm" onClick={() => void handleRefreshQr()} disabled={refreshQr.isPending}>
+                      <i className="ti ti-refresh me-1" />
+                      {showQrImage ? 'Regenerate QR Code' : 'Generate QR Code'}
+                    </Button>
+                    <Button variant="danger" size="sm" onClick={() => void handleClose()} disabled={close.isPending}>
+                      <i className="ti ti-player-stop me-1" /> Close Session
+                    </Button>
+                  </>
+                ) : null}
+                {!isScheduled && !isLive ? (
+                  <span className="small text-secondary fw-medium">This session is closed. QR broadcast controls are no longer available.</span>
+                ) : null}
+              </div>
+            </div>
+          </div>
+
+          <div className="col-md-4">
+            <div className="surface-card h-100 d-flex flex-column align-items-center justify-content-center bg-navy text-white text-center p-4 shadow-lg border-0" style={{ minHeight: '260px' }}>
+              {showQrImage ? (
                 <>
-                  <img src={`data:image/png;base64,${qrImage}`} alt="Attendance QR code" />
-                  <div className="mt-3">
-                    <div className="status-pill royal"><i className="ti ti-clock" />Expires in {formatCountdown(secondsRemaining)}</div>
+                  <div className="bg-white p-2 rounded-3 shadow-sm mb-3">
+                    <img src={`data:image/png;base64,${qrImage}`} alt="Attendance QR" style={{ width: '140px', height: '140px' }} />
                   </div>
+                  <div className="small text-white opacity-75 fw-medium">Students must scan this code</div>
                 </>
               ) : (
-                <div className="empty-panel">
-                  <i className="ti ti-qrcode-off" />
-                  <div className="callout-title">{isLive ? 'QR not loaded yet' : 'Session closed'}</div>
-                  <div className="callout-copy">
-                    {isLive ? 'Load or rotate the current QR when students are ready to check in.' : 'Closed sessions no longer expose an attendance QR.'}
+                <>
+                  <div className="sb-avatar xl bg-white text-navy mb-3 opacity-25">
+                    <i className="ti ti-qrcode fs-1" />
                   </div>
-                </div>
+                  <h5 className="mb-2 text-white opacity-75">
+                    {isScheduled ? 'Start to generate QR' : isLive ? 'Generate the current QR' : 'Session Inactive'}
+                  </h5>
+                  <div className="small text-white opacity-50">
+                    {isScheduled
+                      ? 'Attendance broadcast has not started yet.'
+                      : isLive
+                        ? 'This live session can issue a fresh QR code on demand.'
+                        : 'Closed sessions do not expose QR broadcast controls.'}
+                  </div>
+                </>
               )}
-            </div>
-
-            <div className="callout-panel teal">
-              <i className="ti ti-shield-lock" style={{ color: 'var(--teal)' }} />
-              <div>
-                <div className="callout-title">Live-session validation remains strict</div>
-                <div className="callout-copy">
-                  Students must submit the exact QR UUID plus their device binding and location proof for this session.
-                </div>
-              </div>
             </div>
           </div>
         </div>
 
-        <div className="stack">
-          <div className="surface-card session-feed-card">
-            <div className="section-title">
-              <div>
-                <h3>Session details</h3>
-                <div className="section-subtle">Operational metadata for this attendance window</div>
-              </div>
-            </div>
-            <div className="mini-timeline">
-              <div className="timeline-row">
-                <div className="timeline-pin"><i className="ti ti-book" /></div>
-                <div className="timeline-text">
-                  <strong>{sessionMeta.sessionType ?? 'Lecture'} for {courseLabel}</strong>
-                  <span>{sessionMeta.semester ?? '-'} / {sessionMeta.academicYear ?? '-'}</span>
-                </div>
-              </div>
-              <div className="timeline-row">
-                <div className="timeline-pin"><i className="ti ti-building" /></div>
-                <div className="timeline-text">
-                  <strong>{venueLabel}</strong>
-                  <span>{sessionMeta.timetableSlot ?? 'No timetable slot captured'}.</span>
-                </div>
-              </div>
-              <div className="timeline-row">
-                <div className="timeline-pin"><i className="ti ti-calendar-event" /></div>
-                <div className="timeline-text">
-                  <strong>{formatDateTime(sessionRecord.session_start)}</strong>
-                  <span>Scheduled class start</span>
-                </div>
-              </div>
-              <div className="timeline-row">
-                <div className="timeline-pin"><i className="ti ti-clock-hour-4" /></div>
-                <div className="timeline-text">
-                  <strong>{formatDateTime(sessionRecord.session_end)}</strong>
-                  <span>{isLive ? `${minutesRemaining} minute${minutesRemaining === 1 ? '' : 's'} remaining in the live window` : 'Scheduled class end'}</span>
-                </div>
-              </div>
-              <div className="timeline-row">
-                <div className="timeline-pin"><i className="ti ti-map-pin-check" /></div>
-                <div className="timeline-text">
-                  <strong>{geofenceReady ? `${String(venueRecord?.radius_meters)} m radius` : 'Geofence incomplete'}</strong>
-                  <span>
-                    {geofenceReady
-                      ? `${String(venueRecord?.latitude)}, ${String(venueRecord?.longitude)}`
-                      : 'Attendance trust depends on completing venue coordinates.'}
-                  </span>
-                </div>
-              </div>
-            </div>
+        <div className="surface-card">
+          <div className="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
+            <h3 className="h6 mb-0 fw-bold uppercase tracking-wider text-secondary">Verified Check-in Stream</h3>
+            <span className="text-muted small">{records.length} Records Verified</span>
           </div>
 
-          <div className="surface-card session-feed-card">
-            <div className="section-title">
-              <div>
-                <h3>Attendance feed</h3>
-                <div className="section-subtle">Live view of accepted records and risk markers</div>
-              </div>
-              <span className="status-pill royal"><i className="ti ti-users" />{records.length} records</span>
+          {records.length === 0 ? (
+            <div className="py-5">
+              <EmptyState
+                icon="ti-users-minus"
+                title="No activity recorded"
+                message={isLive ? 'The broadcast is active but no students have checked in yet.' : 'This session record has no attendance data.'}
+              />
             </div>
-
-            {records.length === 0 ? (
-              <div className="empty-panel">
-                <i className="ti ti-users-off" />
-                <div className="callout-title">{isScheduled ? 'No attendance yet' : 'No check-ins yet'}</div>
-                <div className="callout-copy">
-                  {isScheduled
-                    ? 'This session has not started, so no one can check in yet.'
-                    : 'Once students submit valid scans, they will appear here in real time.'}
-                </div>
-              </div>
-            ) : (
-              <div className="table-shell">
-                <table className="table table-hover align-middle mb-0">
-                  <thead>
-                    <tr>
-                      <th>Student</th>
-                      <th>Time</th>
-                      <th>Status</th>
+          ) : (
+            <div className="table-responsive">
+              <Table hover className="mb-0 border-0">
+                <thead className="bg-light-subtle">
+                  <tr>
+                    <th className="ps-4 border-0 py-2 small fw-bold text-secondary uppercase">Student Identity</th>
+                    <th className="border-0 py-2 small fw-bold text-secondary uppercase text-center">Verification</th>
+                    <th className="border-0 py-2 small fw-bold text-secondary uppercase">Check-in Time</th>
+                    <th className="text-end pe-4 border-0 py-2 small fw-bold text-secondary uppercase">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="border-top-0">
+                  {records.map((record) => (
+                    <tr key={String(record.attendance_id)}>
+                      <td className="ps-4 py-3">
+                        <div className="d-flex align-items-center gap-3">
+                          <div className="sb-avatar bg-accent-lt text-accent small">
+                            {studentLookup.get(record.student_id as number)?.slice(0, 2).toUpperCase() || 'ST'}
+                          </div>
+                          <div className="entity-copy">
+                            <strong className="text-navy">{studentLookup.get(record.student_id as number) || `Student #${record.student_id}`}</strong>
+                            <span className="smaller text-muted">Device Binding: {String(record.device_id ?? 'Unknown').slice(0, 8)}...</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-3 text-center">
+                        <span className={`status-pill ${record.fraud_flag ? 'amber' : 'green'}`}>
+                          <i className={`ti ti-${record.fraud_flag ? 'alert-triangle' : 'circle-check'}`} />
+                          {record.fraud_flag ? 'Risk Flagged' : 'Verified'}
+                        </span>
+                      </td>
+                      <td className="py-3 mono small text-secondary">
+                        {record.checked_in_at ? new Date(record.checked_in_at as string).toLocaleTimeString() : '-'}
+                      </td>
+                      <td className="text-end pe-4 py-3">
+                        <Button variant="outline-secondary" size="sm" className="border-0 shadow-none">
+                          <i className="ti ti-dots-vertical" />
+                        </Button>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {records.map((record) => (
-                      <tr key={record.attendance_id as number}>
-                        <td className="fw-semibold">{studentLookup.get(record.student_id as number) ?? `Student #${record.student_id as number}`}</td>
-                        <td className="mono">{record.checked_in_at ? new Date(record.checked_in_at as string).toLocaleTimeString() : '-'}</td>
-                        <td>
-                          <span className={`status-pill ${record.fraud_flag ? 'amber' : 'green'}`}>
-                            <i className={`ti ti-${record.fraud_flag ? 'alert-triangle' : 'circle-check'}`} />
-                            {record.fraud_flag ? 'Flagged' : 'Verified'}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
+                  ))}
+                </tbody>
+              </Table>
+            </div>
+          )}
+        </div>
 
-          <div className="callout-panel teal">
-            <i className="ti ti-pulse" style={{ color: 'var(--teal)' }} />
-            <div>
-              <div className="callout-title">Operational controls</div>
-              <div className="callout-copy">
-                Extend the session only when the room genuinely needs more time. QR rotation and time extensions both change the trust conditions students must satisfy.
+        <div className="row g-4">
+          <div className="col-md-6">
+            <div className="surface-card">
+              <h4 className="h6 fw-bold uppercase tracking-wider text-secondary mb-3 border-bottom pb-2">Location Trust</h4>
+              <div className="d-flex align-items-center gap-3">
+                <div className="sb-avatar bg-light text-navy">
+                  <i className="ti ti-map-pin" />
+                </div>
+                <div>
+                  <div className="fw-bold text-navy">{venueLabel}</div>
+                  <div className="small text-muted">Geofence Radius: {venueData ? (venueData as { radius_meters?: number }).radius_meters ?? 'N/A' : 'N/A'} meters</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="col-md-6">
+            <div className="surface-card">
+              <h4 className="h6 fw-bold uppercase tracking-wider text-secondary mb-3 border-bottom pb-2">Academic Context</h4>
+              <div className="d-flex align-items-center gap-3">
+                <div className="sb-avatar bg-light text-navy">
+                  <i className="ti ti-calendar-time" />
+                </div>
+                <div>
+                  <div className="fw-bold text-navy">{String(sessionRecord.session_type ?? 'Lecture')} session</div>
+                  <div className="small text-muted">{String(sessionRecord.semester ?? 'Current Semester')} | {String(sessionRecord.academic_year ?? 'Current Year')}</div>
+                </div>
               </div>
             </div>
           </div>

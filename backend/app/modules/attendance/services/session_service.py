@@ -26,6 +26,7 @@ class AttendanceSessionService:
         session_end: datetime,
         exclude_session_id: int | None = None,
     ) -> None:
+        # Treat any intersecting time window as a conflict for both the lecturer and the physical venue.
         overlap_conditions = [
             AttendanceSession.session_start < session_end,
             AttendanceSession.session_end > session_start,
@@ -80,6 +81,7 @@ class AttendanceSessionService:
         )
 
         qr_code = uuid.uuid4()
+        # Scheduled sessions are created inactive; the first real QR is issued only when the lecturer starts attendance.
         qr_expiry = datetime.now(timezone.utc)
 
         session = AttendanceSession(
@@ -115,6 +117,7 @@ class AttendanceSessionService:
             raise ForbiddenException("Cannot start a session whose scheduled end time has passed")
         VenueService.require_geofence(session.venue)
 
+        # Starting the session rotates in the first live QR so lecturers do not need a second action before display.
         session.is_active = True
         session.qr_code = uuid.uuid4()
         session.qr_code_expiry = datetime.now(timezone.utc) + timedelta(
@@ -229,6 +232,7 @@ class AttendanceSessionService:
         """
         session = AttendanceSessionService.get_session(db, session_id)
         next_end = data.session_end if data.session_end is not None else session.session_end
+        # Even a simple end-time extension can create overlaps, so re-run the shared schedule guard.
         AttendanceSessionService._assert_no_schedule_conflict(
             db,
             lecturer_id=session.lecturer_id,

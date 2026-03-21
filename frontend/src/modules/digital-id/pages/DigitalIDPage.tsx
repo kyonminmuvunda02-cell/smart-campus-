@@ -1,4 +1,4 @@
-import { Card, Spinner } from 'react-bootstrap';
+import { Spinner } from 'react-bootstrap';
 import { useQuery } from '@tanstack/react-query';
 import { getActiveDigitalIdOptions } from '@/client/@tanstack/react-query.gen';
 import { useAuth } from '@/modules/auth/context/AuthProvider';
@@ -13,61 +13,66 @@ export default function DigitalIDPage() {
     enabled: !!userId,
   });
 
-  if (isLoading) return <div className="text-center py-5"><Spinner animation="border" variant="primary" /></div>;
+  if (isLoading) return <div className="p-4 text-center"><Spinner animation="border" variant="primary" /></div>;
 
-  const c = card as Record<string, unknown> | undefined;
+  const c = card as Record<string, any> | undefined;
 
   return (
-    <div>
-      <PageHeader title="Digital ID" subtitle="Your virtual campus identity" />
+    <div className="stack gap-4">
+      <PageHeader
+        title="Secure Digital Identity"
+        subtitle="Your virtual campus credential for verified attendance and physical access."
+        icon="id-badge-2"
+        tone="royal"
+        breadcrumbs={[{ label: 'Home', path: '/' }, { label: 'My Digital ID' }]}
+      />
 
-      <div className="mx-auto" style={{ maxWidth: 400 }}>
-        <Card
-          className="border-0 shadow-lg overflow-hidden text-white"
-          style={{ background: 'linear-gradient(135deg, #206bc4 0%, #1a56a0 60%, #0f3d7a 100%)', borderRadius: '1.25rem' }}
-        >
-          <Card.Body className="p-4">
-            <div className="d-flex align-items-center gap-3 mb-4">
-              <div className="bg-white bg-opacity-25 p-2 rounded"><i className="ti ti-school fs-3" /></div>
-              <div>
-                <div className="fw-bold">CUZ Smart Campus</div>
-                <div className="small text-white-50">Digital Student ID</div>
+      <div className="row justify-content-center">
+        <div className="col-md-6 col-lg-5">
+          <div className="surface-card p-0 shadow-lg border-0 overflow-hidden" style={{ borderRadius: '1.5rem', background: 'linear-gradient(225deg, #0f172a 0%, #1e293b 100%)' }}>
+            <div className="p-4 d-flex justify-content-between align-items-center border-bottom border-white border-opacity-10">
+              <div className="d-flex align-items-center gap-2 text-white">
+                <i className="ti ti-school fs-4 text-royal" />
+                <strong className="tracking-widest uppercase small opacity-75">Smart Campus</strong>
               </div>
+              <span className="badge bg-royal-lt text-royal border border-royal-subtle">LIVE ID</span>
             </div>
 
-            <div className="text-center mb-4">
-              <div className="bg-white bg-opacity-15 rounded-circle d-inline-flex align-items-center justify-content-center" style={{ width: 80, height: 80 }}>
-                <i className="ti ti-user fs-1 text-white-50" />
+            <div className="p-5 text-center text-white">
+              <div className="mx-auto mb-4 bg-white bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center" style={{ width: '100px', height: '100px' }}>
+                <i className="ti ti-user fs-1 opacity-50" />
               </div>
+              <h2 className="h4 fw-bold mb-1">{c ? `ID-STUDENT-${c.student_id}` : 'Student Identity'}</h2>
+              <span className="smaller tracking-widest uppercase opacity-50">{role}</span>
             </div>
 
-            <div className="text-center mb-4">
-              <h3 className="mb-1 fw-bold">{c ? `Student #${c.student_id as number}` : 'Student'}</h3>
-              <div className="badge bg-white bg-opacity-25 mb-2">{role}</div>
-              {c && <div className="small text-white-50">ID Card #{c.digital_id_id as number}</div>}
+            <div className="px-4 pb-4">
+                <div className="p-4 rounded-3 bg-white bg-opacity-5 border border-white border-opacity-10">
+                  <div className="row g-3">
+                    <div className="col-6">
+                      <span className="smaller text-white opacity-40 uppercase d-block mb-1">National ID</span>
+                      <strong className="text-white small fw-mono">{c?.id_number || '•••• •••• ••••'}</strong>
+                    </div>
+                    <div className="col-6 text-end">
+                      <span className="smaller text-white opacity-40 uppercase d-block mb-1">Expires On</span>
+                      <strong className="text-white small fw-mono">{c?.expires_at ? new Date(c.expires_at).toLocaleDateString() : 'PERMANENT'}</strong>
+                    </div>
+                  </div>
+                </div>
             </div>
 
-            {c && (
-              <div className="bg-white rounded p-3 text-dark">
-                <div className="small text-uppercase text-muted mb-2">Identity Details</div>
-                <div className="fw-semibold mb-1">National ID: {c.id_number as string}</div>
-                <div className="small">Expires: {c.expires_at ? new Date(c.expires_at as string).toLocaleDateString() : '-'}</div>
-              </div>
-            )}
-
-            {isError && (
-              <div className="text-center text-white-50 py-3"><p className="mb-0 small">No active Digital ID found. Contact admin.</p></div>
-            )}
-
-            {!c && !isError && (
-              <div className="text-center text-white-50 py-3"><p className="mb-0 small">Digital ID not yet issued.</p></div>
-            )}
-          </Card.Body>
-
-          <div className="bg-white bg-opacity-10 px-4 py-2 text-center">
-            <small className="text-white-50">Active digital identity for attendance verification</small>
+            <div className="bg-royal py-3 text-center text-white">
+              <i className="ti ti-shield-check me-2" />
+              <span className="smaller fw-bold uppercase tracking-widest">Verified Identity Boundary</span>
+            </div>
           </div>
-        </Card>
+
+          {isError && (
+            <div className="text-center mt-4">
+              <p className="text-muted small">No active Digital ID record found on file. Please visit the Registrar.</p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

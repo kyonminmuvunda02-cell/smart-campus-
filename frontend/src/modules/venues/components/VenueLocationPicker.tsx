@@ -26,6 +26,7 @@ export default function VenueLocationPicker({
 
     const center: [number, number] =
       latitude !== null && longitude !== null ? [latitude, longitude] : CAMPUS_CENTER;
+    // Initialize Leaflet once, then drive marker/radius updates from the separate effect below.
     const map = L.map(mapElementRef.current, {
       center,
       zoom: 18,
@@ -64,6 +65,7 @@ export default function VenueLocationPicker({
 
     map.setView(effectiveCenter, map.getZoom(), { animate: false });
 
+    // Redraw the circles instead of mutating them in place so radius/position changes stay in sync.
     if (radiusCircleRef.current) {
       radiusCircleRef.current.remove();
     }

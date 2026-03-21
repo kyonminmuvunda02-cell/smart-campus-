@@ -10,6 +10,7 @@ const UserListPage = lazy(() => import('@/modules/users/pages/UserListPage'));
 const UserViewPage = lazy(() => import('@/modules/users/pages/UserViewPage'));
 const UserFormPage = lazy(() => import('@/modules/users/pages/UserFormPage'));
 const CourseListPage = lazy(() => import('@/modules/courses/pages/CourseListPage'));
+const StudentCourseListPage = lazy(() => import('@/modules/courses/pages/StudentCourseListPage'));
 const CourseViewPage = lazy(() => import('@/modules/courses/pages/CourseViewPage'));
 const CourseFormPage = lazy(() => import('@/modules/courses/pages/CourseFormPage'));
 const VenueListPage = lazy(() => import('@/modules/venues/pages/VenueListPage'));
@@ -24,11 +25,16 @@ const AttendanceReviewPage = lazy(() => import('@/modules/attendance/pages/Atten
 const DigitalIDPage = lazy(() => import('@/modules/digital-id/pages/DigitalIDPage'));
 const EnrollmentListPage = lazy(() => import('@/modules/enrollment/pages/EnrollmentListPage'));
 const AuditLogPage = lazy(() => import('@/modules/audit/pages/AuditLogPage'));
-const TimetablePage = lazy(() => import('@/modules/timetable/pages/TimetablePage'));
 
 function requireAuth() {
   const token = localStorage.getItem('access_token');
   if (!token) throw redirect('/login');
+  return null;
+}
+
+function requireGuest() {
+  const token = localStorage.getItem('access_token');
+  if (token) throw redirect('/');
   return null;
 }
 
@@ -51,6 +57,7 @@ export const router = createBrowserRouter([
   {
     path: '/login',
     element: renderRoute(<LoginPage />),
+    loader: requireGuest,
   },
   {
     element: <AppLayout />,
@@ -59,13 +66,14 @@ export const router = createBrowserRouter([
       { index: true, element: renderRoute(<DashboardPage />) },
 
       { path: 'checkin', element: renderRoute(<CheckInPage />), loader: () => requireRole('Student') },
+      { path: 'my-courses', element: renderRoute(<StudentCourseListPage />), loader: () => requireRole('Student') },
       { path: 'my-attendance', element: renderRoute(<AttendanceHistoryPage />), loader: () => requireRole('Student') },
       { path: 'my-digital-id', element: renderRoute(<DigitalIDPage />), loader: () => requireRole('Student') },
 
       { path: 'sessions/new', element: renderRoute(<SessionFormPage />), loader: () => requireRole('Lecturer') },
       { path: 'sessions/:id', element: renderRoute(<SessionViewPage />), loader: () => requireRole('Lecturer', 'Admin') },
       { path: 'sessions', element: renderRoute(<SessionListPage />), loader: () => requireRole('Lecturer', 'Admin') },
-      { path: 'timetable', element: renderRoute(<TimetablePage />), loader: () => requireRole('Lecturer', 'Admin') },
+      { path: 'timetable', loader: () => redirect('/sessions') },
       { path: 'attendance-review', element: renderRoute(<AttendanceReviewPage />), loader: () => requireRole('Lecturer', 'Admin') },
 
       { path: 'users', element: renderRoute(<UserListPage />), loader: () => requireRole('Admin') },

@@ -1,250 +1,144 @@
 import { useState } from 'react';
-import { useParams, Link } from 'react-router';
-import { Button, Spinner } from 'react-bootstrap';
+import { useParams } from 'react-router';
+import { Button } from 'react-bootstrap';
 import PageHeader from '@/components/common/PageHeader';
-import ErrorAlert from '@/components/common/ErrorAlert';
-import SearchableSelect from '@/components/common/SearchableSelect';
+import LoadingSkeleton from '@/components/common/LoadingSkeleton';
+import EmptyState from '@/components/common/EmptyState';
 import { useCourse } from '../hooks/useCourse';
-import { useUser } from '@/modules/users/hooks/useUser';
 import { useToast } from '@/components/common/ToastManager';
-import { getErrorMessage } from '@/utils/errors';
+import CourseFormModal from '../components/CourseFormModal';
+import AssignLecturerModal from '../components/AssignLecturerModal';
+import { getDepartmentTone } from '../utils/departmentTone';
 
 export default function CourseViewPage() {
   const { id } = useParams<{ id: string }>();
   const courseId = id ? Number(id) : undefined;
-  const [selectedLecturerId, setSelectedLecturerId] = useState('');
-  const [assignmentError, setAssignmentError] = useState<string | null>(null);
   const { showToast } = useToast();
-  const { useDetail, useAssignments, assignLecturer, removeLecturer } = useCourse();
-  const { useList: useUsers } = useUser();
+  const { useDetail, useAssignments, removeLecturer } = useCourse();
+
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showAssignModal, setShowAssignModal] = useState(false);
 
   const { data: course, isLoading } = useDetail(courseId);
   const { data: assignmentsData, isLoading: loadingAssignments } = useAssignments(courseId);
-  const { data: usersData } = useUsers({ query: { skip: 0, limit: 200 } });
 
-  if (isLoading) return <div className="empty-panel"><i className="ti ti-loader" /><div>Loading course...</div></div>;
-  if (!course) return <div className="empty-panel"><i className="ti ti-mood-empty" /><div>Course not found.</div></div>;
+  if (isLoading) return <div className="p-4"><LoadingSkeleton rows={8} /></div>;
+  if (!course) return <EmptyState title="Course Not Found" message="The course record you are looking for might have been archived." />;
 
-  const currentCourse = course as Record<string, unknown>;
-  const credits = Number(currentCourse.credits ?? 0);
-  const assignments = (assignmentsData as { items?: Array<Record<string, unknown>> } | undefined)?.items ?? [];
-  const users = (usersData as { items?: Array<Record<string, unknown>> } | undefined)?.items ?? [];
-  const lecturers = users.filter((user) => user.role === 'Lecturer');
-  const activeLecturerIds = new Set(assignments.map((assignment) => Number(assignment.lecturer_id ?? 0)));
-  const availableLecturers = lecturers.filter((lecturer) => !activeLecturerIds.has(Number(lecturer.user_id ?? 0)));
+  const currentCourse = course as Record<string, any>;
+  const assignments = (assignmentsData as { items?: Array<Record<string, any>> })?.items ?? [];
+  const department = String(currentCourse.department ?? 'N/A');
+  const departmentTone = getDepartmentTone(department);
 
-  async function handleAssignLecturer(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!courseId || !Number(selectedLecturerId)) return;
-
-    try {
-      setAssignmentError(null);
-      await assignLecturer.mutateAsync({
-        body: {
-          course_id: courseId,
-          lecturer_id: Number(selectedLecturerId),
-        },
-      });
-      showToast('success', 'Lecturer assigned', 'The lecturer can now teach and run sessions for this course.');
-      setSelectedLecturerId('');
-    } catch (error) {
-      setAssignmentError(getErrorMessage(error));
-    }
-  }
-
-  async function handleRemoveLecturer(lecturerId: number) {
+  const handleRemoveLecturer = async (lecturerId: number) => {
     if (!courseId) return;
-
     try {
-      setAssignmentError(null);
-      await removeLecturer.mutateAsync({
-        path: {
-          lecturer_id: lecturerId,
-          course_id: courseId,
-        },
-      });
-      showToast('success', 'Assignment removed', 'The lecturer no longer has active teaching access for this course.');
-    } catch (error) {
-      setAssignmentError(getErrorMessage(error));
+      await removeLecturer.mutateAsync({ path: { lecturer_id: lecturerId, course_id: courseId } });
+      showToast('success', 'Assignment Removed', 'The lecturer has been unassigned from this course.');
+    } catch (err) {
+      showToast('danger', 'Error', 'Failed to remove assignment.');
     }
-  }
-
-  function getLecturerLabel(lecturerId: number) {
-    const lecturer = lecturers.find((user) => Number(user.user_id ?? 0) === lecturerId);
-    if (!lecturer) return `Lecturer #${lecturerId}`;
-    return `${String(lecturer.first_name ?? '')} ${String(lecturer.last_name ?? '')}`.trim() || `Lecturer #${lecturerId}`;
-  }
-
-  function getLecturerMeta(lecturerId: number) {
-    const lecturer = lecturers.find((user) => Number(user.user_id ?? 0) === lecturerId);
-    if (!lecturer) return 'Staff profile unavailable';
-    return String(lecturer.email ?? 'No email');
-  }
+  };
 
   return (
     <div>
       <PageHeader
-        eyebrow="Administration"
-        title={String(currentCourse.course_name ?? 'Course')}
-        subtitle={`Catalog reference ${String(currentCourse.course_code ?? '-')}`}
+        title={String(currentCourse.course_name ?? 'Course Details')}
+        subtitle={String(currentCourse.course_code ?? '-')}
         icon="books"
         tone="green"
+        breadcrumbs={[
+          { label: 'Administration', path: '/courses' },
+          { label: 'Courses', path: '/courses' },
+          { label: currentCourse.course_code as string },
+        ]}
       >
-        <Link to="/courses"><Button variant="outline-secondary"><i className="ti ti-arrow-left" />Back</Button></Link>
-        <Link to={`/courses/${id}/edit`}><Button variant="primary"><i className="ti ti-edit" />Edit</Button></Link>
+        <Button variant="outline-secondary" onClick={() => setShowEditModal(true)}>
+          <i className="ti ti-edit" />
+          Edit Course
+        </Button>
+        <Button variant="primary" onClick={() => setShowAssignModal(true)}>
+          <i className="ti ti-user-plus" />
+          Assign Lecturer
+        </Button>
       </PageHeader>
 
-      <div className="ops-grid">
-        <div className="stack">
-          <div className="surface-card section-card">
-            <div className="section-title">
-              <div>
-                <h3>Course snapshot</h3>
-                <div className="section-subtle">High-signal catalog metadata for this academic record</div>
-              </div>
-            </div>
-            <div className="session-stat-row">
-              <div className="session-stat">
-                <label>Course ID</label>
-                <strong>{String(currentCourse.course_id ?? '-')}</strong>
-              </div>
-              <div className="session-stat">
-                <label>Credits</label>
-                <strong>{credits || '-'}</strong>
-              </div>
-              <div className="session-stat">
-                <label>Assigned lecturers</label>
-                <strong>{assignments.length}</strong>
-              </div>
-            </div>
+      <div className="stack gap-4">
+        <div className="surface-card">
+          <div className="d-flex justify-content-between align-items-center mb-4">
+            <h3 className="h5 mb-0 fw-bold text-navy">Course Overview</h3>
+            <span className="status-pill green">Active catalog</span>
           </div>
-
-          <div className="surface-card section-card">
-            <div className="section-title">
-              <div>
-                <h3>Teaching assignment control</h3>
-                <div className="section-subtle">Only assigned lecturers should be able to open sessions and inspect course enrollments.</div>
+          
+          <div className="row g-4">
+            <div className="col-md-4">
+              <div className="metric-card border-0 bg-light-subtle shadow-none p-4">
+                <label className="text-secondary small fw-bold uppercase mb-2">Academic Unit</label>
+                <div className="d-flex align-items-center">
+                  <span className={`status-pill ${departmentTone}`}>{department}</span>
+                </div>
               </div>
-              <span className="status-pill green"><i className="ti ti-users-group" />Admin only</span>
             </div>
-
-            <ErrorAlert error={assignmentError} dismissible />
-
-            <form onSubmit={handleAssignLecturer}>
-              <div className="field-shell">
-                <label htmlFor="lecturerId" className="field-label">Assign lecturer</label>
-                <SearchableSelect
-                  id="lecturerId"
-                  name="lecturerId"
-                  value={selectedLecturerId}
-                  onValueChange={setSelectedLecturerId}
-                  disabled={assignLecturer.isPending || availableLecturers.length === 0}
-                  placeholder="Select a lecturer..."
-                  searchPlaceholder="Search lecturer name or email..."
-                  options={availableLecturers.map((lecturer) => ({
-                    value: String(lecturer.user_id),
-                    label: `${String(lecturer.first_name ?? '')} ${String(lecturer.last_name ?? '')}`.trim() || `Lecturer #${String(lecturer.user_id)}`,
-                    meta: String(lecturer.email ?? ''),
-                    keywords: `${String(lecturer.first_name ?? '')} ${String(lecturer.last_name ?? '')} ${String(lecturer.email ?? '')}`,
-                  }))}
-                />
+            <div className="col-md-2">
+              <div className="metric-card border-0 bg-light-subtle shadow-none p-4 text-center">
+                <label className="text-secondary small fw-bold uppercase mb-2">Weight</label>
+                <div className="h5 mb-0 fw-bold text-navy">{Number(currentCourse.credits ?? 0)} Cr</div>
               </div>
-
-              <div className="ph-actions">
-                <Button type="submit" variant="primary" disabled={!selectedLecturerId || assignLecturer.isPending}>
-                  {assignLecturer.isPending ? <Spinner animation="border" size="sm" /> : <i className="ti ti-user-plus" />}
-                  Assign lecturer
-                </Button>
-              </div>
-            </form>
-
-            <div className="login-hint">
-              Lecturer assignment is the control point for who may legitimately teach, launch QR attendance sessions, and inspect student enrollment under this course.
             </div>
-          </div>
-
-          <div className="callout-panel green">
-            <i className="ti ti-book" style={{ color: 'var(--green)' }} />
-            <div>
-              <div className="callout-title">Catalog records should be stable</div>
-              <div className="callout-copy">
-                Frequent ad hoc changes to codes, departments, or credit loads undermine session history and enrollment reporting.
+            <div className="col-md-2">
+              <div className="metric-card border-0 bg-light-subtle shadow-none p-4 text-center">
+                <label className="text-secondary small fw-bold uppercase mb-2">Staff</label>
+                <div className="h5 mb-0 fw-bold text-navy">{assignments.length}</div>
+              </div>
+            </div>
+            <div className="col-md-4">
+              <div className="metric-card border-0 bg-light-subtle shadow-none p-4">
+                <label className="text-secondary small fw-bold uppercase mb-2">Catalog Integrity</label>
+                <div className="small text-muted">Immutable link to all session history records.</div>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="stack">
-          <div className="surface-card section-card">
-            <div className="section-title">
-              <div>
-                <h3>Course details</h3>
-                <div className="section-subtle">Administrative metadata associated with this catalog entry</div>
-              </div>
-            </div>
-
-            <div className="detail-list">
-              <div className="detail-row">
-                <span className="detail-label">Course code</span>
-                <span className="detail-value"><span className="detail-chip mono">{String(currentCourse.course_code ?? '-')}</span></span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-label">Course name</span>
-                <span className="detail-value">{String(currentCourse.course_name ?? '-')}</span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-label">Department</span>
-                <span className="detail-value">{String(currentCourse.department ?? '-')}</span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-label">Credits</span>
-                <span className="detail-value mono">{credits || '-'}</span>
-              </div>
-            </div>
+        <div className="surface-card">
+          <div className="d-flex justify-content-between align-items-center mb-4">
+            <h3 className="h5 mb-0 fw-bold text-navy">Teaching Roster</h3>
+            <Button variant="link" className="p-0 text-decoration-none small" onClick={() => setShowAssignModal(true)}>
+              Assign New Lecturer
+            </Button>
           </div>
 
-          <div className="surface-card section-card">
-            <div className="section-title">
-              <div>
-                <h3>Assigned lecturers</h3>
-                <div className="section-subtle">Current teaching roster with direct removal controls</div>
-              </div>
-              <span className="status-pill green"><i className="ti ti-check" />{assignments.length} active</span>
-            </div>
-
-            {loadingAssignments ? (
-              <div className="empty-panel"><i className="ti ti-loader" /><div>Loading assignments...</div></div>
-            ) : assignments.length === 0 ? (
-              <div className="empty-panel"><i className="ti ti-user-off" /><div>No lecturer has been assigned to this course yet.</div></div>
-            ) : (
-              <div className="detail-list">
-                {assignments.map((assignment) => {
-                  const lecturerId = Number(assignment.lecturer_id ?? 0);
-                  return (
-                    <div key={`${lecturerId}-${String(assignment.assigned_at ?? '')}`} className="detail-row">
-                      <span className="detail-label">
-                        <span className="detail-chip">{getLecturerLabel(lecturerId)}</span>
-                      </span>
-                      <span className="detail-value d-flex align-items-center gap-2 flex-wrap justify-content-end">
-                        <span className="text-secondary small">{getLecturerMeta(lecturerId)}</span>
-                        <Button
-                          variant="outline-secondary"
-                          size="sm"
-                          onClick={() => handleRemoveLecturer(lecturerId)}
-                          disabled={removeLecturer.isPending}
-                        >
-                          <i className="ti ti-user-minus" />
-                          Remove
-                        </Button>
-                      </span>
+          {loadingAssignments ? (
+            <LoadingSkeleton rows={3} />
+          ) : assignments.length === 0 ? (
+            <EmptyState icon="ti-user-off" title="Empty Roster" message="No lecturers are currently assigned to this course." />
+          ) : (
+            <div className="row g-3">
+              {assignments.map((a) => (
+                <div key={a.lecturer_id} className="col-md-4">
+                  <div className="d-flex align-items-center justify-content-between p-3 border rounded-3 bg-white shadow-sm hover-shadow transition-all">
+                    <div className="d-flex align-items-center gap-3">
+                      <div className="sb-avatar bg-navy-mid text-white small">
+                        {String(a.lecturer_first_name?.[0] ?? 'L')}{String(a.lecturer_last_name?.[0] ?? '')}
+                      </div>
+                      <div className="entity-copy">
+                        <strong className="text-navy">{String(a.lecturer_first_name ?? '')} {String(a.lecturer_last_name ?? '')}</strong>
+                        <span className="text-secondary smaller">{String(a.lecturer_email ?? 'No email')}</span>
+                      </div>
                     </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+                    <Button variant="outline-danger" size="sm" className="border-0" onClick={() => handleRemoveLecturer(a.lecturer_id)}>
+                      <i className="ti ti-trash" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
+
+      <CourseFormModal show={showEditModal} onHide={() => setShowEditModal(false)} courseId={courseId} />
+      <AssignLecturerModal show={showAssignModal} onHide={() => setShowAssignModal(false)} courseId={courseId!} />
     </div>
   );
 }

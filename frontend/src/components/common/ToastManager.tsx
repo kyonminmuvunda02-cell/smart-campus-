@@ -23,6 +23,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
   const showToast = useCallback((variant: ToastVariant, title: string, message: string) => {
     const id = nextId++;
+    // Append instead of replace so multiple async actions can report independently.
     setToasts((prev) => [...prev, { id, variant, title, message }]);
   }, []);
 

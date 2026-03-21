@@ -24,7 +24,8 @@ class Settings(BaseSettings):
     SECRET_KEY: str
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_DAYS: int = 8
-    QR_CODE_TTL_SECONDS: int = 60
+    QR_CODE_TTL_SECONDS: int = 600
+    ATTENDANCE_SELF_CHECKIN_WINDOW_MINUTES: int = 30
     GPS_MAX_TRUSTED_ACCURACY_METERS: float = 75.0
     CORS_ORIGINS: list[str] = ["*"]
     ENVIRONMENT: str = "development"

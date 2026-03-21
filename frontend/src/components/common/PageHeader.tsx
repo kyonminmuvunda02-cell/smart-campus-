@@ -1,37 +1,46 @@
-import type { ReactNode } from 'react';
-
-type HeaderTone = 'royal' | 'teal' | 'green' | 'purple';
+import { ReactNode, useEffect } from 'react';
+import { type BreadcrumbItem } from './Breadcrumbs';
+import { useBreadcrumbs } from '@/context/BreadcrumbContext';
 
 interface PageHeaderProps {
   title: string;
   subtitle?: string;
-  eyebrow?: string;
   icon?: string;
-  tone?: HeaderTone;
+  tone?: string;
   children?: ReactNode;
+  breadcrumbs?: BreadcrumbItem[];
 }
 
 export default function PageHeader({
   title,
   subtitle,
-  eyebrow,
+  breadcrumbs,
   icon = 'layout-dashboard',
   tone = 'royal',
   children,
 }: PageHeaderProps) {
+  const { setBreadcrumbs } = useBreadcrumbs();
+
+  useEffect(() => {
+    if (breadcrumbs) {
+      setBreadcrumbs(breadcrumbs);
+    } else {
+      setBreadcrumbs([]);
+    }
+  }, [breadcrumbs, setBreadcrumbs]);
+
   return (
-    <div className="page-hd">
+    <header className="page-hd">
       <div className="ph-left">
         <div className={`ph-icon ${tone}`}>
           <i className={`ti ti-${icon}`} />
         </div>
         <div>
-          {eyebrow && <div className="ph-kicker">{eyebrow}</div>}
-          <div className="ph-title">{title}</div>
+          <h1 className="ph-title">{title}</h1>
           {subtitle && <div className="ph-sub">{subtitle}</div>}
         </div>
       </div>
       {children ? <div className="ph-actions">{children}</div> : null}
-    </div>
+    </header>
   );
 }

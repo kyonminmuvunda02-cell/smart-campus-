@@ -5,6 +5,36 @@ export type ClientOptions = {
 };
 
 /**
+ * AdminDashboardSummary
+ */
+export type AdminDashboardSummary = {
+    /**
+     * Active Identities
+     */
+    active_identities: number;
+    /**
+     * Geofenced Venues
+     */
+    geofenced_venues: number;
+    /**
+     * Total Venues
+     */
+    total_venues: number;
+    /**
+     * Open Exceptions
+     */
+    open_exceptions: number;
+    /**
+     * Live Sessions
+     */
+    live_sessions: number;
+    /**
+     * Latest Audit
+     */
+    latest_audit: Array<AuditActivityItem>;
+};
+
+/**
  * AppUserList
  */
 export type AppUserList = {
@@ -455,6 +485,40 @@ export type AttendanceSessionUpdate = {
 };
 
 /**
+ * AuditActivityItem
+ */
+export type AuditActivityItem = {
+    /**
+     * Log Id
+     */
+    log_id: number;
+    /**
+     * Action
+     */
+    action: string;
+    /**
+     * Actor Name
+     */
+    actor_name?: string | null;
+    /**
+     * Table Name
+     */
+    table_name?: string | null;
+    /**
+     * Record Id
+     */
+    record_id?: number | null;
+    /**
+     * Detail
+     */
+    detail?: string | null;
+    /**
+     * Created At
+     */
+    created_at: Date;
+};
+
+/**
  * AuditLogList
  */
 export type AuditLogList = {
@@ -680,6 +744,19 @@ export type CourseUpdate = {
      * Department
      */
     department?: string | null;
+};
+
+/**
+ * DashboardSummaryResponse
+ */
+export type DashboardSummaryResponse = {
+    /**
+     * Role
+     */
+    role: string;
+    student?: StudentDashboardSummary | null;
+    lecturer?: LecturerDashboardSummary | null;
+    admin?: AdminDashboardSummary | null;
 };
 
 /**
@@ -913,6 +990,115 @@ export type LecturerCreate = {
 };
 
 /**
+ * LecturerDashboardSummary
+ */
+export type LecturerDashboardSummary = {
+    /**
+     * Active Session Count
+     */
+    active_session_count: number;
+    /**
+     * Current Verified Rate
+     */
+    current_verified_rate: number;
+    /**
+     * Open Review Items
+     */
+    open_review_items: number;
+    live_session?: LecturerLiveSessionSummary | null;
+    /**
+     * Upcoming Sessions
+     */
+    upcoming_sessions: Array<LecturerUpcomingSessionItem>;
+    /**
+     * Review Queue
+     */
+    review_queue: Array<LecturerReviewItem>;
+};
+
+/**
+ * LecturerLiveSessionSummary
+ */
+export type LecturerLiveSessionSummary = {
+    /**
+     * Session Id
+     */
+    session_id: number;
+    /**
+     * Session Type
+     */
+    session_type: string;
+    /**
+     * Course Label
+     */
+    course_label: string;
+    /**
+     * Venue Label
+     */
+    venue_label: string;
+    /**
+     * Session Start
+     */
+    session_start: Date;
+    /**
+     * Session End
+     */
+    session_end: Date;
+    /**
+     * Live Records
+     */
+    live_records: number;
+    /**
+     * Pending Reviews
+     */
+    pending_reviews: number;
+};
+
+/**
+ * LecturerReviewItem
+ */
+export type LecturerReviewItem = {
+    /**
+     * Attendance Id
+     */
+    attendance_id: number;
+    /**
+     * Student Name
+     */
+    student_name: string;
+    /**
+     * Course Label
+     */
+    course_label: string;
+    /**
+     * Gps Accuracy
+     */
+    gps_accuracy?: number | null;
+    /**
+     * Verification Status
+     */
+    verification_status: string;
+};
+
+/**
+ * LecturerUpcomingSessionItem
+ */
+export type LecturerUpcomingSessionItem = {
+    /**
+     * Session Id
+     */
+    session_id: number;
+    /**
+     * Course Label
+     */
+    course_label: string;
+    /**
+     * Session Start
+     */
+    session_start: Date;
+};
+
+/**
  * QRCodeResponse
  *
  * Returned when lecturer requests a fresh QR code for an existing session.
@@ -934,6 +1120,40 @@ export type QrCodeResponse = {
      * Qr Image Base64
      */
     qr_image_base64: string;
+};
+
+/**
+ * StudentAttendanceItem
+ */
+export type StudentAttendanceItem = {
+    /**
+     * Attendance Id
+     */
+    attendance_id: number;
+    /**
+     * Session Id
+     */
+    session_id: number;
+    /**
+     * Session Type
+     */
+    session_type: string;
+    /**
+     * Course Label
+     */
+    course_label: string;
+    /**
+     * Checked In At
+     */
+    checked_in_at: Date;
+    /**
+     * Verification Status
+     */
+    verification_status: string;
+    /**
+     * Fraud Flag
+     */
+    fraud_flag: boolean;
 };
 
 /**
@@ -977,37 +1197,55 @@ export type StudentCreate = {
 };
 
 /**
- * TimetableEntryCreate
+ * StudentDashboardSummary
  */
-export type TimetableEntryCreate = {
+export type StudentDashboardSummary = {
+    /**
+     * Records Count
+     */
+    records_count: number;
+    /**
+     * Verified Count
+     */
+    verified_count: number;
+    /**
+     * Flagged Count
+     */
+    flagged_count: number;
+    /**
+     * Active Enrollments
+     */
+    active_enrollments: number;
+    /**
+     * Digital Id Active
+     */
+    digital_id_active: boolean;
+    /**
+     * Digital Id Expires At
+     */
+    digital_id_expires_at?: Date | null;
+    /**
+     * Recent Attendance
+     */
+    recent_attendance: Array<StudentAttendanceItem>;
+    /**
+     * Enrollments
+     */
+    enrollments: Array<StudentEnrollmentItem>;
+};
+
+/**
+ * StudentEnrollmentItem
+ */
+export type StudentEnrollmentItem = {
     /**
      * Course Id
      */
     course_id: number;
     /**
-     * Lecturer Id
+     * Course Label
      */
-    lecturer_id: number;
-    /**
-     * Venue Id
-     */
-    venue_id: number;
-    /**
-     * Weekday
-     */
-    weekday: string;
-    /**
-     * Start Time
-     */
-    start_time: string;
-    /**
-     * End Time
-     */
-    end_time: string;
-    /**
-     * Session Type
-     */
-    session_type?: string;
+    course_label: string;
     /**
      * Semester
      */
@@ -1016,184 +1254,6 @@ export type TimetableEntryCreate = {
      * Academic Year
      */
     academic_year: string;
-    /**
-     * Effective Start Date
-     */
-    effective_start_date?: Date | null;
-    /**
-     * Effective End Date
-     */
-    effective_end_date?: Date | null;
-};
-
-/**
- * TimetableEntryList
- */
-export type TimetableEntryList = {
-    /**
-     * Items
-     */
-    items: Array<TimetableEntryResponse>;
-    /**
-     * Total
-     */
-    total: number;
-    /**
-     * Skip
-     */
-    skip: number;
-    /**
-     * Limit
-     */
-    limit: number;
-};
-
-/**
- * TimetableEntryResponse
- */
-export type TimetableEntryResponse = {
-    /**
-     * Course Id
-     */
-    course_id: number;
-    /**
-     * Lecturer Id
-     */
-    lecturer_id: number;
-    /**
-     * Venue Id
-     */
-    venue_id: number;
-    /**
-     * Weekday
-     */
-    weekday: string;
-    /**
-     * Start Time
-     */
-    start_time: string;
-    /**
-     * End Time
-     */
-    end_time: string;
-    /**
-     * Session Type
-     */
-    session_type?: string;
-    /**
-     * Semester
-     */
-    semester: string;
-    /**
-     * Academic Year
-     */
-    academic_year: string;
-    /**
-     * Effective Start Date
-     */
-    effective_start_date?: Date | null;
-    /**
-     * Effective End Date
-     */
-    effective_end_date?: Date | null;
-    /**
-     * Timetable Id
-     */
-    timetable_id: number;
-    /**
-     * Is Active
-     */
-    is_active: boolean;
-    /**
-     * Created At
-     */
-    created_at: Date;
-    /**
-     * Updated At
-     */
-    updated_at: Date;
-};
-
-/**
- * TimetableEntryUpdate
- */
-export type TimetableEntryUpdate = {
-    /**
-     * Course Id
-     */
-    course_id?: number | null;
-    /**
-     * Lecturer Id
-     */
-    lecturer_id?: number | null;
-    /**
-     * Venue Id
-     */
-    venue_id?: number | null;
-    /**
-     * Weekday
-     */
-    weekday?: string | null;
-    /**
-     * Start Time
-     */
-    start_time?: string | null;
-    /**
-     * End Time
-     */
-    end_time?: string | null;
-    /**
-     * Session Type
-     */
-    session_type?: string | null;
-    /**
-     * Semester
-     */
-    semester?: string | null;
-    /**
-     * Academic Year
-     */
-    academic_year?: string | null;
-    /**
-     * Effective Start Date
-     */
-    effective_start_date?: Date | null;
-    /**
-     * Effective End Date
-     */
-    effective_end_date?: Date | null;
-    /**
-     * Is Active
-     */
-    is_active?: boolean | null;
-};
-
-/**
- * TimetableGenerationRequest
- */
-export type TimetableGenerationRequest = {
-    /**
-     * Start Date
-     */
-    start_date: Date;
-    /**
-     * End Date
-     */
-    end_date: Date;
-};
-
-/**
- * TimetableGenerationResponse
- */
-export type TimetableGenerationResponse = {
-    /**
-     * Created Session Ids
-     */
-    created_session_ids: Array<number>;
-    /**
-     * Skipped Dates
-     */
-    skipped_dates: Array<string>;
 };
 
 /**
@@ -2680,160 +2740,6 @@ export type ReviewAttendanceRecordResponses = {
 
 export type ReviewAttendanceRecordResponse = ReviewAttendanceRecordResponses[keyof ReviewAttendanceRecordResponses];
 
-export type ListTimetableEntriesData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Course Id
-         */
-        course_id?: number | null;
-        /**
-         * Semester
-         */
-        semester?: string | null;
-        /**
-         * Academic Year
-         */
-        academic_year?: string | null;
-        /**
-         * Skip
-         */
-        skip?: number;
-        /**
-         * Limit
-         */
-        limit?: number;
-    };
-    url: '/api/v1/attendance/timetable/';
-};
-
-export type ListTimetableEntriesErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type ListTimetableEntriesError = ListTimetableEntriesErrors[keyof ListTimetableEntriesErrors];
-
-export type ListTimetableEntriesResponses = {
-    /**
-     * Successful Response
-     */
-    200: TimetableEntryList;
-};
-
-export type ListTimetableEntriesResponse = ListTimetableEntriesResponses[keyof ListTimetableEntriesResponses];
-
-export type CreateTimetableEntryData = {
-    body: TimetableEntryCreate;
-    path?: never;
-    query?: never;
-    url: '/api/v1/attendance/timetable/';
-};
-
-export type CreateTimetableEntryErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type CreateTimetableEntryError = CreateTimetableEntryErrors[keyof CreateTimetableEntryErrors];
-
-export type CreateTimetableEntryResponses = {
-    /**
-     * Successful Response
-     */
-    200: TimetableEntryResponse;
-};
-
-export type CreateTimetableEntryResponse = CreateTimetableEntryResponses[keyof CreateTimetableEntryResponses];
-
-export type DeleteTimetableEntryData = {
-    body?: never;
-    path: {
-        /**
-         * Timetable Id
-         */
-        timetable_id: number;
-    };
-    query?: never;
-    url: '/api/v1/attendance/timetable/{timetable_id}';
-};
-
-export type DeleteTimetableEntryErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DeleteTimetableEntryError = DeleteTimetableEntryErrors[keyof DeleteTimetableEntryErrors];
-
-export type DeleteTimetableEntryResponses = {
-    /**
-     * Successful Response
-     */
-    200: unknown;
-};
-
-export type UpdateTimetableEntryData = {
-    body: TimetableEntryUpdate;
-    path: {
-        /**
-         * Timetable Id
-         */
-        timetable_id: number;
-    };
-    query?: never;
-    url: '/api/v1/attendance/timetable/{timetable_id}';
-};
-
-export type UpdateTimetableEntryErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type UpdateTimetableEntryError = UpdateTimetableEntryErrors[keyof UpdateTimetableEntryErrors];
-
-export type UpdateTimetableEntryResponses = {
-    /**
-     * Successful Response
-     */
-    200: TimetableEntryResponse;
-};
-
-export type UpdateTimetableEntryResponse = UpdateTimetableEntryResponses[keyof UpdateTimetableEntryResponses];
-
-export type GenerateTimetableSessionsData = {
-    body: TimetableGenerationRequest;
-    path?: never;
-    query?: never;
-    url: '/api/v1/attendance/timetable/generate-sessions';
-};
-
-export type GenerateTimetableSessionsErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type GenerateTimetableSessionsError = GenerateTimetableSessionsErrors[keyof GenerateTimetableSessionsErrors];
-
-export type GenerateTimetableSessionsResponses = {
-    /**
-     * Successful Response
-     */
-    200: TimetableGenerationResponse;
-};
-
-export type GenerateTimetableSessionsResponse = GenerateTimetableSessionsResponses[keyof GenerateTimetableSessionsResponses];
-
 export type ListAuditLogsData = {
     body?: never;
     path?: never;
@@ -2875,3 +2781,19 @@ export type ListAuditLogsResponses = {
 };
 
 export type ListAuditLogsResponse = ListAuditLogsResponses[keyof ListAuditLogsResponses];
+
+export type GetDashboardSummaryData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/reporting/dashboard-summary';
+};
+
+export type GetDashboardSummaryResponses = {
+    /**
+     * Successful Response
+     */
+    200: DashboardSummaryResponse;
+};
+
+export type GetDashboardSummaryResponse = GetDashboardSummaryResponses[keyof GetDashboardSummaryResponses];

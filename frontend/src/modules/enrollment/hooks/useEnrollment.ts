@@ -7,6 +7,7 @@ import {
 } from '@/client/@tanstack/react-query.gen';
 import { client } from '@/client/client.gen';
 import type { EnrollmentList, Options, ListStudentEnrollmentsData, ListCourseEnrollmentsData } from '@/client';
+import { invalidateQueryIds } from '@/utils/queryInvalidation';
 
 type EnrollmentFilters = {
   student_id?: number;
@@ -57,20 +58,12 @@ export function useEnrollment() {
 
   const create = useMutation({
     ...createEnrollmentMutation(),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['listEnrollments'] });
-      queryClient.invalidateQueries({ queryKey: ['listStudentEnrollments'] });
-      queryClient.invalidateQueries({ queryKey: ['listCourseEnrollments'] });
-    },
+    onSuccess: () => invalidateQueryIds(queryClient, ['listEnrollments', 'listStudentEnrollments', 'listCourseEnrollments']),
   });
 
   const update = useMutation({
     ...updateEnrollmentMutation(),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['listEnrollments'] });
-      queryClient.invalidateQueries({ queryKey: ['listStudentEnrollments'] });
-      queryClient.invalidateQueries({ queryKey: ['listCourseEnrollments'] });
-    },
+    onSuccess: () => invalidateQueryIds(queryClient, ['listEnrollments', 'listStudentEnrollments', 'listCourseEnrollments']),
   });
 
   return { useList, useStudentEnrollments, useCourseEnrollments, create, update };

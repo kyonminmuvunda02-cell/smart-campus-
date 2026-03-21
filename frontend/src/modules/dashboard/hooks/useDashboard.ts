@@ -34,7 +34,6 @@ export interface LecturerLiveSessionSummary {
   session_type: string;
   course_label: string;
   venue_label: string;
-  timetable_slot: string | null;
   session_start: string;
   session_end: string;
   live_records: number;
@@ -44,7 +43,6 @@ export interface LecturerLiveSessionSummary {
 export interface LecturerUpcomingSessionItem {
   session_id: number;
   course_label: string;
-  timetable_slot: string | null;
   session_start: string;
 }
 
@@ -60,7 +58,6 @@ export interface LecturerDashboardSummary {
   active_session_count: number;
   current_verified_rate: number;
   open_review_items: number;
-  timetable_slots: number;
   live_session: LecturerLiveSessionSummary | null;
   upcoming_sessions: LecturerUpcomingSessionItem[];
   review_queue: LecturerReviewItem[];

@@ -4,6 +4,7 @@ import {
   listStudentRecordsOptions,
 } from '@/client/@tanstack/react-query.gen';
 import type { Options, ListStudentRecordsData } from '@/client';
+import { invalidateQueryId } from '@/utils/queryInvalidation';
 
 export function useAttendance() {
   const queryClient = useQueryClient();
@@ -16,7 +17,7 @@ export function useAttendance() {
 
   const checkin = useMutation({
     ...studentCheckinMutation(),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['listStudentRecords'] }),
+    onSuccess: () => invalidateQueryId(queryClient, 'listStudentRecords'),
   });
 
   return { useStudentRecords, checkin };

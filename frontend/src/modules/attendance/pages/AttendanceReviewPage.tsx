@@ -1,339 +1,159 @@
-import { useEffect, useState } from 'react';
-import { Alert, Button, Form } from 'react-bootstrap';
+import { useState } from 'react';
+import { Button, Table } from 'react-bootstrap';
 import PageHeader from '@/components/common/PageHeader';
 import LoadingSkeleton from '@/components/common/LoadingSkeleton';
 import EmptyState from '@/components/common/EmptyState';
 import { useAttendanceReview } from '../hooks/useAttendanceReview';
-import { getErrorMessage } from '@/utils/errors';
-import { useToast } from '@/components/common/ToastManager';
+import { useAuth } from '@/modules/auth/context/AuthProvider';
 import { useUser } from '@/modules/users/hooks/useUser';
-import { useCourse } from '@/modules/courses/hooks/useCourse';
 import { useVenue } from '@/modules/venues/hooks/useVenue';
-import {
-  buildLookupMap,
-  getCourseDisplayName,
-  getStudentDisplayName,
-  getUserDisplayName,
-  getVenueDisplayName,
-} from '@/utils/entityLabels';
+import { buildLookupMap, getStudentDisplayName, getVenueDisplayName } from '@/utils/entityLabels';
+import ForensicAuditModal from '../components/ForensicAuditModal';
+import Pagination from '@/components/common/Pagination';
 
 type ReviewFilter = 'All' | 'Pending' | 'Rejected' | 'Verified';
 
-function calculateDistanceMeters(
-  latitudeA: number,
-  longitudeA: number,
-  latitudeB: number,
-  longitudeB: number
-) {
-  const toRadians = (value: number) => (value * Math.PI) / 180;
-  const earthRadius = 6371000;
-  const deltaLatitude = toRadians(latitudeB - latitudeA);
-  const deltaLongitude = toRadians(longitudeB - longitudeA);
-  const a =
-    Math.sin(deltaLatitude / 2) * Math.sin(deltaLatitude / 2) +
-    Math.cos(toRadians(latitudeA)) *
-      Math.cos(toRadians(latitudeB)) *
-      Math.sin(deltaLongitude / 2) *
-      Math.sin(deltaLongitude / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return Math.round(earthRadius * c);
-}
-
 export default function AttendanceReviewPage() {
-  const [filter, setFilter] = useState<ReviewFilter>('All');
+  const [filter, setFilter] = useState<ReviewFilter>('Pending');
   const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [reviewNote, setReviewNote] = useState('');
-  const { showToast } = useToast();
-  const { useQueue, review } = useAttendanceReview();
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
+  const { role } = useAuth();
+  const { useQueue } = useAttendanceReview();
   const { useList: useUserList } = useUser();
-  const { useList: useCourseList } = useCourse();
   const { useList: useVenueList } = useVenue();
-  const { data, isLoading } = useQueue({
-    verification_status: filter === 'All' ? undefined : filter,
-    limit: 100,
-  });
-  const { data: usersData } = useUserList({ query: { limit: 500 } });
-  const { data: coursesData } = useCourseList({ query: { limit: 500 } });
+
+  const { data, isLoading } = useQueue({ verification_status: filter === 'All' ? undefined : filter, limit: 100 });
+  const { data: usersData } = useUserList({ query: { limit: 500 } }, role === 'Admin' || role === 'Lecturer');
   const { data: venuesData } = useVenueList({ query: { limit: 500 } });
 
-  const items = data?.items ?? [];
-  const users = (usersData as { items?: Array<Record<string, unknown>> } | undefined)?.items ?? [];
-  const courses = (coursesData as { items?: Array<Record<string, unknown>> } | undefined)?.items ?? [];
-  const venues = (venuesData as { items?: Array<Record<string, unknown>> } | undefined)?.items ?? [];
-  const userLookup = buildLookupMap(users, 'user_id', (user) => getUserDisplayName(user, user.user_id as number));
-  const studentLookup = buildLookupMap(users, 'user_id', (user) => getStudentDisplayName(user, user.user_id as number));
-  const courseLookup = buildLookupMap(courses, 'course_id', (course) => getCourseDisplayName(course, course.course_id as number));
-  const venueLookup = buildLookupMap(venues, 'venue_id', (venue) => getVenueDisplayName(venue, venue.venue_id as number));
-  const pendingCount = items.filter((item) => item.verification_status === 'Pending').length;
-  const rejectedCount = items.filter((item) => item.verification_status === 'Rejected').length;
-  const selectedItem = items.find((item) => item.attendance_id === selectedId) ?? items[0] ?? null;
-  const deviceReuseCount = selectedItem ? items.filter((item) => item.device_id === selectedItem.device_id).length : 0;
-  const selectedVenue = selectedItem
-    ? venues.find((venue) => Number(venue.venue_id) === selectedItem.venue_id)
-    : undefined;
-  const distanceFromVenue =
-    selectedItem &&
-    selectedVenue &&
-    selectedItem.gps_latitude !== null &&
-    selectedItem.gps_longitude !== null &&
-    selectedVenue.latitude !== null &&
-    selectedVenue.latitude !== undefined &&
-    selectedVenue.longitude !== null &&
-    selectedVenue.longitude !== undefined
-      ? calculateDistanceMeters(
-          selectedItem.gps_latitude,
-          selectedItem.gps_longitude,
-          Number(selectedVenue.latitude),
-          Number(selectedVenue.longitude)
-        )
-      : null;
-  const venueRadius =
-    selectedVenue && selectedVenue.radius_meters !== null && selectedVenue.radius_meters !== undefined
-      ? Number(selectedVenue.radius_meters)
-      : null;
+  const items = (data as any)?.items ?? [];
+  const users = (usersData as any)?.items ?? [];
+  const venues = (venuesData as any)?.items ?? [];
+  
+  const studentLookup = buildLookupMap(users, 'user_id', (u) => getStudentDisplayName(u, u.user_id as number));
+  const venueLookup = buildLookupMap(venues, 'venue_id', (v) => getVenueDisplayName(v, v.venue_id as number));
+  
+  const pendingCount = items.filter((i: any) => i.verification_status === 'Pending').length;
+  const selectedItem = items.find((i: any) => i.attendance_id === selectedId) || null;
 
-  useEffect(() => {
-    setSelectedId(selectedItem?.attendance_id ?? null);
-    setReviewNote(selectedItem?.review_note ?? '');
-  }, [selectedItem?.attendance_id, selectedItem?.review_note]);
+  const totalPages = Math.ceil(items.length / pageSize);
+  const pageStart = (currentPage - 1) * pageSize;
+  const paginatedItems = items.slice(pageStart, pageStart + pageSize);
 
-  async function handleDecision(verificationStatus: 'Verified' | 'Rejected' | 'Pending') {
-    if (!selectedItem) return;
-    try {
-      await review.mutateAsync({
-        attendanceId: selectedItem.attendance_id,
-        body: {
-          verification_status: verificationStatus,
-          review_note: reviewNote.trim() || null,
-        },
-      });
-      showToast('success', 'Review updated', `Attendance record marked as ${verificationStatus}.`);
-    } catch (error) {
-      showToast('danger', 'Review failed', getErrorMessage(error));
-    }
-  }
+  if (isLoading) return <div className="p-4"><LoadingSkeleton rows={10} /></div>;
 
   return (
-    <div>
+    <div className="stack gap-4">
       <PageHeader
-        eyebrow="Teaching operations"
-        title="Attendance review queue"
-        subtitle="Resolve flagged scans, capture a review note, and keep an auditable decision trail for disputed attendance."
+        title="Evidence Audit"
+        subtitle="Verify identity markers and location integrity for flagged academic check-ins."
         icon="shield-search"
         tone="purple"
+        breadcrumbs={[{ label: 'Administration' }, { label: 'Attendance Audit' }]}
       />
 
-      <div className="ops-grid">
-        <div className="stack">
-          <div className="surface-card section-card">
-            <div className="section-title">
-              <div>
-                <h3>Queue filters</h3>
-                <div className="section-subtle">Focus the review workload by current decision state.</div>
-              </div>
-              <span className="status-pill purple"><i className="ti ti-alert-triangle" />Risk review</span>
+      <div className="row g-4">
+        <div className="col-md-3">
+          <div className="surface-card p-3 d-flex align-items-center gap-3 shadow-sm border-0 h-100">
+            <div className="sb-avatar bg-purple-lt text-purple p-2 fs-3 rounded-3">
+              <i className="ti ti-list-check" />
             </div>
-            <div className="segmented-filter">
-              {(['All', 'Pending', 'Rejected', 'Verified'] as const).map((item) => (
-                <button
-                  key={item}
-                  type="button"
-                  className={filter === item ? 'active' : ''}
-                  onClick={() => setFilter(item)}
-                >
-                  {item}
-                </button>
-              ))}
+            <div className="entity-copy">
+              <span className="text-secondary small fw-bold uppercase">Unresolved Cases</span>
+              <strong className="h4 mb-0 d-block">{pendingCount}</strong>
             </div>
           </div>
-
-          <div className="surface-card section-card">
-            <div className="section-title">
-              <div>
-                <h3>Queue health</h3>
-                <div className="section-subtle">How much unresolved attendance evidence is still in play</div>
-              </div>
-            </div>
-            <div className="session-stat-row">
-              <div className="session-stat">
-                <label>Total items</label>
-                <strong>{items.length}</strong>
-              </div>
-              <div className="session-stat">
-                <label>Pending</label>
-                <strong>{pendingCount}</strong>
-              </div>
-              <div className="session-stat">
-                <label>Rejected</label>
-                <strong>{rejectedCount}</strong>
-              </div>
-            </div>
-          </div>
-
-          {selectedItem ? (
-            <div className="surface-card section-card">
-              <div className="section-title">
-                <div>
-                  <h3>Review detail</h3>
-                  <div className="section-subtle">Record the decision and why the scan should be trusted or rejected.</div>
-                </div>
-              </div>
-
-              <div className="detail-list">
-                <div className="detail-row">
-                  <span className="detail-label">Student</span>
-                  <span className="detail-value">{studentLookup.get(selectedItem.student_id) ?? `Student #${selectedItem.student_id}`}</span>
-                </div>
-                <div className="detail-row">
-                  <span className="detail-label">Session</span>
-                  <span className="detail-value">{selectedItem.session_type} - {courseLookup.get(selectedItem.course_id) ?? `Course #${selectedItem.course_id}`}</span>
-                </div>
-                <div className="detail-row">
-                  <span className="detail-label">Venue</span>
-                  <span className="detail-value">{venueLookup.get(selectedItem.venue_id) ?? `Venue #${selectedItem.venue_id}`}</span>
-                </div>
-                <div className="detail-row">
-                  <span className="detail-label">Scanned at</span>
-                  <span className="detail-value">{new Date(selectedItem.checked_in_at).toLocaleString()}</span>
-                </div>
-                <div className="detail-row">
-                  <span className="detail-label">GPS accuracy</span>
-                  <span className="detail-value">{selectedItem.gps_accuracy ? `${Math.round(selectedItem.gps_accuracy)} m` : 'Unavailable'}</span>
-                </div>
-                <div className="detail-row">
-                  <span className="detail-label">Distance from venue</span>
-                  <span className="detail-value">
-                    {distanceFromVenue !== null
-                      ? `${distanceFromVenue} m${venueRadius ? ` of ${Math.round(venueRadius)} m allowed` : ''}`
-                      : 'Insufficient location data'}
-                  </span>
-                </div>
-                <div className="detail-row">
-                  <span className="detail-label">Device reuse</span>
-                  <span className="detail-value">
-                    {deviceReuseCount > 1
-                      ? `${deviceReuseCount} queued records share this device fingerprint`
-                      : 'No other queued records share this device fingerprint'}
-                  </span>
-                </div>
-                <div className="detail-row">
-                  <span className="detail-label">Current status</span>
-                  <span className="detail-value">{selectedItem.verification_status}</span>
-                </div>
-              </div>
-
-              {selectedItem.fraud_flag || (distanceFromVenue !== null && venueRadius !== null && distanceFromVenue > venueRadius) ? (
-                <Alert variant="warning" className="mb-0">
-                  <i className="ti ti-alert-triangle me-2" />
-                  {selectedItem.fraud_flag
-                    ? 'Trust checks already marked this scan as risky.'
-                    : 'The reported coordinates appear outside the venue geofence.'}
-                </Alert>
-              ) : (
-                <Alert variant="info" className="mb-0">
-                  <i className="ti ti-info-circle me-2" />
-                  This evidence sits inside the current venue trust boundary based on the available GPS coordinates.
-                </Alert>
-              )}
-
-              <div className="field-shell">
-                <Form.Label className="field-label">Review note</Form.Label>
-                <Form.Control
-                  as="textarea"
-                  rows={4}
-                  value={reviewNote}
-                  onChange={(event) => setReviewNote(event.target.value)}
-                  placeholder="Record why this scan is approved, rejected, or still pending."
-                />
-              </div>
-
-              <div className="ph-actions attendance-review-actions">
-                <Button variant="outline-success" onClick={() => void handleDecision('Verified')} disabled={review.isPending}>
-                  <i className="ti ti-check" />Approve
-                </Button>
-                <Button variant="outline-danger" onClick={() => void handleDecision('Rejected')} disabled={review.isPending}>
-                  <i className="ti ti-x" />Reject
-                </Button>
-                <Button variant="outline-secondary" onClick={() => void handleDecision('Pending')} disabled={review.isPending}>
-                  <i className="ti ti-clock-hour-4" />Keep pending
-                </Button>
-              </div>
-
-              {selectedItem.reviewed_at ? (
-                <Alert variant="info" className="mb-0">
-                  <i className="ti ti-info-circle me-2" />
-                  Last reviewed {new Date(selectedItem.reviewed_at).toLocaleString()}
-                  {selectedItem.reviewed_by ? ` by ${userLookup.get(selectedItem.reviewed_by) ?? `User #${selectedItem.reviewed_by}`}` : ''}.
-                </Alert>
-              ) : null}
-            </div>
-          ) : null}
         </div>
-
-        <div className="surface-card section-card">
-          <div className="section-title">
-            <div>
-              <h3>Flagged attendance</h3>
-              <div className="section-subtle">Select a record to inspect its evidence and complete the decision</div>
+        <div className="col-md-3">
+          <div className="surface-card p-3 d-flex align-items-center gap-3 shadow-sm border-0 h-100">
+            <div className="sb-avatar bg-red-lt text-red p-2 fs-3 rounded-3">
+              <i className="ti ti-alert-square-rounded" />
             </div>
-            <span className="status-pill purple"><i className="ti ti-list-details" />{items.length} records</span>
+            <div className="entity-copy">
+              <span className="text-secondary small fw-bold uppercase">Risk Flagged</span>
+              <strong className="h4 mb-0 d-block">{items.filter((i: any) => i.fraud_flag).length}</strong>
+            </div>
           </div>
-
-          {isLoading ? (
-            <LoadingSkeleton rows={8} columns={6} />
-          ) : items.length === 0 ? (
-            <EmptyState icon="ti-shield-check" title="Review queue is clear" message="No flagged attendance records currently need intervention." />
-          ) : (
-            <div className="table-shell">
-              <table className="table table-hover align-middle mb-0">
-                <thead>
-                  <tr>
-                    <th>Attendance</th>
-                    <th>Context</th>
-                    <th>GPS confidence</th>
-                    <th>Status</th>
-                    <th className="text-end">Inspect</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {items.map((item) => (
-                    <tr key={item.attendance_id} className={selectedId === item.attendance_id ? 'table-primary-subtle' : ''}>
-                      <td>
-                        <div className="entity-copy">
-                          <strong>{studentLookup.get(item.student_id) ?? `Student #${item.student_id}`}</strong>
-                          <span>{new Date(item.checked_in_at).toLocaleString()}</span>
-                        </div>
-                      </td>
-                      <td className="text-secondary small">
-                        {item.session_type} - {courseLookup.get(item.course_id) ?? `Course #${item.course_id}`} - {venueLookup.get(item.venue_id) ?? `Venue #${item.venue_id}`}
-                      </td>
-                      <td>
-                        <div className="entity-copy">
-                          <strong>{item.gps_accuracy ? `${Math.round(item.gps_accuracy)} m` : 'No accuracy'}</strong>
-                          <span>{item.fraud_flag ? 'Flagged by trust checks' : 'Awaiting decision'}</span>
-                        </div>
-                      </td>
-                      <td>
-                        <span className={`status-pill ${item.verification_status === 'Verified' ? 'green' : item.verification_status === 'Rejected' ? 'red' : 'amber'}`}>
-                          <i className={`ti ti-${item.verification_status === 'Verified' ? 'circle-check' : item.verification_status === 'Rejected' ? 'circle-x' : 'alert-triangle'}`} />
-                          {item.verification_status}
-                        </span>
-                      </td>
-                      <td className="text-end">
-                        <div className="table-actions">
-                          <Button variant="outline-primary" size="sm" onClick={() => setSelectedId(item.attendance_id)}>
-                            <i className="ti ti-eye" />Inspect
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+        </div>
+        <div className="col-md-6 text-end">
+           <div className="surface-card p-3 shadow-sm border-0 bg-light-subtle d-inline-flex align-items-center gap-3 h-100">
+             <div className="segmented-filter sm d-flex gap-1 bg-white p-1 rounded-3 border">
+                {(['Pending', 'Verified', 'Rejected', 'All'] as const).map(f => (
+                  <button 
+                    key={f} 
+                    className={filter === f ? 'active' : ''} 
+                    onClick={() => { setFilter(f); setSelectedId(null); }}
+                  >
+                    {f}
+                  </button>
+                ))}
+             </div>
+           </div>
         </div>
       </div>
+
+      <div className="surface-card p-0 overflow-hidden shadow-sm border-0 mb-4">
+        {items.length === 0 ? (
+          <div className="p-5"><EmptyState icon="ti-shield-check" title="Registry Clear" message="No pending records match your current criteria." /></div>
+        ) : (
+          <div className="table-responsive">
+            <Table hover className="mb-0 border-0">
+               <thead className="bg-light-subtle text-secondary small fw-bold uppercase tracking-wider">
+                <tr>
+                  <th className="ps-4 border-0 py-3">Trace Identity</th>
+                  <th className="border-0 py-3 text-center">Integrity Score</th>
+                  <th className="text-end pe-4 border-0 py-3">Audit Action</th>
+                </tr>
+              </thead>
+              <tbody className="border-top-0">
+                {paginatedItems.map((i: any) => (
+                   <tr key={i.attendance_id}>
+                    <td className="ps-4 py-3">
+                       <div className="d-flex align-items-center gap-3">
+                         <div className="sb-avatar sm bg-light-subtle text-purple fw-bold">{studentLookup.get(i.student_id)?.[0]}</div>
+                         <div className="entity-copy">
+                            <strong className="text-navy d-block">{studentLookup.get(i.student_id)}</strong>
+                            <span className="smaller text-muted">{new Date(i.checked_in_at).toLocaleTimeString()} • {venueLookup.get(i.venue_id)}</span>
+                         </div>
+                       </div>
+                    </td>
+                    <td className="py-3 text-center">
+                      <span className={`status-pill ${i.fraud_flag ? 'red' : 'green'}`}>
+                        <i className={`ti ti-${i.fraud_flag ? 'alert-octagon' : 'shield-check'}`} />
+                        {i.fraud_flag ? 'High Risk' : 'Passed Verified'}
+                      </span>
+                    </td>
+                    <td className="text-end pe-4 py-3">
+                      <Button variant="outline-purple" size="sm" className="fw-bold px-3" onClick={() => setSelectedId(i.attendance_id)}>
+                        Forensic Review
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+            {items.length > pageSize && (
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+                totalItems={items.length}
+                pageSize={pageSize}
+              />
+            )}
+          </div>
+        )}
+      </div>
+
+      {selectedItem && (
+        <ForensicAuditModal
+          show={!!selectedId}
+          onHide={() => setSelectedId(null)}
+          attendanceRecord={selectedItem}
+          studentName={studentLookup.get(selectedItem.student_id) || ''}
+        />
+      )}
     </div>
   );
 }
