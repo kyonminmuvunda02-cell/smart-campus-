@@ -1,8 +1,8 @@
-"""Initial schema
+"""baseline current schema
 
-Revision ID: 1ad02d6abf6a
+Revision ID: 202603220001
 Revises: 
-Create Date: 2026-03-17 02:39:19.510010
+Create Date: 2026-03-22 14:02:03.170461
 
 """
 from typing import Sequence, Union
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '1ad02d6abf6a'
+revision: str = '202603220001'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -28,39 +28,55 @@ def upgrade() -> None:
     sa.Column('role', sa.String(length=20), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.Column('is_deleted', sa.Boolean(), nullable=False),
+    sa.Column('deleted_at', sa.DateTime(timezone=True), nullable=True),
     sa.PrimaryKeyConstraint('user_id'),
     sa.UniqueConstraint('email')
     )
+    op.create_index(op.f('ix_appuser_is_deleted'), 'appuser', ['is_deleted'], unique=False)
     op.create_table('course',
     sa.Column('course_id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('course_code', sa.String(length=20), nullable=False),
     sa.Column('course_name', sa.String(length=200), nullable=False),
     sa.Column('credits', sa.Integer(), nullable=False),
     sa.Column('department', sa.String(length=100), nullable=False),
+    sa.Column('minimum_attendance_percent', sa.Integer(), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.Column('is_deleted', sa.Boolean(), nullable=False),
+    sa.Column('deleted_at', sa.DateTime(timezone=True), nullable=True),
     sa.PrimaryKeyConstraint('course_id'),
     sa.UniqueConstraint('course_code')
     )
+    op.create_index(op.f('ix_course_is_deleted'), 'course', ['is_deleted'], unique=False)
     op.create_table('venue',
     sa.Column('venue_id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('venue_name', sa.String(length=100), nullable=False),
     sa.Column('capacity', sa.Integer(), nullable=True),
     sa.Column('building', sa.String(length=100), nullable=True),
+    sa.Column('latitude', sa.Float(), nullable=True),
+    sa.Column('longitude', sa.Float(), nullable=True),
+    sa.Column('radius_meters', sa.Float(), nullable=True),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.Column('is_deleted', sa.Boolean(), nullable=False),
+    sa.Column('deleted_at', sa.DateTime(timezone=True), nullable=True),
     sa.PrimaryKeyConstraint('venue_id'),
     sa.UniqueConstraint('venue_name')
     )
+    op.create_index(op.f('ix_venue_is_deleted'), 'venue', ['is_deleted'], unique=False)
     op.create_table('admin',
     sa.Column('user_id', sa.Integer(), nullable=False),
     sa.Column('admin_level', sa.Integer(), nullable=False),
     sa.Column('last_login', sa.DateTime(timezone=True), nullable=True),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.Column('is_deleted', sa.Boolean(), nullable=False),
+    sa.Column('deleted_at', sa.DateTime(timezone=True), nullable=True),
     sa.ForeignKeyConstraint(['user_id'], ['appuser.user_id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('user_id')
     )
+    op.create_index(op.f('ix_admin_is_deleted'), 'admin', ['is_deleted'], unique=False)
     op.create_table('auditlog',
     sa.Column('log_id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=True),
@@ -69,9 +85,12 @@ def upgrade() -> None:
     sa.Column('record_id', sa.Integer(), nullable=True),
     sa.Column('detail', sa.Text(), nullable=True),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.Column('is_deleted', sa.Boolean(), nullable=False),
+    sa.Column('deleted_at', sa.DateTime(timezone=True), nullable=True),
     sa.ForeignKeyConstraint(['user_id'], ['appuser.user_id'], ondelete='SET NULL'),
     sa.PrimaryKeyConstraint('log_id')
     )
+    op.create_index(op.f('ix_auditlog_is_deleted'), 'auditlog', ['is_deleted'], unique=False)
     op.create_table('lecturer',
     sa.Column('user_id', sa.Integer(), nullable=False),
     sa.Column('staff_number', sa.String(length=50), nullable=False),
@@ -79,10 +98,13 @@ def upgrade() -> None:
     sa.Column('office_location', sa.String(length=100), nullable=True),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.Column('is_deleted', sa.Boolean(), nullable=False),
+    sa.Column('deleted_at', sa.DateTime(timezone=True), nullable=True),
     sa.ForeignKeyConstraint(['user_id'], ['appuser.user_id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('user_id'),
     sa.UniqueConstraint('staff_number')
     )
+    op.create_index(op.f('ix_lecturer_is_deleted'), 'lecturer', ['is_deleted'], unique=False)
     op.create_table('student',
     sa.Column('user_id', sa.Integer(), nullable=False),
     sa.Column('student_number', sa.String(length=50), nullable=False),
@@ -90,15 +112,20 @@ def upgrade() -> None:
     sa.Column('year_of_study', sa.Integer(), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.Column('is_deleted', sa.Boolean(), nullable=False),
+    sa.Column('deleted_at', sa.DateTime(timezone=True), nullable=True),
     sa.ForeignKeyConstraint(['user_id'], ['appuser.user_id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('user_id'),
     sa.UniqueConstraint('student_number')
     )
+    op.create_index(op.f('ix_student_is_deleted'), 'student', ['is_deleted'], unique=False)
     op.create_table('attendancesession',
     sa.Column('session_id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('course_id', sa.Integer(), nullable=False),
     sa.Column('lecturer_id', sa.Integer(), nullable=False),
     sa.Column('venue_id', sa.Integer(), nullable=False),
+    sa.Column('session_type', sa.String(length=30), nullable=False),
+    sa.Column('timetable_slot', sa.String(length=100), nullable=True),
     sa.Column('session_start', sa.DateTime(timezone=True), nullable=False),
     sa.Column('session_end', sa.DateTime(timezone=True), nullable=False),
     sa.Column('semester', sa.String(length=20), nullable=False),
@@ -108,21 +135,27 @@ def upgrade() -> None:
     sa.Column('is_active', sa.Boolean(), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.Column('is_deleted', sa.Boolean(), nullable=False),
+    sa.Column('deleted_at', sa.DateTime(timezone=True), nullable=True),
     sa.ForeignKeyConstraint(['course_id'], ['course.course_id'], ondelete='RESTRICT'),
     sa.ForeignKeyConstraint(['lecturer_id'], ['lecturer.user_id'], ondelete='RESTRICT'),
     sa.ForeignKeyConstraint(['venue_id'], ['venue.venue_id'], ondelete='RESTRICT'),
     sa.PrimaryKeyConstraint('session_id'),
     sa.UniqueConstraint('qr_code')
     )
+    op.create_index(op.f('ix_attendancesession_is_deleted'), 'attendancesession', ['is_deleted'], unique=False)
     op.create_table('courselecturer',
     sa.Column('lecturer_id', sa.Integer(), nullable=False),
     sa.Column('course_id', sa.Integer(), nullable=False),
     sa.Column('is_active', sa.Boolean(), nullable=False),
     sa.Column('assigned_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.Column('is_deleted', sa.Boolean(), nullable=False),
+    sa.Column('deleted_at', sa.DateTime(timezone=True), nullable=True),
     sa.ForeignKeyConstraint(['course_id'], ['course.course_id'], ondelete='CASCADE'),
     sa.ForeignKeyConstraint(['lecturer_id'], ['lecturer.user_id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('lecturer_id', 'course_id')
     )
+    op.create_index(op.f('ix_courselecturer_is_deleted'), 'courselecturer', ['is_deleted'], unique=False)
     op.create_table('digitalid',
     sa.Column('digital_id_id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('student_id', sa.Integer(), nullable=False),
@@ -134,11 +167,14 @@ def upgrade() -> None:
     sa.Column('revoked_by', sa.Integer(), nullable=True),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.Column('is_deleted', sa.Boolean(), nullable=False),
+    sa.Column('deleted_at', sa.DateTime(timezone=True), nullable=True),
     sa.ForeignKeyConstraint(['revoked_by'], ['appuser.user_id'], ondelete='SET NULL'),
     sa.ForeignKeyConstraint(['student_id'], ['student.user_id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('digital_id_id'),
     sa.UniqueConstraint('id_number')
     )
+    op.create_index(op.f('ix_digitalid_is_deleted'), 'digitalid', ['is_deleted'], unique=False)
     op.create_table('enrollment',
     sa.Column('student_id', sa.Integer(), nullable=False),
     sa.Column('course_id', sa.Integer(), nullable=False),
@@ -147,41 +183,63 @@ def upgrade() -> None:
     sa.Column('enrollment_status', sa.String(length=20), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.Column('is_deleted', sa.Boolean(), nullable=False),
+    sa.Column('deleted_at', sa.DateTime(timezone=True), nullable=True),
     sa.ForeignKeyConstraint(['course_id'], ['course.course_id'], ondelete='CASCADE'),
     sa.ForeignKeyConstraint(['student_id'], ['student.user_id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('student_id', 'course_id', 'semester', 'academic_year')
     )
+    op.create_index(op.f('ix_enrollment_is_deleted'), 'enrollment', ['is_deleted'], unique=False)
+    op.create_table('timetableentry',
+    sa.Column('timetable_id', sa.Integer(), autoincrement=True, nullable=False),
+    sa.Column('course_id', sa.Integer(), nullable=False),
+    sa.Column('lecturer_id', sa.Integer(), nullable=False),
+    sa.Column('venue_id', sa.Integer(), nullable=False),
+    sa.Column('weekday', sa.String(length=12), nullable=False),
+    sa.Column('start_time', sa.Time(), nullable=False),
+    sa.Column('end_time', sa.Time(), nullable=False),
+    sa.Column('session_type', sa.String(length=30), nullable=False),
+    sa.Column('semester', sa.String(length=20), nullable=False),
+    sa.Column('academic_year', sa.String(length=9), nullable=False),
+    sa.Column('effective_start_date', sa.Date(), nullable=True),
+    sa.Column('effective_end_date', sa.Date(), nullable=True),
+    sa.Column('is_active', sa.Boolean(), nullable=False),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.Column('is_deleted', sa.Boolean(), nullable=False),
+    sa.Column('deleted_at', sa.DateTime(timezone=True), nullable=True),
+    sa.ForeignKeyConstraint(['course_id'], ['course.course_id'], ondelete='RESTRICT'),
+    sa.ForeignKeyConstraint(['lecturer_id'], ['lecturer.user_id'], ondelete='RESTRICT'),
+    sa.ForeignKeyConstraint(['venue_id'], ['venue.venue_id'], ondelete='RESTRICT'),
+    sa.PrimaryKeyConstraint('timetable_id')
+    )
+    op.create_index(op.f('ix_timetableentry_is_deleted'), 'timetableentry', ['is_deleted'], unique=False)
     op.create_table('attendancerecord',
     sa.Column('attendance_id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('session_id', sa.Integer(), nullable=False),
     sa.Column('student_id', sa.Integer(), nullable=False),
+    sa.Column('device_id', sa.String(length=255), nullable=False),
     sa.Column('gps_latitude', sa.Float(), nullable=True),
     sa.Column('gps_longitude', sa.Float(), nullable=True),
     sa.Column('gps_accuracy', sa.Float(), nullable=True),
     sa.Column('verification_status', sa.String(length=20), nullable=False),
     sa.Column('fraud_flag', sa.Boolean(), nullable=False),
+    sa.Column('reviewed_by', sa.Integer(), nullable=True),
+    sa.Column('reviewed_at', sa.DateTime(timezone=True), nullable=True),
+    sa.Column('review_note', sa.String(length=255), nullable=True),
     sa.Column('checked_in_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.Column('is_deleted', sa.Boolean(), nullable=False),
+    sa.Column('deleted_at', sa.DateTime(timezone=True), nullable=True),
+    sa.ForeignKeyConstraint(['reviewed_by'], ['appuser.user_id'], ondelete='SET NULL'),
     sa.ForeignKeyConstraint(['session_id'], ['attendancesession.session_id'], ondelete='RESTRICT'),
     sa.ForeignKeyConstraint(['student_id'], ['student.user_id'], ondelete='RESTRICT'),
     sa.PrimaryKeyConstraint('attendance_id'),
     sa.UniqueConstraint('session_id', 'student_id', name='uq_attendance_session_student')
     )
+    op.create_index(op.f('ix_attendancerecord_is_deleted'), 'attendancerecord', ['is_deleted'], unique=False)
     # ### end Alembic commands ###
 
 
 def downgrade() -> None:
-    # ### commands auto generated by Alembic - please adjust! ###
-    op.drop_table('attendancerecord')
-    op.drop_table('enrollment')
-    op.drop_table('digitalid')
-    op.drop_table('courselecturer')
-    op.drop_table('attendancesession')
-    op.drop_table('student')
-    op.drop_table('lecturer')
-    op.drop_table('auditlog')
-    op.drop_table('admin')
-    op.drop_table('venue')
-    op.drop_table('course')
-    op.drop_table('appuser')
-    # ### end Alembic commands ###
+    raise NotImplementedError("Rollback is not supported after the schema baseline reset.")

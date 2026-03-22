@@ -72,11 +72,13 @@ This guide assumes your project looks like this:
 
 ```text
 smartcampus/
+|-- main.py
 |-- backend/
 `-- frontend/
 ```
 
 All commands in this README are run inside the `backend` folder unless stated otherwise.
+If you are standing in the project root, `python main.py` also starts the backend.
 
 Move into the backend folder:
 
@@ -93,13 +95,13 @@ A virtual environment keeps this project's Python packages separate from other p
 ### Create it
 
 ```powershell
-python -m venv venv
+python -m venv .venv
 ```
 
 ### Activate it
 
 ```powershell
-.\venv\Scripts\activate
+.\.venv\Scripts\activate
 ```
 
 After activation, your terminal should show something like `(venv)`.
@@ -208,7 +210,13 @@ If this succeeds, your database schema is ready.
 
 ## 9. Start the Backend Server
 
-Use this command:
+From the `backend` folder, use:
+
+```powershell
+python main.py
+```
+
+From the project root, this also works:
 
 ```powershell
 python main.py
@@ -356,6 +364,12 @@ After students check in:
 python main.py
 ```
 
+From the project root:
+
+```powershell
+python main.py
+```
+
 ### Apply migrations
 
 ```powershell
@@ -374,11 +388,10 @@ alembic revision --autogenerate -m "describe your change"
 alembic current
 ```
 
-### Roll back one migration
+### Roll back note
 
-```powershell
-alembic downgrade -1
-```
+The migration history was reset to a new baseline. Rolling back to the pre-baseline schema is not supported.
+Only use downgrade commands for migrations created after the baseline reset.
 
 ---
 
@@ -473,6 +486,14 @@ What this script does:
 4. seeds the admin account
 5. seeds demo data
 
+After reseeding, these fixed accounts are available:
+
+- `admin@smartcampus.com` / `adminpassword123`
+- `lecturer@smartcampus.com` / `password123`
+- `student@smartcampus.com` / `password123`
+
+All generated lecturer and student accounts also use the password `password123`.
+
 ### Important note
 
 If you are actively changing models or seed scripts, reseeding may fail until the seed files are updated to match the latest backend structure.
@@ -518,7 +539,7 @@ Cause:
 Fix:
 
 ```powershell
-.\venv\Scripts\activate
+.\.venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
@@ -542,12 +563,26 @@ Cause:
 
 - wrong database configuration
 - migration files out of sync
+- a required file under `backend/alembic/versions/` was removed
 
 Fix:
 
 1. check `.env`
 2. check PostgreSQL is running
-3. read the exact Alembic error
+3. make sure every migration file in `backend/alembic/versions/` is still present
+4. read the exact Alembic error
+
+### Problem: `alembic downgrade` fails at the baseline revision
+
+Cause:
+
+- the project history was intentionally reset to a new Alembic baseline
+
+Fix:
+
+1. treat the current schema as the starting point
+2. do not downgrade below the baseline revision
+3. create a forward migration instead
 
 ### Problem: `python main.py` fails
 
@@ -587,6 +622,8 @@ backend/
 |-- requirements.txt
 `-- README.md
 ```
+
+At the project root there is also a `main.py` launcher for convenience.
 
 Inside each module you will usually see:
 

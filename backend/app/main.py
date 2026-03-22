@@ -27,18 +27,18 @@ async def lifespan(app: FastAPI):
     """Application lifespan handler — runs startup checks then yields to serve requests."""
 
     # ── Startup ───────────────────────────────────────────────────────────────
-    logger.info("🚀 Starting Smart Campus Attendance API v1.0.0")
+    logger.info("Starting Smart Campus Attendance API v1.0.0")
     logger.info("   Environment : %s", settings.ENVIRONMENT)
 
     if check_db_connection():
-        logger.info("✅ Database connection established")
+        logger.info("Database connection established")
     else:
-        logger.warning("⚠️  Database connection failed — check DATABASE_URL in .env")
+        logger.warning("Database connection failed; check DATABASE_URL in .env")
 
     yield
 
     # ── Shutdown ──────────────────────────────────────────────────────────────
-    logger.info("👋 Shutting down Smart Campus API")
+    logger.info("Shutting down Smart Campus API")
 
 
 # ── App factory ───────────────────────────────────────────────────────────────

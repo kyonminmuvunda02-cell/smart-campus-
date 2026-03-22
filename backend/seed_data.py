@@ -216,11 +216,11 @@ def generate_records() -> None:
         print(f"Added {len(courses)} courses.")
 
         lecturer_users = [lecturer_user]
-        for _ in range(10):
+        for index in range(10):
             first_name = fake.first_name()
             last_name = fake.last_name()
             user = AppUser(
-                email=f"{first_name.lower()}.{last_name.lower()}@smartcampus.com",
+                email=f"{first_name.lower()}.{last_name.lower()}.{index + 1}@smartcampus.com",
                 password_hash=password_hash,
                 role="Lecturer",
                 first_name=first_name,
@@ -258,11 +258,11 @@ def generate_records() -> None:
         print("Assigned lecturers to every course.")
 
         student_users = [student_user]
-        for _ in range(100):
+        for index in range(100):
             first_name = fake.first_name()
             last_name = fake.last_name()
             user = AppUser(
-                email=f"{first_name.lower()}.{last_name.lower()}@student.smartcampus.com",
+                email=f"{first_name.lower()}.{last_name.lower()}.{index + 1}@student.smartcampus.com",
                 password_hash=password_hash,
                 role="Student",
                 first_name=first_name,
