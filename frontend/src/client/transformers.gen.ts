@@ -252,6 +252,9 @@ const attendanceRecordResponseSchemaResponseTransformer = (data: any) => {
     if (data.reviewed_at) {
         data.reviewed_at = new Date(data.reviewed_at);
     }
+    if (data.session_start) {
+        data.session_start = new Date(data.session_start);
+    }
     return data;
 };
 

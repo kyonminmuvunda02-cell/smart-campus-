@@ -9,6 +9,12 @@ class CourseBase(BaseModel):
     course_name: str = Field(..., json_schema_extra={"example": "Database Systems"})
     credits: int = Field(..., gt=0, json_schema_extra={"example": 3})
     department: str = Field(..., json_schema_extra={"example": "Computer Science"})
+    minimum_attendance_percent: int = Field(
+        80,
+        ge=1,
+        le=100,
+        json_schema_extra={"example": 80},
+    )
 
 
 class CourseCreate(CourseBase):
@@ -19,6 +25,7 @@ class CourseUpdate(BaseModel):
     course_name: str | None = None
     credits: int | None = Field(None, gt=0)
     department: str | None = None
+    minimum_attendance_percent: int | None = Field(None, ge=1, le=100)
 
 
 class CourseResponse(CourseBase):

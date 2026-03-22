@@ -87,14 +87,20 @@ export default function CourseViewPage() {
             </div>
             <div className="col-md-2">
               <div className="metric-card border-0 bg-light-subtle shadow-none p-4 text-center">
+                <label className="text-secondary small fw-bold uppercase mb-2">Attendance</label>
+                <div className="h5 mb-0 fw-bold text-navy">{Number(currentCourse.minimum_attendance_percent ?? 80)}%</div>
+              </div>
+            </div>
+            <div className="col-md-2">
+              <div className="metric-card border-0 bg-light-subtle shadow-none p-4 text-center">
                 <label className="text-secondary small fw-bold uppercase mb-2">Staff</label>
                 <div className="h5 mb-0 fw-bold text-navy">{assignments.length}</div>
               </div>
             </div>
-            <div className="col-md-4">
+            <div className="col-md-2">
               <div className="metric-card border-0 bg-light-subtle shadow-none p-4">
-                <label className="text-secondary small fw-bold uppercase mb-2">Catalog Integrity</label>
-                <div className="small text-muted">Immutable link to all class history records.</div>
+                <label className="text-secondary small fw-bold uppercase mb-2">Policy</label>
+                <div className="small text-muted">Students below {Number(currentCourse.minimum_attendance_percent ?? 80)}% are out of standing.</div>
               </div>
             </div>
           </div>

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { Table } from 'react-bootstrap';
+import { Button, Table } from 'react-bootstrap';
+import { Link } from 'react-router';
 import EmptyState from '@/components/common/EmptyState';
 import LoadingSkeleton from '@/components/common/LoadingSkeleton';
 import PageHeader from '@/components/common/PageHeader';
@@ -151,7 +152,9 @@ export default function StudentCourseListPage() {
                   <th className="ps-4 border-0 py-3 small fw-bold text-secondary uppercase tracking-wider">Course</th>
                   <th className="border-0 py-3 small fw-bold text-secondary uppercase tracking-wider">Department</th>
                   <th className="border-0 py-3 small fw-bold text-secondary uppercase tracking-wider">Academic Period</th>
-                  <th className="text-end pe-4 border-0 py-3 small fw-bold text-secondary uppercase tracking-wider">Status</th>
+                  <th className="border-0 py-3 small fw-bold text-secondary uppercase tracking-wider">Requirement</th>
+                  <th className="border-0 py-3 small fw-bold text-secondary uppercase tracking-wider">Status</th>
+                  <th className="text-end pe-4 border-0 py-3 small fw-bold text-secondary uppercase tracking-wider">Attendance</th>
                 </tr>
               </thead>
               <tbody className="border-top-0">
@@ -160,6 +163,9 @@ export default function StudentCourseListPage() {
                   const departmentTone = getDepartmentTone(department);
                   const status = String(enrollment.enrollment_status ?? 'Enrolled');
                   const statusTone = status === 'Completed' ? 'teal' : status === 'Dropped' ? 'amber' : 'green';
+                  const attendanceHref = `/my-attendance?course=${encodeURIComponent(
+                    `${Number(enrollment.course_id)}|${String(enrollment.semester)}|${String(enrollment.academic_year)}`
+                  )}`;
 
                   return (
                     <tr key={`${enrollment.student_id}-${enrollment.course_id}-${enrollment.semester}-${enrollment.academic_year}`}>
@@ -169,7 +175,9 @@ export default function StudentCourseListPage() {
                             {String(course?.course_code ?? '??').slice(0, 2)}
                           </div>
                           <div className="entity-copy">
-                            <strong className="text-navy">{String(course?.course_name ?? `Course #${enrollment.course_id}`)}</strong>
+                            <Link to={attendanceHref} className="text-decoration-none">
+                              <strong className="text-navy">{String(course?.course_name ?? `Course #${enrollment.course_id}`)}</strong>
+                            </Link>
                             <span className="mono small text-secondary">{String(course?.course_code ?? enrollment.course_id)}</span>
                           </div>
                         </div>
@@ -183,11 +191,22 @@ export default function StudentCourseListPage() {
                           <span className="smaller text-secondary">{String(enrollment.academic_year)}</span>
                         </div>
                       </td>
-                      <td className="text-end pe-4 py-3">
+                      <td className="py-3">
+                        <span className="status-pill royal">{Number(course?.minimum_attendance_percent ?? 80)}%</span>
+                      </td>
+                      <td className="py-3">
                         <span className={`status-pill ${statusTone}`}>
                           <i className={`ti ti-${status === 'Completed' ? 'award' : status === 'Dropped' ? 'player-pause' : 'circle-check'}`} />
                           {status}
                         </span>
+                      </td>
+                      <td className="text-end pe-4 py-3">
+                        <Link to={attendanceHref}>
+                          <Button variant="outline-secondary" size="sm">
+                            <i className="ti ti-history" />
+                            Attendance
+                          </Button>
+                        </Link>
                       </td>
                     </tr>
                   );
@@ -202,6 +221,9 @@ export default function StudentCourseListPage() {
                 const departmentTone = getDepartmentTone(department);
                 const status = String(enrollment.enrollment_status ?? 'Enrolled');
                 const statusTone = status === 'Completed' ? 'teal' : status === 'Dropped' ? 'amber' : 'green';
+                const attendanceHref = `/my-attendance?course=${encodeURIComponent(
+                  `${Number(enrollment.course_id)}|${String(enrollment.semester)}|${String(enrollment.academic_year)}`
+                )}`;
 
                 return (
                   <div key={`${enrollment.student_id}-${enrollment.course_id}-${enrollment.semester}-${enrollment.academic_year}`} className="mobile-record-card">
@@ -227,6 +249,19 @@ export default function StudentCourseListPage() {
                         <div className="detail-label">Academic Period</div>
                         <div className="detail-value">{String(enrollment.semester)} | {String(enrollment.academic_year)}</div>
                       </div>
+                      <div className="detail-row">
+                        <div className="detail-label">Minimum Attendance</div>
+                        <div className="detail-value">{Number(course?.minimum_attendance_percent ?? 80)}%</div>
+                      </div>
+                    </div>
+
+                    <div className="mobile-record-actions">
+                      <Link to={attendanceHref}>
+                        <Button variant="outline-secondary" size="sm">
+                          <i className="ti ti-history" />
+                          View Attendance
+                        </Button>
+                      </Link>
                     </div>
                   </div>
                 );

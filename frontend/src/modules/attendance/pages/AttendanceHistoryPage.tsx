@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router';
 import { Table } from 'react-bootstrap';
 import ErrorAlert from '@/components/common/ErrorAlert';
 import PageHeader from '@/components/common/PageHeader';
@@ -16,7 +17,9 @@ export default function AttendanceHistoryPage() {
   const { useStudentRecords } = useAttendance();
   const { useStudentEnrollments } = useEnrollment();
   const { useList: useCourseList } = useCourse();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [selectedCourseKey, setSelectedCourseKey] = useState('');
+  const requestedCourseKey = searchParams.get('course') ?? '';
 
   const {
     data,
@@ -119,10 +122,28 @@ export default function AttendanceHistoryPage() {
 
   useEffect(() => {
     const selectedStillExists = courseOptions.some((option) => option.value === selectedCourseKey);
+    const requestedOption = requestedCourseKey
+      ? courseOptions.find((option) => option.value === requestedCourseKey)
+      : null;
+
+    if (requestedOption && requestedOption.value !== selectedCourseKey) {
+      setSelectedCourseKey(requestedOption.value);
+      return;
+    }
+
     if ((!selectedCourseKey || !selectedStillExists) && courseOptions.length > 0) {
       setSelectedCourseKey(courseOptions[0].value);
     }
-  }, [courseOptions, selectedCourseKey]);
+  }, [courseOptions, requestedCourseKey, selectedCourseKey]);
+
+  useEffect(() => {
+    if (!selectedCourseKey) return;
+    if (searchParams.get('course') === selectedCourseKey) return;
+
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.set('course', selectedCourseKey);
+    setSearchParams(nextParams, { replace: true });
+  }, [searchParams, selectedCourseKey, setSearchParams]);
 
   const [selectedCourseId, selectedSemester, selectedAcademicYear] = selectedCourseKey.split('|');
   const filteredRecords = selectedCourseKey
@@ -137,6 +158,8 @@ export default function AttendanceHistoryPage() {
   const verifiedCount = filteredRecords.filter((record) => !record.fraud_flag).length;
   const flaggedCount = filteredRecords.filter((record) => record.fraud_flag).length;
   const selectedCourse = courseOptions.find((option) => option.value === selectedCourseKey);
+  const selectedCourseRecord = selectedCourseId ? courseLookup.get(Number(selectedCourseId)) : undefined;
+  const attendanceRequirement = Number(selectedCourseRecord?.minimum_attendance_percent ?? 80);
   const queryError = recordsError ?? enrollmentsError ?? coursesError;
 
   if (isLoading || loadingEnrollments || loadingCourses) return <div className="p-4"><LoadingSkeleton rows={10} /></div>;
@@ -173,7 +196,7 @@ export default function AttendanceHistoryPage() {
                   <SearchableSelect
                     name="attendance_course"
                     value={selectedCourseKey}
-                    onValueChange={setSelectedCourseKey}
+                    onValueChange={(value) => setSelectedCourseKey(value)}
                     options={courseOptions}
                     placeholder="Select a course"
                     searchPlaceholder="Search enrolled courses..."
@@ -186,7 +209,7 @@ export default function AttendanceHistoryPage() {
                   <i className="ti ti-calendar-check" />
                   <div className="smaller">
                     {selectedCourse
-                      ? `Showing classes attended for ${selectedCourse.label} in ${selectedCourse.meta}.`
+                      ? `Showing classes attended for ${selectedCourse.label} in ${selectedCourse.meta}. Minimum attendance requirement is ${attendanceRequirement}%.`
                       : 'Select a course to review your class attendance.'}
                   </div>
                 </div>

@@ -24,6 +24,7 @@ export default function CourseFormModal({ show, onHide, courseId }: CourseFormMo
     course_name: '',
     department: '',
     credits: 3,
+    minimum_attendance_percent: 80,
   });
 
   useEffect(() => {
@@ -34,6 +35,7 @@ export default function CourseFormModal({ show, onHide, courseId }: CourseFormMo
         course_name: c.course_name || '',
         department: c.department || '',
         credits: c.credits || 3,
+        minimum_attendance_percent: c.minimum_attendance_percent || 80,
       });
     } else if (!isEditing) {
       setFormData({
@@ -41,6 +43,7 @@ export default function CourseFormModal({ show, onHide, courseId }: CourseFormMo
         course_name: '',
         department: '',
         credits: 3,
+        minimum_attendance_percent: 80,
       });
     }
   }, [course, isEditing, show]);
@@ -49,7 +52,7 @@ export default function CourseFormModal({ show, onHide, courseId }: CourseFormMo
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: name === 'credits' ? Number(value) : value,
+      [name]: name === 'credits' || name === 'minimum_attendance_percent' ? Number(value) : value,
     }));
   };
 
@@ -149,6 +152,30 @@ export default function CourseFormModal({ show, onHide, courseId }: CourseFormMo
                   min={1}
                   required
                 />
+              </div>
+
+              <div className="field-shell">
+                <div className="d-flex align-items-center gap-2 mb-2">
+                  <Form.Label className="field-label mb-0">Minimum Attendance (%)</Form.Label>
+                  <OverlayTrigger
+                    placement="right"
+                    overlay={<Tooltip>Students must meet this attendance percentage for the course.</Tooltip>}
+                  >
+                    <i className="ti ti-info-circle text-secondary cursor-help" />
+                  </OverlayTrigger>
+                </div>
+                <Form.Control
+                  type="number"
+                  name="minimum_attendance_percent"
+                  value={formData.minimum_attendance_percent}
+                  onChange={handleChange}
+                  min={1}
+                  max={100}
+                  required
+                />
+                <div className="login-helper mt-2">
+                  Example: 80% means a student must attend at least 8 out of every 10 classes held.
+                </div>
               </div>
             </div>
           )}

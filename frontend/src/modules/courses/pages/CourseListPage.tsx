@@ -137,6 +137,7 @@ export default function CourseListPage() {
                     <th className="ps-4 border-0 py-3 small fw-bold text-secondary uppercase tracking-wider">Catalog Entry</th>
                     <th className="border-0 py-3 small fw-bold text-secondary uppercase tracking-wider">Department</th>
                     <th className="border-0 py-3 small fw-bold text-secondary uppercase tracking-wider">Credits</th>
+                    <th className="border-0 py-3 small fw-bold text-secondary uppercase tracking-wider">Attendance</th>
                     <th className="text-end pe-4 border-0 py-3 small fw-bold text-secondary uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
@@ -162,6 +163,9 @@ export default function CourseListPage() {
                           <span className={`status-pill ${departmentTone}`}>{department}</span>
                         </td>
                         <td className="py-3 mono small">{Number(c.credits ?? 0)} UNIT</td>
+                        <td className="py-3">
+                          <span className="status-pill royal">{Number(c.minimum_attendance_percent ?? 80)}%</span>
+                        </td>
                         <td className="text-end pe-4 py-3">
                           <div className="d-flex gap-1 justify-content-end">
                             <Link to={`/courses/${c.course_id}`}>
@@ -211,6 +215,10 @@ export default function CourseListPage() {
                         <div className="detail-row">
                           <div className="detail-label">Credits</div>
                           <div className="detail-value mono">{Number(c.credits ?? 0)} UNIT</div>
+                        </div>
+                        <div className="detail-row">
+                          <div className="detail-label">Minimum Attendance</div>
+                          <div className="detail-value">{Number(c.minimum_attendance_percent ?? 80)}%</div>
                         </div>
                       </div>
 

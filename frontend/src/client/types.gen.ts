@@ -220,6 +220,30 @@ export type AttendanceRecordResponse = {
      * Review Note
      */
     review_note?: string | null;
+    /**
+     * Course Id
+     */
+    course_id?: number | null;
+    /**
+     * Course Label
+     */
+    course_label?: string | null;
+    /**
+     * Session Type
+     */
+    session_type?: string | null;
+    /**
+     * Session Start
+     */
+    session_start?: Date | null;
+    /**
+     * Semester
+     */
+    semester?: string | null;
+    /**
+     * Academic Year
+     */
+    academic_year?: string | null;
 };
 
 /**
@@ -319,6 +343,26 @@ export type AttendanceReviewRecordResponse = {
      */
     course_id: number;
     /**
+     * Course Label
+     */
+    course_label?: string | null;
+    /**
+     * Session Type
+     */
+    session_type: string;
+    /**
+     * Session Start
+     */
+    session_start: Date;
+    /**
+     * Semester
+     */
+    semester?: string | null;
+    /**
+     * Academic Year
+     */
+    academic_year?: string | null;
+    /**
      * Venue Id
      */
     venue_id: number;
@@ -327,17 +371,9 @@ export type AttendanceReviewRecordResponse = {
      */
     lecturer_id: number;
     /**
-     * Session Start
-     */
-    session_start: Date;
-    /**
      * Session End
      */
     session_end: Date;
-    /**
-     * Session Type
-     */
-    session_type: string;
 };
 
 /**
@@ -644,6 +680,10 @@ export type CourseCreate = {
      * Department
      */
     department: string;
+    /**
+     * Minimum Attendance Percent
+     */
+    minimum_attendance_percent?: number;
 };
 
 /**
@@ -739,6 +779,10 @@ export type CourseResponse = {
      */
     department: string;
     /**
+     * Minimum Attendance Percent
+     */
+    minimum_attendance_percent?: number;
+    /**
      * Course Id
      */
     course_id: number;
@@ -764,6 +808,10 @@ export type CourseUpdate = {
      * Department
      */
     department?: string | null;
+    /**
+     * Minimum Attendance Percent
+     */
+    minimum_attendance_percent?: number | null;
 };
 
 /**

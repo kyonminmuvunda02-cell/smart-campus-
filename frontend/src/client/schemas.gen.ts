@@ -347,6 +347,73 @@ export const AttendanceRecordResponseSchema = {
                 }
             ],
             title: 'Review Note'
+        },
+        course_id: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Course Id'
+        },
+        course_label: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Course Label'
+        },
+        session_type: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Session Type'
+        },
+        session_start: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Session Start'
+        },
+        semester: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Semester'
+        },
+        academic_year: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Academic Year'
         }
     },
     type: 'object',
@@ -526,6 +593,48 @@ export const AttendanceReviewRecordResponseSchema = {
             type: 'integer',
             title: 'Course Id'
         },
+        course_label: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Course Label'
+        },
+        session_type: {
+            type: 'string',
+            title: 'Session Type'
+        },
+        session_start: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Session Start'
+        },
+        semester: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Semester'
+        },
+        academic_year: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Academic Year'
+        },
         venue_id: {
             type: 'integer',
             title: 'Venue Id'
@@ -534,19 +643,10 @@ export const AttendanceReviewRecordResponseSchema = {
             type: 'integer',
             title: 'Lecturer Id'
         },
-        session_start: {
-            type: 'string',
-            format: 'date-time',
-            title: 'Session Start'
-        },
         session_end: {
             type: 'string',
             format: 'date-time',
             title: 'Session End'
-        },
-        session_type: {
-            type: 'string',
-            title: 'Session Type'
         }
     },
     type: 'object',
@@ -562,11 +662,11 @@ export const AttendanceReviewRecordResponseSchema = {
         'fraud_flag',
         'checked_in_at',
         'course_id',
+        'session_type',
+        'session_start',
         'venue_id',
         'lecturer_id',
-        'session_start',
-        'session_end',
-        'session_type'
+        'session_end'
     ],
     title: 'AttendanceReviewRecordResponse'
 } as const;
@@ -1123,6 +1223,14 @@ export const CourseCreateSchema = {
             type: 'string',
             title: 'Department',
             example: 'Computer Science'
+        },
+        minimum_attendance_percent: {
+            type: 'integer',
+            maximum: 100,
+            minimum: 1,
+            title: 'Minimum Attendance Percent',
+            default: 80,
+            example: 80
         }
     },
     type: 'object',
@@ -1261,6 +1369,14 @@ export const CourseResponseSchema = {
             title: 'Department',
             example: 'Computer Science'
         },
+        minimum_attendance_percent: {
+            type: 'integer',
+            maximum: 100,
+            minimum: 1,
+            title: 'Minimum Attendance Percent',
+            default: 80,
+            example: 80
+        },
         course_id: {
             type: 'integer',
             title: 'Course Id'
@@ -1318,6 +1434,19 @@ export const CourseUpdateSchema = {
                 }
             ],
             title: 'Department'
+        },
+        minimum_attendance_percent: {
+            anyOf: [
+                {
+                    type: 'integer',
+                    maximum: 100,
+                    minimum: 1
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Minimum Attendance Percent'
         }
     },
     type: 'object',
