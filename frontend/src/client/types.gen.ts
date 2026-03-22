@@ -393,10 +393,6 @@ export type AttendanceSessionCreate = {
      */
     session_type?: string;
     /**
-     * Timetable Slot
-     */
-    timetable_slot?: string | null;
-    /**
      * Semester
      */
     semester: string;
@@ -452,10 +448,6 @@ export type AttendanceSessionResponse = {
      * Session Type
      */
     session_type?: string;
-    /**
-     * Timetable Slot
-     */
-    timetable_slot?: string | null;
     /**
      * Semester
      */
@@ -526,10 +518,6 @@ export type AttendanceSessionUpdate = {
      * Session Type
      */
     session_type?: string | null;
-    /**
-     * Timetable Slot
-     */
-    timetable_slot?: string | null;
     /**
      * Semester
      */

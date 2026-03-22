@@ -89,7 +89,6 @@ class AttendanceSessionService:
             lecturer_id=lecturer_id,
             venue_id=data.venue_id,
             session_type=data.session_type,
-            timetable_slot=data.timetable_slot,
             session_start=data.session_start,
             session_end=data.session_end,
             semester=data.semester,

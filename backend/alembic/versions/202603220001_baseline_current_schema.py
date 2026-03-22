@@ -125,7 +125,6 @@ def upgrade() -> None:
     sa.Column('lecturer_id', sa.Integer(), nullable=False),
     sa.Column('venue_id', sa.Integer(), nullable=False),
     sa.Column('session_type', sa.String(length=30), nullable=False),
-    sa.Column('timetable_slot', sa.String(length=100), nullable=True),
     sa.Column('session_start', sa.DateTime(timezone=True), nullable=False),
     sa.Column('session_end', sa.DateTime(timezone=True), nullable=False),
     sa.Column('semester', sa.String(length=20), nullable=False),
@@ -190,30 +189,6 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('student_id', 'course_id', 'semester', 'academic_year')
     )
     op.create_index(op.f('ix_enrollment_is_deleted'), 'enrollment', ['is_deleted'], unique=False)
-    op.create_table('timetableentry',
-    sa.Column('timetable_id', sa.Integer(), autoincrement=True, nullable=False),
-    sa.Column('course_id', sa.Integer(), nullable=False),
-    sa.Column('lecturer_id', sa.Integer(), nullable=False),
-    sa.Column('venue_id', sa.Integer(), nullable=False),
-    sa.Column('weekday', sa.String(length=12), nullable=False),
-    sa.Column('start_time', sa.Time(), nullable=False),
-    sa.Column('end_time', sa.Time(), nullable=False),
-    sa.Column('session_type', sa.String(length=30), nullable=False),
-    sa.Column('semester', sa.String(length=20), nullable=False),
-    sa.Column('academic_year', sa.String(length=9), nullable=False),
-    sa.Column('effective_start_date', sa.Date(), nullable=True),
-    sa.Column('effective_end_date', sa.Date(), nullable=True),
-    sa.Column('is_active', sa.Boolean(), nullable=False),
-    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
-    sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
-    sa.Column('is_deleted', sa.Boolean(), nullable=False),
-    sa.Column('deleted_at', sa.DateTime(timezone=True), nullable=True),
-    sa.ForeignKeyConstraint(['course_id'], ['course.course_id'], ondelete='RESTRICT'),
-    sa.ForeignKeyConstraint(['lecturer_id'], ['lecturer.user_id'], ondelete='RESTRICT'),
-    sa.ForeignKeyConstraint(['venue_id'], ['venue.venue_id'], ondelete='RESTRICT'),
-    sa.PrimaryKeyConstraint('timetable_id')
-    )
-    op.create_index(op.f('ix_timetableentry_is_deleted'), 'timetableentry', ['is_deleted'], unique=False)
     op.create_table('attendancerecord',
     sa.Column('attendance_id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('session_id', sa.Integer(), nullable=False),

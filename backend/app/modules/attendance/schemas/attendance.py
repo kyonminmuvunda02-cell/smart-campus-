@@ -10,7 +10,6 @@ class AttendanceSessionBase(BaseModel):
     course_id: int
     venue_id: int
     session_type: str = Field("Lecture", json_schema_extra={"example": "Lecture"})
-    timetable_slot: str | None = Field(None, max_length=100, json_schema_extra={"example": "Mon 08:00-10:00"})
     semester: str = Field(..., json_schema_extra={"example": "Semester 1"})
     academic_year: str = Field(..., json_schema_extra={"example": "2025/2026"})
     session_start: datetime
@@ -60,7 +59,6 @@ class AttendanceSessionUpdate(BaseModel):
     session_end: datetime | None = None
     is_active: bool | None = None
     session_type: str | None = None
-    timetable_slot: str | None = Field(None, max_length=100)
     semester: str | None = None
     academic_year: str | None = None
 

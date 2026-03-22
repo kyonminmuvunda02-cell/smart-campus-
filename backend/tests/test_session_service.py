@@ -70,11 +70,11 @@ def test_update_session_applies_fields_and_checks_for_conflicts(monkeypatch):
     session = SimpleNamespace(
         session_id=9,
         lecturer_id=4,
+        course_id=8,
         venue_id=3,
-        session_start=now,
-        session_end=now + timedelta(hours=1),
+        session_start=now + timedelta(hours=1),
+        session_end=now + timedelta(hours=2),
         session_type="Lecture",
-        timetable_slot="Mon 10:00-12:00",
         is_active=False,
     )
     monkeypatch.setattr(AttendanceSessionService, "get_session", staticmethod(lambda _db, _id: session))
@@ -90,6 +90,26 @@ def test_update_session_applies_fields_and_checks_for_conflicts(monkeypatch):
         staticmethod(fake_conflict_check),
     )
 
+    class CourseServiceStub:
+        @staticmethod
+        def assert_lecturer_assigned(_db, _lecturer_id, _course_id):
+            return None
+
+    class VenueServiceStub:
+        @staticmethod
+        def get_venue(_db, venue_id):
+            return SimpleNamespace(venue_id=venue_id)
+
+        @staticmethod
+        def require_geofence(_venue):
+            return None
+
+    import app.modules.courses.services.course_service as course_service_module
+    import app.modules.venues.services.venue_service as venue_service_module
+
+    monkeypatch.setattr(course_service_module, "CourseService", CourseServiceStub)
+    monkeypatch.setattr(venue_service_module, "VenueService", VenueServiceStub)
+
     class FakeDB:
         def __init__(self):
             self.flushed = False
@@ -100,8 +120,6 @@ def test_update_session_applies_fields_and_checks_for_conflicts(monkeypatch):
     update = AttendanceSessionUpdate(
         session_end=now + timedelta(hours=2),
         session_type="Lab",
-        timetable_slot="Mon 10:00-13:00",
-        is_active=True,
     )
     db = FakeDB()
 
@@ -110,14 +128,13 @@ def test_update_session_applies_fields_and_checks_for_conflicts(monkeypatch):
     assert conflict_args == {
         "lecturer_id": 4,
         "venue_id": 3,
-        "session_start": now,
+        "session_start": now + timedelta(hours=1),
         "session_end": now + timedelta(hours=2),
         "exclude_session_id": 9,
     }
     assert result.session_end == now + timedelta(hours=2)
     assert result.session_type == "Lab"
-    assert result.timetable_slot == "Mon 10:00-13:00"
-    assert result.is_active is True
+    assert result.is_active is False
     assert db.flushed is True
 
 

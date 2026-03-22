@@ -527,7 +527,58 @@ If your database has already been seeded, these are the common demo accounts:
 
 ---
 
-## 19. Common Problems and Fixes
+## 19. Database Structure
+
+The current database structure is based on the Alembic baseline revision `202603220001`.
+All core tables use soft-delete fields:
+
+- `is_deleted`
+- `deleted_at`
+
+### Identity and roles
+
+| Table | Purpose | Key fields |
+|---|---|---|
+| `appuser` | Main login/account table for all users | `user_id`, `email`, `role`, `password_hash` |
+| `admin` | Admin-only profile data | `user_id`, `admin_level`, `last_login` |
+| `lecturer` | Lecturer profile data | `user_id`, `staff_number`, `department`, `office_location` |
+| `student` | Student profile data | `user_id`, `student_number`, `program`, `year_of_study` |
+
+### Academic structure
+
+| Table | Purpose | Key fields |
+|---|---|---|
+| `course` | Course catalog | `course_id`, `course_code`, `course_name`, `credits`, `department`, `minimum_attendance_percent` |
+| `venue` | Physical teaching spaces and geofence center | `venue_id`, `venue_name`, `building`, `capacity`, `latitude`, `longitude`, `radius_meters` |
+| `courselecturer` | Lecturer-to-course assignment join table | `lecturer_id`, `course_id`, `is_active` |
+| `enrollment` | Student enrollment per semester and academic year | `student_id`, `course_id`, `semester`, `academic_year`, `enrollment_status` |
+### Attendance and verification
+
+| Table | Purpose | Key fields |
+|---|---|---|
+| `attendancesession` | A concrete class session with QR check-in | `session_id`, `course_id`, `lecturer_id`, `venue_id`, `session_type`, `session_start`, `session_end`, `qr_code`, `qr_code_expiry`, `is_active` |
+| `attendancerecord` | Student check-in evidence for a session | `attendance_id`, `session_id`, `student_id`, `device_id`, `gps_latitude`, `gps_longitude`, `gps_accuracy`, `verification_status`, `fraud_flag`, `reviewed_by`, `reviewed_at`, `review_note` |
+| `digitalid` | Student digital identity card records | `digital_id_id`, `student_id`, `id_number`, `is_active`, `issued_at`, `expires_at`, `revoked_at`, `revoked_by` |
+
+### Audit
+
+| Table | Purpose | Key fields |
+|---|---|---|
+| `auditlog` | Immutable-style audit trail for actions in the system | `log_id`, `user_id`, `action`, `table_name`, `record_id`, `detail` |
+
+### Relationship summary
+
+- `admin.user_id`, `lecturer.user_id`, and `student.user_id` all reference `appuser.user_id`.
+- `courselecturer` links lecturers to the courses they are allowed to teach.
+- `enrollment` links students to courses for a specific `semester` and `academic_year`.
+- `digitalid.student_id` references `student.user_id`.
+- `attendancesession` represents a real check-in event tied to one `course`, one `lecturer`, and one `venue`.
+- `attendancerecord` stores one student's attendance evidence for one session.
+- `attendancerecord` has a unique constraint on `(session_id, student_id)` so a student cannot check into the same session twice.
+
+---
+
+## 20. Common Problems and Fixes
 
 ### Problem: `ModuleNotFoundError`
 
@@ -600,7 +651,7 @@ Fix:
 
 ---
 
-## 20. Folder Structure
+## 21. Folder Structure
 
 ```text
 backend/
@@ -634,7 +685,7 @@ Inside each module you will usually see:
 
 ---
 
-## 21. Final Advice for a Beginner
+## 22. Final Advice for a Beginner
 
 Do not try to do everything at once.
 

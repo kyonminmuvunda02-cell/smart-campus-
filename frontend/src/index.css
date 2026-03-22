@@ -1838,6 +1838,108 @@ h6 {
   margin-bottom: 0.9rem;
 }
 
+.venue-map-search-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 0.9rem;
+}
+
+.venue-map-search-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.75rem;
+}
+
+.venue-map-search-input-wrap {
+  position: relative;
+}
+
+.venue-map-search-input-wrap i {
+  position: absolute;
+  left: 0.9rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--tx4);
+}
+
+.venue-map-search-input-wrap input {
+  width: 100%;
+  min-height: 2.85rem;
+  border: 1px solid var(--card-bd);
+  border-radius: var(--r-lg);
+  background: #fff;
+  padding: 0.75rem 1rem 0.75rem 2.5rem;
+  color: var(--tx1);
+  box-shadow: var(--sh-xs);
+}
+
+.venue-map-search-input-wrap input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px var(--accent-lt);
+}
+
+.venue-map-search-form .btn {
+  min-height: 2.85rem;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+.venue-map-search-results {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.venue-map-search-result {
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--card-bd);
+  border-radius: var(--r-lg);
+  background: linear-gradient(180deg, rgba(240, 253, 250, 0.96) 0%, #ffffff 100%);
+  padding: 0.8rem 0.95rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  transition: border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.venue-map-search-result:hover {
+  border-color: var(--teal-border);
+  transform: translateY(-1px);
+  box-shadow: var(--sh-sm);
+}
+
+.venue-map-search-result-title {
+  color: var(--tx1);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.venue-map-search-result-meta {
+  color: var(--teal-text);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.venue-map-search-feedback {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.venue-map-search-feedback.error {
+  color: var(--red-text);
+}
+
+.venue-map-search-feedback.muted {
+  color: var(--tx3);
+}
+
 .venue-map-canvas {
   width: 100%;
   height: 280px;
@@ -2179,6 +2281,14 @@ h6 {
 
   .venue-map-canvas {
     height: 240px;
+  }
+
+  .venue-map-search-form {
+    grid-template-columns: 1fr;
+  }
+
+  .venue-map-search-form .btn {
+    width: 100%;
   }
 
   .attendance-review-actions {

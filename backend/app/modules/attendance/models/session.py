@@ -19,7 +19,6 @@ class AttendanceSession(Base):
         Integer, ForeignKey("venue.venue_id", ondelete="RESTRICT"), nullable=False
     )
     session_type: Mapped[str] = mapped_column(String(30), nullable=False, default="Lecture")
-    timetable_slot: Mapped[str | None] = mapped_column(String(100), nullable=True)
     session_start: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     session_end: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 

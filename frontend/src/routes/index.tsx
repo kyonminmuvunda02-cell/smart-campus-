@@ -74,7 +74,6 @@ export const router = createBrowserRouter([
       { path: 'sessions/:id/edit', element: renderRoute(<SessionFormPage />), loader: () => requireRole('Lecturer', 'Admin') },
       { path: 'sessions/:id', element: renderRoute(<SessionViewPage />), loader: () => requireRole('Lecturer', 'Admin') },
       { path: 'sessions', element: renderRoute(<SessionListPage />), loader: () => requireRole('Lecturer', 'Admin') },
-      { path: 'timetable', loader: () => redirect('/sessions') },
       { path: 'attendance-review', element: renderRoute(<AttendanceReviewPage />), loader: () => requireRole('Lecturer', 'Admin') },
 
       { path: 'users', element: renderRoute(<UserListPage />), loader: () => requireRole('Admin') },

@@ -35,13 +35,12 @@ def test_venue_create_requires_complete_geofence():
         )
 
 
-def test_session_create_accepts_timetable_metadata():
+def test_session_create_accepts_core_schedule_fields():
     payload = AttendanceSessionCreate.model_validate(
         {
             "course_id": 10,
             "venue_id": 2,
             "session_type": "Lecture",
-            "timetable_slot": "Mon 08:00-10:00",
             "semester": "Semester 1",
             "academic_year": "2026/2027",
             "session_start": "2026-03-18T08:00:00+02:00",
@@ -50,7 +49,7 @@ def test_session_create_accepts_timetable_metadata():
     )
 
     assert payload.session_type == "Lecture"
-    assert payload.timetable_slot == "Mon 08:00-10:00"
+    assert payload.semester == "Semester 1"
 
 
 def test_validate_geofence_allows_student_inside_radius():

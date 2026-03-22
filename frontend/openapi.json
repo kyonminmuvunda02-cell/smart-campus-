@@ -3155,19 +3155,6 @@
             "default": "Lecture",
             "example": "Lecture"
           },
-          "timetable_slot": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 100
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Timetable Slot",
-            "example": "Mon 08:00-10:00"
-          },
           "semester": {
             "type": "string",
             "title": "Semester",
@@ -3246,19 +3233,6 @@
             "title": "Session Type",
             "default": "Lecture",
             "example": "Lecture"
-          },
-          "timetable_slot": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 100
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Timetable Slot",
-            "example": "Mon 08:00-10:00"
           },
           "semester": {
             "type": "string",
@@ -3394,18 +3368,6 @@
               }
             ],
             "title": "Session Type"
-          },
-          "timetable_slot": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 100
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Timetable Slot"
           },
           "semester": {
             "anyOf": [

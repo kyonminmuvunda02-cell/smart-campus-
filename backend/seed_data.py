@@ -1,7 +1,7 @@
 import random
 import sys
 import uuid
-from datetime import date, datetime, time, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 from faker import Faker
@@ -12,7 +12,6 @@ sys.path.append(str(BACKEND_DIR))
 
 from app.modules.attendance.models.record import AttendanceRecord
 from app.modules.attendance.models.session import AttendanceSession
-from app.modules.attendance.models.timetable import TimetableEntry
 from app.modules.core.database import SessionLocal
 from app.modules.core.security import hash_password
 from app.modules.courses.models.course import Course, CourseLecturer
@@ -28,25 +27,6 @@ fake = Faker()
 CAMPUS_LATITUDE = -15.3875
 CAMPUS_LONGITUDE = 28.3228
 DEFAULT_PASSWORD = "password123"
-
-TIMETABLE_SLOTS = [
-    ("Monday", time(8, 0), time(10, 0)),
-    ("Monday", time(10, 30), time(12, 30)),
-    ("Monday", time(14, 0), time(16, 0)),
-    ("Tuesday", time(8, 0), time(10, 0)),
-    ("Tuesday", time(10, 30), time(12, 30)),
-    ("Tuesday", time(14, 0), time(16, 0)),
-    ("Wednesday", time(8, 0), time(10, 0)),
-    ("Wednesday", time(10, 30), time(12, 30)),
-    ("Wednesday", time(14, 0), time(16, 0)),
-    ("Thursday", time(8, 0), time(10, 0)),
-    ("Thursday", time(10, 30), time(12, 30)),
-    ("Thursday", time(14, 0), time(16, 0)),
-    ("Friday", time(8, 0), time(10, 0)),
-    ("Friday", time(10, 30), time(12, 30)),
-    ("Friday", time(14, 0), time(16, 0)),
-]
-
 
 def get_active_period(today: date) -> tuple[str, str, date, date]:
     if today.month >= 8:
@@ -324,35 +304,11 @@ def generate_records() -> None:
         db.flush()
         print(f"Added {len(enrollments)} enrollments.")
 
-        timetable_entries: list[TimetableEntry] = []
-        for index, course in enumerate(courses[: len(TIMETABLE_SLOTS)]):
-            weekday, start_time, end_time = TIMETABLE_SLOTS[index]
-            timetable_entries.append(
-                TimetableEntry(
-                    course_id=course.course_id,
-                    lecturer_id=course_to_lecturer[course.course_id],
-                    venue_id=venues[index % len(venues)].venue_id,
-                    weekday=weekday,
-                    start_time=start_time,
-                    end_time=end_time,
-                    session_type=random.choice(["Lecture", "Tutorial", "Lab", "Seminar"]),
-                    semester=semester,
-                    academic_year=academic_year,
-                    effective_start_date=academic_start,
-                    effective_end_date=min(academic_end, now.date() + timedelta(days=120)),
-                    is_active=True,
-                )
-            )
-        db.add_all(timetable_entries)
-        db.flush()
-        print(f"Added {len(timetable_entries)} recurring timetable entries.")
-
         live_session = AttendanceSession(
             course_id=fixed_course.course_id,
             lecturer_id=lecturer_user.user_id,
             venue_id=fixed_venue.venue_id,
             session_type="Lecture",
-            timetable_slot="Today 09:00-11:00",
             session_start=now - timedelta(minutes=20),
             session_end=now + timedelta(minutes=70),
             semester=semester,
@@ -366,7 +322,6 @@ def generate_records() -> None:
             lecturer_id=lecturer_user.user_id,
             venue_id=fixed_venue.venue_id,
             session_type="Tutorial",
-            timetable_slot="Tomorrow 10:30-12:30",
             session_start=now + timedelta(days=1),
             session_end=now + timedelta(days=1, hours=2),
             semester=semester,

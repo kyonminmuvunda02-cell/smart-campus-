@@ -2819,6 +2819,73 @@
               }
             ],
             "title": "Review Note"
+          },
+          "course_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Course Id"
+          },
+          "course_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Course Label"
+          },
+          "session_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Type"
+          },
+          "session_start": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Start"
+          },
+          "semester": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Semester"
+          },
+          "academic_year": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Academic Year"
           }
         },
         "type": "object",
@@ -2995,6 +3062,48 @@
             "type": "integer",
             "title": "Course Id"
           },
+          "course_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Course Label"
+          },
+          "session_type": {
+            "type": "string",
+            "title": "Session Type"
+          },
+          "session_start": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Session Start"
+          },
+          "semester": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Semester"
+          },
+          "academic_year": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Academic Year"
+          },
           "venue_id": {
             "type": "integer",
             "title": "Venue Id"
@@ -3003,19 +3112,10 @@
             "type": "integer",
             "title": "Lecturer Id"
           },
-          "session_start": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Session Start"
-          },
           "session_end": {
             "type": "string",
             "format": "date-time",
             "title": "Session End"
-          },
-          "session_type": {
-            "type": "string",
-            "title": "Session Type"
           }
         },
         "type": "object",
@@ -3031,11 +3131,11 @@
           "fraud_flag",
           "checked_in_at",
           "course_id",
+          "session_type",
+          "session_start",
           "venue_id",
           "lecturer_id",
-          "session_start",
-          "session_end",
-          "session_type"
+          "session_end"
         ],
         "title": "AttendanceReviewRecordResponse"
       },
@@ -3054,19 +3154,6 @@
             "title": "Session Type",
             "default": "Lecture",
             "example": "Lecture"
-          },
-          "timetable_slot": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 100
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Timetable Slot",
-            "example": "Mon 08:00-10:00"
           },
           "semester": {
             "type": "string",
@@ -3147,19 +3234,6 @@
             "default": "Lecture",
             "example": "Lecture"
           },
-          "timetable_slot": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 100
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Timetable Slot",
-            "example": "Mon 08:00-10:00"
-          },
           "semester": {
             "type": "string",
             "title": "Semester",
@@ -3227,6 +3301,40 @@
       },
       "AttendanceSessionUpdate": {
         "properties": {
+          "course_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Course Id"
+          },
+          "venue_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Venue Id"
+          },
+          "session_start": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Start"
+          },
           "session_end": {
             "anyOf": [
               {
@@ -3261,17 +3369,27 @@
             ],
             "title": "Session Type"
           },
-          "timetable_slot": {
+          "semester": {
             "anyOf": [
               {
-                "type": "string",
-                "maxLength": 100
+                "type": "string"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Timetable Slot"
+            "title": "Semester"
+          },
+          "academic_year": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Academic Year"
           }
         },
         "type": "object",
@@ -3454,7 +3572,7 @@
             "anyOf": [
               {
                 "type": "string",
-                "pattern": "password"
+                "pattern": "^password$"
               },
               {
                 "type": "null"
@@ -3468,6 +3586,7 @@
           },
           "password": {
             "type": "string",
+            "format": "password",
             "title": "Password"
           },
           "scope": {
@@ -3495,6 +3614,7 @@
                 "type": "null"
               }
             ],
+            "format": "password",
             "title": "Client Secret"
           }
         },
@@ -3527,6 +3647,14 @@
             "type": "string",
             "title": "Department",
             "example": "Computer Science"
+          },
+          "minimum_attendance_percent": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Minimum Attendance Percent",
+            "default": 80,
+            "example": 80
           }
         },
         "type": "object",
@@ -3660,6 +3788,14 @@
             "title": "Department",
             "example": "Computer Science"
           },
+          "minimum_attendance_percent": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Minimum Attendance Percent",
+            "default": 80,
+            "example": 80
+          },
           "course_id": {
             "type": "integer",
             "title": "Course Id"
@@ -3716,6 +3852,19 @@
               }
             ],
             "title": "Department"
+          },
+          "minimum_attendance_percent": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 100.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Minimum Attendance Percent"
           }
         },
         "type": "object",

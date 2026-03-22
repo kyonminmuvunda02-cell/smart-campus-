@@ -19,7 +19,6 @@ from app.modules.enrollment.models.enrollment import Enrollment       # noqa: F4
 from app.modules.digital_id.models.digital_id import DigitalID        # noqa: F401
 from app.modules.attendance.models.session import AttendanceSession    # noqa: F401
 from app.modules.attendance.models.record import AttendanceRecord      # noqa: F401
-from app.modules.attendance.models.timetable import TimetableEntry     # noqa: F401
 from app.modules.audit.models.audit_log import AuditLog               # noqa: F401
 
 config = context.config

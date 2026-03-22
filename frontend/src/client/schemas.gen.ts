@@ -687,19 +687,6 @@ export const AttendanceSessionCreateSchema = {
             default: 'Lecture',
             example: 'Lecture'
         },
-        timetable_slot: {
-            anyOf: [
-                {
-                    type: 'string',
-                    maxLength: 100
-                },
-                {
-                    type: 'null'
-                }
-            ],
-            title: 'Timetable Slot',
-            example: 'Mon 08:00-10:00'
-        },
         semester: {
             type: 'string',
             title: 'Semester',
@@ -780,19 +767,6 @@ export const AttendanceSessionResponseSchema = {
             title: 'Session Type',
             default: 'Lecture',
             example: 'Lecture'
-        },
-        timetable_slot: {
-            anyOf: [
-                {
-                    type: 'string',
-                    maxLength: 100
-                },
-                {
-                    type: 'null'
-                }
-            ],
-            title: 'Timetable Slot',
-            example: 'Mon 08:00-10:00'
         },
         semester: {
             type: 'string',
@@ -929,18 +903,6 @@ export const AttendanceSessionUpdateSchema = {
                 }
             ],
             title: 'Session Type'
-        },
-        timetable_slot: {
-            anyOf: [
-                {
-                    type: 'string',
-                    maxLength: 100
-                },
-                {
-                    type: 'null'
-                }
-            ],
-            title: 'Timetable Slot'
         },
         semester: {
             anyOf: [
@@ -1149,7 +1111,7 @@ export const Body_loginAccessTokenSchema = {
             anyOf: [
                 {
                     type: 'string',
-                    pattern: 'password'
+                    pattern: '^password$'
                 },
                 {
                     type: 'null'
@@ -1163,6 +1125,7 @@ export const Body_loginAccessTokenSchema = {
         },
         password: {
             type: 'string',
+            format: 'password',
             title: 'Password'
         },
         scope: {
@@ -1190,6 +1153,7 @@ export const Body_loginAccessTokenSchema = {
                     type: 'null'
                 }
             ],
+            format: 'password',
             title: 'Client Secret'
         }
     },
