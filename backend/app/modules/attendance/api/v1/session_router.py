@@ -38,7 +38,7 @@ def create_attendance_session(
     response_model=AttendanceSessionList,
     name="list_attendance_sessions",
     operation_id="listAttendanceSessions",
-    dependencies=[Depends(require_role("Lecturer", "Admin"))],
+    dependencies=[Depends(require_role("Lecturer"))],
 )
 def list_attendance_sessions(
     skip: int = 0,
@@ -46,12 +46,10 @@ def list_attendance_sessions(
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
-    """List sessions. Lecturers see only their own; Admins see all."""
-    if current_user["role"] == "Lecturer":
-        return AttendanceSessionService.list_sessions_for_lecturer(
-            db, current_user["user_id"], skip, limit
-        )
-    return AttendanceSessionService.list_sessions(db, skip, limit)
+    """Lecturer: list only their own attendance sessions."""
+    return AttendanceSessionService.list_sessions_for_lecturer(
+        db, current_user["user_id"], skip, limit
+    )
 
 
 @router.get(
@@ -59,16 +57,16 @@ def list_attendance_sessions(
     response_model=AttendanceSessionResponse,
     name="get_attendance_session",
     operation_id="getAttendanceSession",
-    dependencies=[Depends(require_role("Lecturer", "Admin"))],
+    dependencies=[Depends(require_role("Lecturer"))],
 )
 def get_attendance_session(
     session_id: int,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
-    """Get a single attendance session by ID."""
+    """Lecturer: get a single attendance session by ID."""
     session = AttendanceSessionService.get_session(db, session_id)
-    if current_user["role"] == "Lecturer" and session.lecturer_id != current_user["user_id"]:
+    if session.lecturer_id != current_user["user_id"]:
         from fastapi import HTTPException
         raise HTTPException(status_code=403, detail="Lecturers can only view their own sessions")
     return session
@@ -79,7 +77,7 @@ def get_attendance_session(
     response_model=AttendanceSessionResponse,
     name="update_attendance_session",
     operation_id="updateAttendanceSession",
-    dependencies=[Depends(require_role("Lecturer", "Admin"))],
+    dependencies=[Depends(require_role("Lecturer"))],
 )
 def update_attendance_session(
     session_id: int,
@@ -87,9 +85,9 @@ def update_attendance_session(
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
-    """Update mutable fields on an attendance session."""
+    """Lecturer: update mutable fields on their own attendance session."""
     session = AttendanceSessionService.get_session(db, session_id)
-    if current_user["role"] == "Lecturer" and session.lecturer_id != current_user["user_id"]:
+    if session.lecturer_id != current_user["user_id"]:
         from fastapi import HTTPException
         raise HTTPException(status_code=403, detail="Lecturers can only update their own sessions")
     session = AttendanceSessionService.update_session(db, session_id, data)

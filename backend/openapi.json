@@ -1727,7 +1727,7 @@
           "attendance-sessions"
         ],
         "summary": "List Attendance Sessions",
-        "description": "List sessions. Lecturers see only their own; Admins see all.",
+        "description": "Lecturer: list only their own attendance sessions.",
         "operationId": "listAttendanceSessions",
         "security": [
           {
@@ -1786,7 +1786,7 @@
           "attendance-sessions"
         ],
         "summary": "Get Attendance Session",
-        "description": "Get a single attendance session by ID.",
+        "description": "Lecturer: get a single attendance session by ID.",
         "operationId": "getAttendanceSession",
         "security": [
           {
@@ -1832,7 +1832,7 @@
           "attendance-sessions"
         ],
         "summary": "Update Attendance Session",
-        "description": "Update mutable fields on an attendance session.",
+        "description": "Lecturer: update mutable fields on their own attendance session.",
         "operationId": "updateAttendanceSession",
         "security": [
           {

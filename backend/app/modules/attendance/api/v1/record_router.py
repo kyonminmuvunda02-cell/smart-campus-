@@ -78,7 +78,7 @@ def list_student_records(
     response_model=AttendanceReviewRecordList,
     name="list_attendance_review_queue",
     operation_id="listAttendanceReviewQueue",
-    dependencies=[Depends(require_role("Lecturer", "Admin"))],
+    dependencies=[Depends(require_role("Lecturer"))],
 )
 def list_attendance_review_queue(
     verification_status: str | None = None,
@@ -104,7 +104,7 @@ def list_attendance_review_queue(
     response_model=AttendanceRecordResponse,
     name="review_attendance_record",
     operation_id="reviewAttendanceRecord",
-    dependencies=[Depends(require_role("Lecturer", "Admin"))],
+    dependencies=[Depends(require_role("Lecturer"))],
 )
 def review_attendance_record(
     attendance_id: int,

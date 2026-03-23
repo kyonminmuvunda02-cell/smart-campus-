@@ -71,10 +71,10 @@ export const router = createBrowserRouter([
       { path: 'my-digital-id', element: renderRoute(<DigitalIDPage />), loader: () => requireRole('Student') },
 
       { path: 'sessions/new', element: renderRoute(<SessionFormPage />), loader: () => requireRole('Lecturer') },
-      { path: 'sessions/:id/edit', element: renderRoute(<SessionFormPage />), loader: () => requireRole('Lecturer', 'Admin') },
-      { path: 'sessions/:id', element: renderRoute(<SessionViewPage />), loader: () => requireRole('Lecturer', 'Admin') },
-      { path: 'sessions', element: renderRoute(<SessionListPage />), loader: () => requireRole('Lecturer', 'Admin') },
-      { path: 'attendance-review', element: renderRoute(<AttendanceReviewPage />), loader: () => requireRole('Lecturer', 'Admin') },
+      { path: 'sessions/:id/edit', element: renderRoute(<SessionFormPage />), loader: () => requireRole('Lecturer') },
+      { path: 'sessions/:id', element: renderRoute(<SessionViewPage />), loader: () => requireRole('Lecturer') },
+      { path: 'sessions', element: renderRoute(<SessionListPage />), loader: () => requireRole('Lecturer') },
+      { path: 'attendance-review', element: renderRoute(<AttendanceReviewPage />), loader: () => requireRole('Lecturer') },
 
       { path: 'users', element: renderRoute(<UserListPage />), loader: () => requireRole('Admin') },
       { path: 'users/new', element: renderRoute(<UserFormPage />), loader: () => requireRole('Admin') },

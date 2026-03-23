@@ -328,11 +328,11 @@ function AdminDashboard() {
                 </Link>
               </div>
               <div className="col-6">
-                <Link to="/attendance-review" className="text-decoration-none">
+                <Link to="/courses" className="text-decoration-none">
                   <div className="p-3 bg-amber-lt rounded-3 border border-amber-subtle h-100">
-                    <i className="ti ti-shield-search text-amber mb-2 fs-4" />
-                    <strong className="d-block text-navy smaller">Integrity Queue</strong>
-                    <span className="smaller text-muted">Review {summary.open_exceptions} risk items.</span>
+                    <i className="ti ti-books text-amber mb-2 fs-4" />
+                    <strong className="d-block text-navy smaller">Course Registry</strong>
+                    <span className="smaller text-muted">Govern attendance policy and course ownership.</span>
                   </div>
                 </Link>
               </div>
