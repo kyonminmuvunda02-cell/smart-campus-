@@ -6,9 +6,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Install system dependencies for psycopg (libpq) and healthcheck
+# Install system dependencies for psycopg (libpq), healthcheck, and dos2unix
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends libpq-dev curl && \
+    apt-get install -y --no-install-recommends libpq-dev curl dos2unix && \
     rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
@@ -18,8 +18,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY . .
 
-# Make entrypoint executable
-RUN chmod +x entrypoint.sh
+# Fix Windows line endings and make entrypoint executable
+RUN dos2unix entrypoint.sh && chmod +x entrypoint.sh
 
 EXPOSE 8000
 
