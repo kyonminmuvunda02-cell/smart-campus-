@@ -9,14 +9,16 @@ backend_dir = Path(__file__).resolve().parent
 sys.path.insert(0, str(backend_dir))
 
 from app.modules.core.database import engine
+from app.modules.core.config import settings
 
 
 def reset_db() -> None:
-    print("Resetting database schema...")
+    db_user = settings.POSTGRES_USER
+    print(f"Resetting database schema (user: {db_user})...")
     with engine.begin() as conn:
         conn.execute(text("DROP SCHEMA IF EXISTS public CASCADE;"))
         conn.execute(text("CREATE SCHEMA public;"))
-        conn.execute(text("GRANT ALL ON SCHEMA public TO postgres;"))
+        conn.execute(text(f"GRANT ALL ON SCHEMA public TO {db_user};"))
         conn.execute(text("GRANT ALL ON SCHEMA public TO public;"))
     print("Schema reset complete.")
 

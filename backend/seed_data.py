@@ -20,6 +20,7 @@ from app.modules.enrollment.models.enrollment import Enrollment
 from app.modules.users.models.lecturer import Lecturer
 from app.modules.users.models.student import Student
 from app.modules.users.models.user import AppUser
+from app.modules.users.models.admin import Admin  # noqa: F401 — required for SQLAlchemy mapper
 from app.modules.venues.models.venue import Venue
 
 
