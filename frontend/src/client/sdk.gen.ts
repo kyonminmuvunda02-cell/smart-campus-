@@ -472,7 +472,7 @@ export class AttendanceSessions {
     /**
      * List Attendance Sessions
      *
-     * List sessions. Lecturers see only their own; Admins see all.
+     * Lecturer: list only their own attendance sessions.
      */
     public static listAttendanceSessions<ThrowOnError extends boolean = false>(options?: Options<ListAttendanceSessionsData, ThrowOnError>) {
         return (options?.client ?? client).get<ListAttendanceSessionsResponses, ListAttendanceSessionsErrors, ThrowOnError>({
@@ -502,7 +502,7 @@ export class AttendanceSessions {
     /**
      * Get Attendance Session
      *
-     * Get a single attendance session by ID.
+     * Lecturer: get a single attendance session by ID.
      */
     public static getAttendanceSession<ThrowOnError extends boolean = false>(options: Options<GetAttendanceSessionData, ThrowOnError>) {
         return (options.client ?? client).get<GetAttendanceSessionResponses, GetAttendanceSessionErrors, ThrowOnError>({
@@ -515,7 +515,7 @@ export class AttendanceSessions {
     /**
      * Update Attendance Session
      *
-     * Update mutable fields on an attendance session.
+     * Lecturer: update mutable fields on their own attendance session.
      */
     public static updateAttendanceSession<ThrowOnError extends boolean = false>(options: Options<UpdateAttendanceSessionData, ThrowOnError>) {
         return (options.client ?? client).patch<UpdateAttendanceSessionResponses, UpdateAttendanceSessionErrors, ThrowOnError>({

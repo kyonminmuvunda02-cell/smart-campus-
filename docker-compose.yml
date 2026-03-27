@@ -1,0 +1,103 @@
+# SmartCampus Docker Compose
+# Ports: 8080 (HTTP) and 5433 (Postgres) — avoids conflict with HJPALM on 80/5432
+#
+# Usage:
+#   docker compose --env-file .env.docker up --build        # first run
+#   docker compose --env-file .env.docker up -d             # background
+#   docker compose --env-file .env.docker down -v           # tear down + delete data
+
+services:
+  # ── PostgreSQL ──────────────────────────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    container_name: smartcampus-db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-smartcampus}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-smartcampus123}
+      POSTGRES_DB: ${POSTGRES_DB:-smartcampus}
+    volumes:
+      - smartcampus_pgdata:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-smartcampus}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - smartcampus
+
+  # ── Redis ───────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: smartcampus-redis
+    command: >
+      redis-server --maxmemory 128mb --maxmemory-policy allkeys-lru --save 60 1 --loglevel warning
+    volumes:
+      - smartcampus_redis:/data
+    expose:
+      - "6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - smartcampus
+
+  # ── Backend API ─────────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: smartcampus-backend
+    environment:
+      - POSTGRES_SERVER=db
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER:-smartcampus}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-smartcampus123}
+      - POSTGRES_DB=${POSTGRES_DB:-smartcampus}
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
+      - ENVIRONMENT=${ENVIRONMENT:-production}
+      - SEED_DB=${SEED_DB:-false}
+      - DB_POOL_SIZE=${DB_POOL_SIZE:-50}
+      - DB_MAX_OVERFLOW=${DB_MAX_OVERFLOW:-50}
+    expose:
+      - "8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/docs"]
+      interval: 30s
+      timeout: 10s
+      start_period: 40s
+      retries: 5
+    networks:
+      - smartcampus
+
+  # ── Frontend (nginx + React SPA) ───────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: smartcampus-frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - smartcampus
+
+volumes:
+  smartcampus_pgdata:
+  smartcampus_redis:
+
+networks:
+  smartcampus:
+    name: smartcampus
+    driver: bridge

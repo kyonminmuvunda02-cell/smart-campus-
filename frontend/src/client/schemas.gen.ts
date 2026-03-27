@@ -1111,7 +1111,7 @@ export const Body_loginAccessTokenSchema = {
             anyOf: [
                 {
                     type: 'string',
-                    pattern: '^password$'
+                    pattern: 'password'
                 },
                 {
                     type: 'null'
@@ -1125,7 +1125,6 @@ export const Body_loginAccessTokenSchema = {
         },
         password: {
             type: 'string',
-            format: 'password',
             title: 'Password'
         },
         scope: {
@@ -1153,7 +1152,6 @@ export const Body_loginAccessTokenSchema = {
                     type: 'null'
                 }
             ],
-            format: 'password',
             title: 'Client Secret'
         }
     },

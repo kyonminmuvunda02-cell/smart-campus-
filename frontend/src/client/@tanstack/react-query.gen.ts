@@ -647,7 +647,7 @@ export const listAttendanceSessionsQueryKey = (options?: Options<ListAttendanceS
 /**
  * List Attendance Sessions
  *
- * List sessions. Lecturers see only their own; Admins see all.
+ * Lecturer: list only their own attendance sessions.
  */
 export const listAttendanceSessionsOptions = (options?: Options<ListAttendanceSessionsData>) => queryOptions<ListAttendanceSessionsResponse, ListAttendanceSessionsError, ListAttendanceSessionsResponse, ReturnType<typeof listAttendanceSessionsQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
@@ -686,7 +686,7 @@ export const getAttendanceSessionQueryKey = (options: Options<GetAttendanceSessi
 /**
  * Get Attendance Session
  *
- * Get a single attendance session by ID.
+ * Lecturer: get a single attendance session by ID.
  */
 export const getAttendanceSessionOptions = (options: Options<GetAttendanceSessionData>) => queryOptions<GetAttendanceSessionResponse, GetAttendanceSessionError, GetAttendanceSessionResponse, ReturnType<typeof getAttendanceSessionQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
@@ -704,7 +704,7 @@ export const getAttendanceSessionOptions = (options: Options<GetAttendanceSessio
 /**
  * Update Attendance Session
  *
- * Update mutable fields on an attendance session.
+ * Lecturer: update mutable fields on their own attendance session.
  */
 export const updateAttendanceSessionMutation = (options?: Partial<Options<UpdateAttendanceSessionData>>): UseMutationOptions<UpdateAttendanceSessionResponse, UpdateAttendanceSessionError, Options<UpdateAttendanceSessionData>> => {
     const mutationOptions: UseMutationOptions<UpdateAttendanceSessionResponse, UpdateAttendanceSessionError, Options<UpdateAttendanceSessionData>> = {
