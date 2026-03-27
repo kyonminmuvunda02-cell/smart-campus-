@@ -223,10 +223,14 @@ def generate_records() -> None:
         print(f"Added {len(lecturer_users)} lecturers.")
 
         course_to_lecturer: dict[int, int] = {fixed_course.course_id: lecturer_user.user_id}
-        for course in courses:
+        for index, course in enumerate(courses):
             if course.course_id == fixed_course.course_id:
                 continue
-            assigned_lecturer = random.choice(lecturer_users)
+            # Assign the fixed lecturer to ~70% of courses for a realistic demo workload.
+            if index % 3 != 0:
+                assigned_lecturer = lecturer_user
+            else:
+                assigned_lecturer = random.choice(lecturer_users)
             course_to_lecturer[course.course_id] = assigned_lecturer.user_id
             db.add(
                 CourseLecturer(
