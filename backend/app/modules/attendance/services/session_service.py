@@ -26,11 +26,13 @@ class AttendanceSessionService:
         session_end: datetime,
         exclude_session_id: int | None = None,
     ) -> None:
-        # Only check against active (not closed) sessions for scheduling conflicts.
+        # Only check against sessions that haven't ended yet.
+        # Past sessions (even if never explicitly closed) should not block new scheduling.
+        now = datetime.now(timezone.utc)
         overlap_conditions = [
             AttendanceSession.session_start < session_end,
             AttendanceSession.session_end > session_start,
-            AttendanceSession.is_active == True,
+            AttendanceSession.session_end > now,
         ]
         if exclude_session_id is not None:
             overlap_conditions.append(AttendanceSession.session_id != exclude_session_id)

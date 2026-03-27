@@ -305,30 +305,32 @@ def generate_records() -> None:
         db.flush()
         print(f"Added {len(enrollments)} enrollments.")
 
+        # Demo sessions are placed in the past so they never block new session creation.
+        yesterday = now - timedelta(days=1)
         live_session = AttendanceSession(
             course_id=fixed_course.course_id,
             lecturer_id=lecturer_user.user_id,
             venue_id=fixed_venue.venue_id,
             session_type="Lecture",
-            session_start=now - timedelta(minutes=20),
-            session_end=now + timedelta(minutes=70),
+            session_start=yesterday - timedelta(minutes=20),
+            session_end=yesterday + timedelta(minutes=70),
             semester=semester,
             academic_year=academic_year,
             qr_code=uuid.uuid4(),
-            qr_code_expiry=now + timedelta(seconds=45),
-            is_active=True,
+            qr_code_expiry=yesterday,
+            is_active=False,
         )
         next_session = AttendanceSession(
             course_id=fixed_course.course_id,
             lecturer_id=lecturer_user.user_id,
             venue_id=fixed_venue.venue_id,
             session_type="Tutorial",
-            session_start=now + timedelta(days=1),
-            session_end=now + timedelta(days=1, hours=2),
+            session_start=yesterday + timedelta(hours=3),
+            session_end=yesterday + timedelta(hours=5),
             semester=semester,
             academic_year=academic_year,
             qr_code=uuid.uuid4(),
-            qr_code_expiry=now + timedelta(days=1),
+            qr_code_expiry=yesterday + timedelta(hours=3),
             is_active=False,
         )
         db.add_all([live_session, next_session])
