@@ -26,10 +26,11 @@ class AttendanceSessionService:
         session_end: datetime,
         exclude_session_id: int | None = None,
     ) -> None:
-        # Treat any intersecting time window as a conflict for both the lecturer and the physical venue.
+        # Only check against active (not closed) sessions for scheduling conflicts.
         overlap_conditions = [
             AttendanceSession.session_start < session_end,
             AttendanceSession.session_end > session_start,
+            AttendanceSession.is_active == True,
         ]
         if exclude_session_id is not None:
             overlap_conditions.append(AttendanceSession.session_id != exclude_session_id)
