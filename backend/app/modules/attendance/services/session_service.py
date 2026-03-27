@@ -276,3 +276,16 @@ class AttendanceSessionService:
         db.flush()
         logger.info("Session closed", extra={"session_id": session_id})
         return session
+
+    @staticmethod
+    def delete_session(db: Session, session_id: int, lecturer_id: int) -> None:
+        """Delete a session. Only the owning lecturer may delete it, and only if it is not active."""
+        session = AttendanceSessionService.get_session(db, session_id)
+        if session.lecturer_id != lecturer_id:
+            raise ForbiddenException("Only the session's lecturer can delete it")
+        if session.is_active:
+            raise ForbiddenException("Cannot delete an active session — close it first")
+        db.delete(session)
+        db.flush()
+        logger.info("Session deleted", extra={"session_id": session_id})
+

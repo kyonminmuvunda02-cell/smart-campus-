@@ -42,7 +42,7 @@ export default function SessionViewPage() {
   const navigate = useNavigate();
   const { role } = useAuth();
   const { showToast } = useToast();
-  const { useDetail, useSessionRecords, start, close, refreshQr } = useSession();
+  const { useDetail, useSessionRecords, start, close, refreshQr, remove } = useSession();
   const { useDetail: useCourseDetail } = useCourse();
   const { useDetail: useVenueDetail } = useVenue();
   const { useList: useUserList } = useUser();
@@ -114,6 +114,17 @@ export default function SessionViewPage() {
     }
   }
 
+  async function handleDelete() {
+    if (!window.confirm('Are you sure you want to delete this class? This cannot be undone.')) return;
+    try {
+      await remove.mutateAsync({ path: { session_id: sessionId! } });
+      showToast('success', 'Class Deleted', 'The class has been removed.');
+      navigate('/sessions');
+    } catch (err) {
+      showToast('danger', 'Error', getErrorMessage(err));
+    }
+  }
+
   if (isLoading) return <div className="p-4"><LoadingSkeleton rows={10} /></div>;
   if (!sessionRecord) return <EmptyState title="Class Not Found" message="The class you are looking for does not exist." />;
 
@@ -138,6 +149,12 @@ export default function SessionViewPage() {
               Edit Class
             </Button>
           </Link>
+        ) : null}
+        {isScheduled ? (
+          <Button variant="outline-danger" onClick={() => void handleDelete()} disabled={remove.isPending}>
+            <i className="ti ti-trash" />
+            Delete Class
+          </Button>
         ) : null}
         {isScheduled ? (
           <Button variant="primary" onClick={() => void handleStart()} disabled={start.isPending}>

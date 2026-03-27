@@ -722,6 +722,18 @@ export type CourseLecturerResponse = {
      * Assigned At
      */
     assigned_at: Date;
+    /**
+     * Lecturer First Name
+     */
+    lecturer_first_name?: string | null;
+    /**
+     * Lecturer Last Name
+     */
+    lecturer_last_name?: string | null;
+    /**
+     * Lecturer Email
+     */
+    lecturer_email?: string | null;
 };
 
 /**
@@ -2470,6 +2482,36 @@ export type CreateAttendanceSessionResponses = {
 };
 
 export type CreateAttendanceSessionResponse = CreateAttendanceSessionResponses[keyof CreateAttendanceSessionResponses];
+
+export type DeleteAttendanceSessionData = {
+    body?: never;
+    path: {
+        /**
+         * Session Id
+         */
+        session_id: number;
+    };
+    query?: never;
+    url: '/api/v1/attendance/sessions/{session_id}';
+};
+
+export type DeleteAttendanceSessionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteAttendanceSessionError = DeleteAttendanceSessionErrors[keyof DeleteAttendanceSessionErrors];
+
+export type DeleteAttendanceSessionResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type DeleteAttendanceSessionResponse = DeleteAttendanceSessionResponses[keyof DeleteAttendanceSessionResponses];
 
 export type GetAttendanceSessionData = {
     body?: never;

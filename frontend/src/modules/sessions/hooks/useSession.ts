@@ -7,6 +7,7 @@ import {
   startAttendanceSessionMutation,
   closeAttendanceSessionMutation,
   refreshQrCodeMutation,
+  deleteAttendanceSessionMutation,
   listSessionRecordsOptions,
 } from '@/client/@tanstack/react-query.gen';
 import type { Options, ListAttendanceSessionsData, GetAttendanceSessionData, ListSessionRecordsData } from '@/client';
@@ -57,5 +58,10 @@ export function useSession() {
     onSuccess: () => invalidateQueryIds(queryClient, ['listAttendanceSessions', 'getAttendanceSession']),
   });
 
-  return { useList, useDetail, useSessionRecords, create, update, start, close, refreshQr };
+  const remove = useMutation({
+    ...deleteAttendanceSessionMutation(),
+    onSuccess: () => invalidateQueryId(queryClient, 'listAttendanceSessions'),
+  });
+
+  return { useList, useDetail, useSessionRecords, create, update, start, close, refreshQr, remove };
 }

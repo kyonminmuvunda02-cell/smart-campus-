@@ -1882,6 +1882,45 @@
             }
           }
         }
+      },
+      "delete": {
+        "tags": [
+          "attendance-sessions"
+        ],
+        "summary": "Delete Attendance Session",
+        "description": "Lecturer: delete their own non-active session.",
+        "operationId": "deleteAttendanceSession",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/attendance/sessions/{session_id}/start": {
@@ -3721,6 +3760,39 @@
             "type": "string",
             "format": "date-time",
             "title": "Assigned At"
+          },
+          "lecturer_first_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lecturer First Name"
+          },
+          "lecturer_last_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lecturer Last Name"
+          },
+          "lecturer_email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lecturer Email"
           }
         },
         "type": "object",

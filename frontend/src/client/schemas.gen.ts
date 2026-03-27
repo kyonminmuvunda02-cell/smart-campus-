@@ -1264,6 +1264,39 @@ export const CourseLecturerResponseSchema = {
             type: 'string',
             format: 'date-time',
             title: 'Assigned At'
+        },
+        lecturer_first_name: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Lecturer First Name'
+        },
+        lecturer_last_name: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Lecturer Last Name'
+        },
+        lecturer_email: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Lecturer Email'
         }
     },
     type: 'object',

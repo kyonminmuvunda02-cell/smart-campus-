@@ -172,3 +172,20 @@ def refresh_qr_code(
         qr_code_expiry=session.qr_code_expiry,
         qr_image_base64=qr_image,
     )
+
+
+@router.delete(
+    "/{session_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    name="delete_attendance_session",
+    operation_id="deleteAttendanceSession",
+)
+def delete_attendance_session(
+    session_id: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_role("Lecturer")),
+):
+    """Lecturer: delete their own non-active session."""
+    AttendanceSessionService.delete_session(db, session_id, current_user["user_id"])
+    db.commit()
+
