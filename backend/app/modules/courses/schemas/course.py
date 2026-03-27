@@ -54,6 +54,9 @@ class CourseLecturerResponse(BaseModel):
     course_id: int
     is_active: bool
     assigned_at: datetime
+    lecturer_first_name: str | None = None
+    lecturer_last_name: str | None = None
+    lecturer_email: str | None = None
 
 
 class CourseLecturerList(BaseModel):

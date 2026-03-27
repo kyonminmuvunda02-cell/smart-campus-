@@ -5,6 +5,8 @@ from sqlalchemy import select, func as sa_func
 from app.modules.courses.models.course import Course, CourseLecturer
 from app.modules.courses.schemas.course import CourseCreate, CourseUpdate, CourseLecturerCreate
 from app.modules.core.exceptions import NotFoundException, ConflictException, ForbiddenException
+from app.modules.users.models.lecturer import Lecturer
+from app.modules.users.models.user import AppUser
 
 logger = logging.getLogger(__name__)
 
@@ -149,7 +151,7 @@ class CourseService:
 
     @staticmethod
     def list_assignments_for_course(db: Session, course_id: int) -> dict:
-        """Return active lecturer assignments for a course."""
+        """Return active lecturer assignments for a course with lecturer details."""
         CourseService.get_course(db, course_id)
         total = db.execute(
             select(sa_func.count()).select_from(CourseLecturer).where(
@@ -157,12 +159,23 @@ class CourseService:
                 CourseLecturer.is_active == True,
             )
         ).scalar_one()
-        items = db.execute(
-            select(CourseLecturer)
+        rows = db.execute(
+            select(
+                CourseLecturer.lecturer_id,
+                CourseLecturer.course_id,
+                CourseLecturer.is_active,
+                CourseLecturer.assigned_at,
+                AppUser.first_name.label("lecturer_first_name"),
+                AppUser.last_name.label("lecturer_last_name"),
+                AppUser.email.label("lecturer_email"),
+            )
+            .join(Lecturer, Lecturer.user_id == CourseLecturer.lecturer_id)
+            .join(AppUser, AppUser.user_id == Lecturer.user_id)
             .where(
                 CourseLecturer.course_id == course_id,
                 CourseLecturer.is_active == True,
             )
             .order_by(CourseLecturer.assigned_at.desc())
-        ).scalars().all()
+        ).all()
+        items = [row._asdict() for row in rows]
         return {"items": items, "total": total}

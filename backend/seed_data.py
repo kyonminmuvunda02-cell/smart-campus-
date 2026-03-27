@@ -25,8 +25,8 @@ from app.modules.venues.models.venue import Venue
 
 
 fake = Faker()
-CAMPUS_LATITUDE = -15.3875
-CAMPUS_LONGITUDE = 28.3228
+CAMPUS_LATITUDE = -15.403327
+CAMPUS_LONGITUDE = 28.2786872
 DEFAULT_PASSWORD = "password123"
 
 def get_active_period(today: date) -> tuple[str, str, date, date]:
